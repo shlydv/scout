@@ -91,7 +91,10 @@ export async function POST(req: NextRequest) {
     }
     if (Math.max(cookieWindow.count, mapWindow.count) >= ANON_FREE_SEARCHES) {
       return NextResponse.json(
-        { error: "Sign in for unlimited searches — it's free.", code: "sign_in_required" },
+        {
+          error: "Sign in for 5 free Ask Scout searches a day.",
+          code: "sign_in_required",
+        },
         { status: 401 },
       );
     }

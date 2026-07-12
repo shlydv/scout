@@ -38,8 +38,9 @@ export function SignInGateCard({ onDismiss }: { onDismiss: () => void }) {
             That&apos;s all 3 free searches for now
           </p>
           <p className="mt-1 text-[13px] leading-relaxed text-(--color-fg-muted)">
-            Sign in for unlimited Ask Scout — it&apos;s free. Your saves, baskets, and
-            alerts come along too. Browsing and filters never need an account.
+            Sign in for 5 Ask Scout searches a day — free. Upgrade to Plus anytime for
+            unlimited searches, alerts, and basket health reports. Browsing and filters
+            never need an account.
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <Link

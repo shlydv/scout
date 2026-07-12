@@ -14,6 +14,13 @@ type RazorpayWebhook = {
   };
 };
 
+function periodEndFromInterval(interval: string | undefined): string {
+  const end = new Date();
+  if (interval === "yearly") end.setFullYear(end.getFullYear() + 1);
+  else end.setMonth(end.getMonth() + 1);
+  return end.toISOString();
+}
+
 export async function POST(request: Request) {
   const raw = await request.text();
   const signature = request.headers.get("x-razorpay-signature") ?? "";
@@ -32,15 +39,18 @@ export async function POST(request: Request) {
   const subEntity = body.payload?.subscription?.entity;
   const subId = subEntity?.id;
   if (!subId) {
-    // Standard Checkout: order.paid event
+    // Legacy Standard Checkout (one-time orders) — grant Plus for one billing period.
     if (event === "order.paid" || event === "payment.captured") {
       const orderId = body.payload?.order?.entity?.id ?? body.payload?.payment?.entity?.order_id;
-      const userId = body.payload?.order?.entity?.notes?.user_id;
+      const notes = body.payload?.order?.entity?.notes;
+      const userId = notes?.user_id;
       if (orderId && userId) {
         try {
-          await setUserPlanPlus(admin, userId, orderId, null);
+          const periodEnd = periodEndFromInterval(notes?.interval);
+          await setUserPlanPlus(admin, userId, orderId, periodEnd);
           await admin.from("subscriptions").update({
             status: "active",
+            current_period_end: periodEnd,
             updated_at: new Date().toISOString(),
           }).eq("razorpay_subscription_id", orderId);
         } catch (e) {

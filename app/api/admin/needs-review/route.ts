@@ -38,6 +38,10 @@ function needsReview(result: DeepseekExtractionResult): boolean {
 }
 
 export async function GET(req: Request) {
+  const { rejectUnlessAdmin } = await import("@/lib/auth/admin-gate");
+  const denied = await rejectUnlessAdmin(req);
+  if (denied) return denied;
+
   // Local QA tool — reads a JSONL from disk that never ships with the deploy.
   // Hide it entirely in production rather than 404ing with internal details.
   if (process.env.NODE_ENV === "production") {

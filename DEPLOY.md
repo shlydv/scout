@@ -67,6 +67,20 @@ Paste the same env vars when prompted, or add them in the Vercel dashboard → P
 2. In the Razorpay dashboard → Webhooks, add `https://YOUR-APP.vercel.app/api/billing/webhook` with the same secret, subscribed to the `subscription.*` events.
 3. **Webhooks fail closed**: if `RAZORPAY_WEBHOOK_SECRET` is missing or mismatched, every webhook is rejected and paying users are never upgraded to Plus — verify with a test payment end-to-end.
 
+## Admin, cron & cache purge
+
+Set these in Vercel (Production) so admin tools and alerts are not open to the world:
+
+| Variable | Purpose |
+|----------|---------|
+| `CRON_SECRET` | Vercel Cron + `/api/cron/search-alerts` Bearer auth; also accepts as `/api/revalidate?secret=` |
+| `ADMIN_SECRET` | Optional dedicated secret for `/api/admin/*` and revalidate (falls back to `CRON_SECRET`) |
+| `ADMIN_EMAILS` | Comma-separated Google emails allowed to use `/admin` UI |
+| `UNLIMITED_EMAILS` | Same emails also get unlimited AI (team bypass) |
+| `RESEND_API_KEY` | Optional — emails saved-search alert hits; without it, alerts are in-app only |
+
+Apply migration `0040_alert_notifications.sql` in Supabase for the in-app alert inbox.
+
 ## Error monitoring (Sentry) — recommended before launch
 
 1. Create a free Sentry project (platform: Next.js).
@@ -90,7 +104,7 @@ Paste the same env vars when prompted, or add them in the Vercel dashboard → P
 - `pnpm scrape:expand:detail` → PDP pass for rows missing `raw_payload`
 - `pnpm score` → `core_scores` updated
 
-Anyone refreshing [your deployment](https://oasis-j25rlgyrn-sahil27gunwal-9351s-projects.vercel.app/search) sees new products within seconds.
+Anyone refreshing the production deployment sees new products within seconds.
 
 **Redeploy only when** you change code or `NEXT_PUBLIC_*` env vars. Pushing to GitHub (`oasis.git`) auto-deploys if the repo is linked to Vercel.
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useAdminApi } from "@/components/admin-shell";
 import type { ReviewSummary, ReviewProduct } from "@/app/api/admin/needs-review/route";
 
 const ISSUE_LABELS: Record<string, string> = {
@@ -55,6 +56,7 @@ function StatCard({ label, value, sub }: { label: string; value: number | string
 }
 
 export default function NeedsReviewPage() {
+  const api = useAdminApi();
   const [data, setData] = useState<ReviewSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +69,7 @@ export default function NeedsReviewPage() {
       const params = new URLSearchParams();
       if (filterCode) params.set("code", filterCode);
       params.set("page", String(page));
-      const res = await fetch(`/api/admin/needs-review?${params}`);
+      const res = await api.fetch(`/api/admin/needs-review?${params}`);
       if (!res.ok) {
         const e = await res.json() as { error?: string };
         throw new Error(e.error ?? `HTTP ${res.status}`);
@@ -78,7 +80,7 @@ export default function NeedsReviewPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterCode, page]);
+  }, [api, filterCode, page]);
 
   useEffect(() => { void load(); }, [load]);
 

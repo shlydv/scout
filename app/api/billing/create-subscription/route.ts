@@ -3,6 +3,7 @@ import { adminClient } from "@/lib/supabase/admin";
 import { formatInr, planForInterval, type PlanInterval } from "@/lib/billing/plans";
 import {
   createRazorpayCustomer,
+  createRazorpaySubscription,
   ensureRazorpayPlan,
 } from "@/lib/billing/razorpay";
 import { supabaseFromBearer } from "@/lib/auth/supabase-user";
@@ -58,35 +59,32 @@ export async function POST(request: Request) {
     }
 
     const planId = await ensureRazorpayPlan(interval);
-
-    // Create a one-time order for Standard Checkout
-    const auth = Buffer.from(`${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`).toString("base64");
-    const orderRes = await fetch("https://api.razorpay.com/v1/orders", {
-      method: "POST",
-      headers: { authorization: `Basic ${auth}`, "content-type": "application/json" },
-      body: JSON.stringify({
-        amount: plan.amount_paise,
-        currency: plan.currency,
-        receipt: `sub_${data.user.id.slice(0, 8)}_${Date.now()}`,
-        notes: { user_id: data.user.id, plan: plan.id, interval },
-      }),
+    // ~10 years of renewals; cancel anytime from profile.
+    const totalCount = interval === "yearly" ? 10 : 120;
+    const subscription = await createRazorpaySubscription({
+      customerId,
+      planId,
+      totalCount,
+      notes: { user_id: data.user.id, plan: plan.id, interval },
     });
-    const order = await orderRes.json() as { id?: string; amount?: number; currency?: string; error?: any };
-    if (!order.id) throw new Error(order.error?.description ?? "Order creation failed");
 
-    // Store pending subscription
-    await admin.from("subscriptions").insert({
-      user_id: data.user.id,
-      razorpay_subscription_id: order.id,
-      razorpay_plan_id: planId,
-      status: "pending",
-    });
+    await admin.from("subscriptions").upsert(
+      {
+        user_id: data.user.id,
+        razorpay_subscription_id: subscription.id,
+        razorpay_plan_id: planId,
+        status: "pending",
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "razorpay_subscription_id" },
+    );
 
     return NextResponse.json({
-      order_id: order.id,
-      amount: order.amount,
-      currency: order.currency,
+      subscription_id: subscription.id,
+      checkout_url: subscription.short_url ?? null,
       key_id: process.env.RAZORPAY_KEY_ID,
+      amount: plan.amount_paise,
+      currency: plan.currency,
       plan: {
         name: plan.name,
         amount_display: formatInr(plan.amount_paise),

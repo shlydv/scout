@@ -85,6 +85,7 @@ export async function createRazorpaySubscription(opts: {
   customerId: string;
   planId: string;
   totalCount?: number;
+  notes?: Record<string, string>;
 }): Promise<RazorpaySubscriptionCreate> {
   return razorpayFetch<RazorpaySubscriptionCreate>("/subscriptions", {
     method: "POST",
@@ -94,6 +95,7 @@ export async function createRazorpaySubscription(opts: {
       total_count: opts.totalCount ?? 120,
       customer_notify: 1,
       quantity: 1,
+      notes: opts.notes,
     }),
   });
 }

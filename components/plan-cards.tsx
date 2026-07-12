@@ -14,14 +14,15 @@ import {
 
 declare global { interface Window { Razorpay: any } }
 
-function openRazorpayCheckout(data: { order_id: string; amount: number; key_id: string }) {
+function openRazorpayCheckout(data: {
+  subscription_id: string;
+  key_id: string;
+}) {
   const rzp = new window.Razorpay({
     key: data.key_id,
-    amount: data.amount,
-    currency: "INR",
+    subscription_id: data.subscription_id,
     name: "Scout",
     description: "Scout Plus",
-    order_id: data.order_id,
     handler: () => window.location.reload(),
     prefill: {},
     theme: { color: "#111" },
@@ -38,8 +39,8 @@ const FREE_FEATURES = [
 
 const PLUS_FEATURES = [
   "Unlimited Ask Scout AI searches",
-  "Saved searches with price & score alerts",
-  "Weekly basket health report",
+  "Saved-search alerts when new matches appear",
+  "Basket health report with swap impact",
   "Early access to new intelligence features",
   "Support an independent, ad-free Scout",
 ];
@@ -68,10 +69,20 @@ export function PlanCards() {
         },
         body: JSON.stringify({ interval }),
       });
-      const data = (await res.json()) as { order_id?: string; amount?: number; key_id?: string; error?: string };
+      const data = (await res.json()) as {
+        subscription_id?: string;
+        key_id?: string;
+        checkout_url?: string | null;
+        error?: string;
+      };
       if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
-      if (data.order_id && data.key_id && data.amount != null) {
-        openRazorpayCheckout({ order_id: data.order_id, amount: data.amount, key_id: data.key_id });
+      if (data.subscription_id && data.key_id && typeof window.Razorpay === "function") {
+        openRazorpayCheckout({
+          subscription_id: data.subscription_id,
+          key_id: data.key_id,
+        });
+      } else if (data.checkout_url) {
+        window.location.href = data.checkout_url;
       } else {
         throw new Error("Checkout unavailable — try again.");
       }

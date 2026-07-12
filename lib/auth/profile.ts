@@ -42,7 +42,9 @@ export async function getProfileForUser(
       .from("subscriptions")
       .select("current_period_end, status")
       .eq("user_id", userId)
-      .eq("status", "active")
+      .in("status", ["active", "pending_cancellation"])
+      .order("updated_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
     if (sub?.current_period_end && new Date(sub.current_period_end) < new Date()) {
       plan = "free";

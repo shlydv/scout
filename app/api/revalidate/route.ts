@@ -1,9 +1,14 @@
 import { revalidatePath, revalidateTag } from "next/cache";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { authorizeDeploySecret } from "@/lib/auth/admin-gate";
 
 /** Called by Vercel deploy hook or manual invocation to purge
- *  all stale cached catalog data after a deployment. */
-export async function GET() {
+ *  all stale cached catalog data after a deployment.
+ *  Auth: Authorization: Bearer $ADMIN_SECRET|$CRON_SECRET  or  ?secret= */
+export async function GET(req: NextRequest) {
+  if (!authorizeDeploySecret(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     revalidateTag("catalog-search", "max");
     revalidateTag("catalog-meta", "max");

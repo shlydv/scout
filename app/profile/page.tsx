@@ -34,6 +34,15 @@ export default function ProfilePage() {
   const [savedLoading, setSavedLoading] = useState(true);
   const [savedBusyId, setSavedBusyId] = useState<string | null>(null);
   const [alertCheckStatus, setAlertCheckStatus] = useState<string | null>(null);
+  const [subInfo, setSubInfo] = useState<{
+    status: string;
+    current_period_end: string | null;
+  } | null>(null);
+  const [cancelBusy, setCancelBusy] = useState(false);
+  const [cancelMsg, setCancelMsg] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<
+    Array<{ id: string; query: string; new_matches: number; previous: number; created_at: string; read_at: string | null }>
+  >([]);
 
   useEffect(() => {
     if (ready && !session) router.replace("/login");
@@ -51,8 +60,114 @@ export default function ProfilePage() {
 
   useEffect(() => { void loadSavedSearches(); }, [loadSavedSearches]);
 
+  useEffect(() => {
+    if (!session) return;
+    void (async () => {
+      try {
+        const res = await fetch("/api/billing/subscription", {
+          headers: { authorization: `Bearer ${session.access_token}` },
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          subscription: { status: string; current_period_end: string | null } | null;
+        };
+        setSubInfo(data.subscription);
+      } catch { /* ignore */ }
+    })();
+  }, [session]);
+
+  useEffect(() => {
+    if (!session || profile?.plan !== "plus") return;
+    void (async () => {
+      try {
+        const res = await fetch("/api/me/alert-notifications", {
+          headers: { authorization: `Bearer ${session.access_token}` },
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          notifications?: Array<{
+            id: string;
+            query: string;
+            new_matches: number;
+            previous: number;
+            created_at: string;
+            read_at: string | null;
+          }>;
+        };
+        setNotifications(data.notifications ?? []);
+      } catch { /* ignore */ }
+    })();
+  }, [session, profile?.plan]);
+
+  const cancelSubscription = async () => {
+    if (!session) return;
+    if (!window.confirm("Cancel Scout Plus at the end of your current billing period?")) return;
+    setCancelBusy(true);
+    setCancelMsg(null);
+    try {
+      const res = await fetch("/api/billing/cancel-subscription", {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${session.access_token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ cancel_at_cycle_end: true }),
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        status?: string;
+        current_period_end?: string | null;
+      };
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+      setCancelMsg(
+        data.status === "pending_cancellation"
+          ? "Cancelled — Plus stays active until the end of this period."
+          : "Subscription cancelled.",
+      );
+      setSubInfo((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: data.status ?? "pending_cancellation",
+              current_period_end: data.current_period_end ?? prev.current_period_end,
+            }
+          : prev,
+      );
+      await refreshProfile();
+    } catch (e) {
+      setCancelMsg((e as Error).message);
+    } finally {
+      setCancelBusy(false);
+    }
+  };
+
+  const markNotificationsRead = async () => {
+    if (!session) return;
+    const unread = notifications.filter((n) => !n.read_at).map((n) => n.id);
+    if (!unread.length) return;
+    try {
+      await fetch("/api/me/alert-notifications", {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${session.access_token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ ids: unread }),
+      });
+      setNotifications((prev) =>
+        prev.map((n) => (n.read_at ? n : { ...n, read_at: new Date().toISOString() })),
+      );
+    } catch { /* ignore */ }
+  };
+
   const toggleSavedAlert = async (row: SavedSearchRow) => {
     if (!session) return;
+    if (!row.alert_enabled && profile?.plan !== "plus") {
+      setAlertCheckStatus("Alerts need Scout Plus — upgrade on the pricing page.");
+      return;
+    }
     setSavedBusyId(row.id);
     try {
       const updated = await updateSavedSearch(session.access_token, {
@@ -160,6 +275,9 @@ export default function ProfilePage() {
   function formatDate(iso: string) {
     const d = new Date(iso);
     const diffMins = Math.floor((Date.now() - d.getTime()) / 60000);
+    if (diffMins < -60 * 24) {
+      return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+    }
     if (diffMins < 1) return "just now";
     if (diffMins < 60) return `${diffMins}m ago`;
     const diffHours = Math.floor(diffMins / 60);
@@ -167,6 +285,14 @@ export default function ProfilePage() {
     const diffDays = Math.floor(diffHours / 24);
     if (diffDays < 7) return `${diffDays}d ago`;
     return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+  }
+
+  function formatPeriodEnd(iso: string) {
+    return new Date(iso).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
   }
 
   return (
@@ -207,7 +333,7 @@ export default function ProfilePage() {
               sub: isUnlimited ? "unlimited" : "left today",
             },
             { label: "Saved searches", value: savedSearches.length, sub: "bookmarked" },
-            { label: "Daily limit", value: isUnlimited ? "∞" : profile?.ai_searches_limit ?? 10, sub: "per day" },
+            { label: "Daily limit", value: isUnlimited ? "∞" : profile?.ai_searches_limit ?? 5, sub: "per day" },
           ].map(s => (
             <div key={s.label} className="rounded-xl border border-(--color-line) bg-(--color-panel) p-4">
               <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-(--color-fg-dim)">{s.label}</p>
@@ -224,7 +350,7 @@ export default function ProfilePage() {
               <div>
                 <p className="font-semibold text-(--color-fg)">Upgrade to Scout Plus</p>
                 <p className="mt-1 text-[13px] text-(--color-fg-muted)">
-                  Unlimited AI searches, priority results, basket sync.
+                  Unlimited AI searches, saved-search alerts, and basket health reports.
                 </p>
               </div>
               <Link
@@ -233,6 +359,68 @@ export default function ProfilePage() {
               >
                 ₹100/mo
               </Link>
+            </div>
+          </div>
+        ) : isPlus ? (
+          <div className="mt-4 rounded-xl border border-(--color-line) bg-(--color-panel) p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="font-semibold text-(--color-fg)">Scout Plus</p>
+                <p className="mt-1 text-[13px] text-(--color-fg-muted)">
+                  {subInfo?.status === "pending_cancellation"
+                    ? `Cancels ${subInfo.current_period_end ? formatPeriodEnd(subInfo.current_period_end) : "at period end"} — you keep Plus until then.`
+                    : subInfo?.current_period_end
+                      ? `Renews ${formatPeriodEnd(subInfo.current_period_end)}`
+                      : "Active subscription"}
+                </p>
+                {cancelMsg ? (
+                  <p className="mt-1 text-[12px] text-(--color-fg-dim)">{cancelMsg}</p>
+                ) : null}
+              </div>
+              {subInfo?.status !== "pending_cancellation" && subInfo?.status !== "cancelled" ? (
+                <button
+                  type="button"
+                  disabled={cancelBusy}
+                  onClick={() => void cancelSubscription()}
+                  className="flex-shrink-0 rounded-lg border border-(--color-line) px-3 py-1.5 text-[12px] font-medium text-(--color-fg-muted) transition hover:text-(--color-fg) disabled:opacity-50"
+                >
+                  {cancelBusy ? "Cancelling…" : "Cancel subscription"}
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
+        {isPlus && notifications.some((n) => !n.read_at) ? (
+          <div className="mt-4 rounded-xl border border-(--color-accent)/30 bg-(--color-accent)/8 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-semibold text-(--color-fg)">New alert matches</p>
+                <ul className="mt-2 space-y-1">
+                  {notifications
+                    .filter((n) => !n.read_at)
+                    .slice(0, 5)
+                    .map((n) => (
+                      <li key={n.id} className="text-[13px] text-(--color-fg-muted)">
+                        <Link
+                          href={`/search?prompt=${encodeURIComponent(n.query)}`}
+                          className="font-medium text-(--color-fg) hover:text-(--color-accent)"
+                        >
+                          {n.query}
+                        </Link>
+                        {" — "}
+                        {n.new_matches} matches (was {n.previous})
+                      </li>
+                    ))}
+                </ul>
+              </div>
+              <button
+                type="button"
+                onClick={() => void markNotificationsRead()}
+                className="flex-shrink-0 text-[12px] font-medium text-(--color-fg-muted) hover:text-(--color-fg)"
+              >
+                Mark read
+              </button>
             </div>
           </div>
         ) : null}
@@ -327,7 +515,7 @@ export default function ProfilePage() {
             <div>
               <h2 className="font-display text-xl text-(--color-fg)">Saved searches</h2>
               <p className="mt-1 text-[13px] text-(--color-fg-muted)">
-                Re-run saved queries and get notified when new products match.
+                Re-run saved queries. Plus members get daily in-app alerts when new products match.
               </p>
             </div>
             {savedSearches.some(s => s.alert_enabled) ? (

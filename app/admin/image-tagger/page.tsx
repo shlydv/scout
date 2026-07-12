@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useAdminApi } from "@/components/admin-shell";
 
 type Product = {
   id: string;
@@ -14,6 +15,7 @@ type Product = {
 const BATCH_SIZE = 100;
 
 export default function ImageTaggerPage() {
+  const api = useAdminApi();
   const [loading, setLoading] = useState(true);
   const [done, setDone] = useState(0);
   const [total, setTotal] = useState(0);
@@ -33,7 +35,13 @@ export default function ImageTaggerPage() {
     setMessage(null);
     setSearchActive(false);
     try {
-      const res = await fetch(`/api/admin/reorder-images?count=${BATCH_SIZE}`);
+      const res = await api.fetch(`/api/admin/reorder-images?count=${BATCH_SIZE}`);
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        setMessage(err.error ?? `Failed to fetch (${res.status})`);
+        setProducts([]);
+        return;
+      }
       const data = (await res.json()) as {
         done: number;
         total: number;
@@ -47,7 +55,7 @@ export default function ImageTaggerPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [api]);
 
   useEffect(() => {
     void fetchBatch();
@@ -63,7 +71,12 @@ export default function ImageTaggerPage() {
     setHeroMap({});
     setMessage(null);
     try {
-      const res = await fetch(`/api/admin/reorder-images?search=${encodeURIComponent(q.trim())}`);
+      const res = await api.fetch(`/api/admin/reorder-images?search=${encodeURIComponent(q.trim())}`);
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        setMessage(err.error ?? "Search failed");
+        return;
+      }
       const data = (await res.json()) as {
         done?: number;
         total?: number;
@@ -76,7 +89,7 @@ export default function ImageTaggerPage() {
     } finally {
       setSearchLoading(false);
     }
-  }, [fetchBatch]);
+  }, [api, fetchBatch]);
 
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
@@ -115,9 +128,8 @@ export default function ImageTaggerPage() {
       return { productId: p.id, skip: true };
     });
     try {
-      const res = await fetch("/api/admin/reorder-images", {
+      const res = await api.fetch("/api/admin/reorder-images", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ actions }),
       });
       if (!res.ok) throw new Error("Save failed");
@@ -131,7 +143,7 @@ export default function ImageTaggerPage() {
     } finally {
       setSaving(false);
     }
-  }, [heroMap, heroCount, fetchBatch]);
+  }, [api, heroMap, heroCount, products, fetchBatch]);
 
   const skipAll = useCallback(async () => {
     if (products.length === 0) return;
@@ -141,9 +153,8 @@ export default function ImageTaggerPage() {
       skip: true,
     }));
     try {
-      const res = await fetch("/api/admin/reorder-images", {
+      const res = await api.fetch("/api/admin/reorder-images", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ actions }),
       });
       if (!res.ok) throw new Error("Skip failed");
@@ -155,15 +166,14 @@ export default function ImageTaggerPage() {
     } finally {
       setSaving(false);
     }
-  }, [products, fetchBatch]);
+  }, [api, products, fetchBatch]);
 
   const skipOne = useCallback(
     async (productId: string) => {
       setSaving(true);
       try {
-        const res = await fetch("/api/admin/reorder-images", {
+        const res = await api.fetch("/api/admin/reorder-images", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             actions: [{ productId, skip: true }],
           }),
@@ -183,7 +193,7 @@ export default function ImageTaggerPage() {
         setSaving(false);
       }
     },
-    [],
+    [api],
   );
 
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;

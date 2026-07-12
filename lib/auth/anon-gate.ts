@@ -11,7 +11,7 @@ import crypto from "node:crypto";
  * the IP map stays as a second signal for exactly that case.
  */
 
-export const ANON_FREE_SEARCHES = 999;
+export const ANON_FREE_SEARCHES = 3;
 export const ANON_COOKIE_NAME = "scout_ag";
 export const ANON_WINDOW_MS = 3_600_000; // 1 hour
 

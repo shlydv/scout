@@ -1,6 +1,7 @@
 import { adminClient } from "@/lib/supabase/admin";
 import type { AiSearchPreferences } from "@/lib/search/ai-usage";
 import { runSearchV2 } from "@/lib/search/v2/pipeline";
+import { deliverAlertTriggers } from "@/lib/search/v2/alert-notify";
 
 export type AlertRecord = {
   id: string;
@@ -69,6 +70,10 @@ export async function runAlertsForRecords(alerts: AlertRecord[]): Promise<AlertT
         err instanceof Error ? err.message : err,
       );
     }
+  }
+
+  if (triggered.length) {
+    await deliverAlertTriggers(triggered);
   }
 
   return triggered;

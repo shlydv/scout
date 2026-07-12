@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rejectUnlessAdmin } from "@/lib/auth/admin-gate";
 import { adminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -47,6 +48,8 @@ function productShape(p: ProductRow, includeStatus = false) {
 }
 
 export async function GET(req: NextRequest) {
+  const denied = await rejectUnlessAdmin(req);
+  if (denied) return denied;
   const supabase = adminClient();
   const skipId = req.nextUrl.searchParams.get("skip")?.trim() ?? null;
   const selectedId = req.nextUrl.searchParams.get("selected")?.trim() ?? null;
@@ -128,6 +131,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = await rejectUnlessAdmin(req);
+  if (denied) return denied;
   const body = (await req.json()) as {
     product_id?: string;
     hero_url?: string;
@@ -231,6 +236,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  const denied = await rejectUnlessAdmin(req);
+  if (denied) return denied;
   const body = (await req.json()) as { product_id?: string; restore_urls?: string[] };
   if (!body.product_id) return NextResponse.json({ error: "product_id required" }, { status: 400 });
 

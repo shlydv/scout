@@ -8,7 +8,7 @@ export const revalidate = 86400;
 export const metadata: Metadata = {
   title: "Pricing · Scout",
   description:
-    "Scout is free to browse. Scout Plus unlocks unlimited Ask Scout AI, basket reports, and alerts — ₹100/month or ₹1,000/year.",
+    "Scout is free to browse. Scout Plus unlocks unlimited Ask Scout AI, basket health reports, and saved-search alerts — ₹100/month or ₹1,000/year.",
 };
 
 export default function PricingPage() {

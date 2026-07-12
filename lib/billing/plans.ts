@@ -14,7 +14,7 @@ export type ScoutPlan = {
 export const SCOUT_PLUS_PLAN: ScoutPlan & { free_daily_ai_searches: number } = {
   id: "scout_plus_monthly",
   name: "Scout Plus",
-  description: "Unlimited Ask Scout AI, basket reports, compare, alerts",
+  description: "Unlimited Ask Scout AI, basket health reports, compare, alerts",
   amount_paise: 10_000, // ₹100 / month
   currency: "INR",
   interval: "monthly",
@@ -25,7 +25,7 @@ export const SCOUT_PLUS_PLAN: ScoutPlan & { free_daily_ai_searches: number } = {
 export const SCOUT_PLUS_YEARLY: ScoutPlan = {
   id: "scout_plus_yearly",
   name: "Scout Plus (yearly)",
-  description: "Unlimited Ask Scout AI, basket reports, compare, alerts — 2 months free",
+  description: "Unlimited Ask Scout AI, basket health reports, compare, alerts — 2 months free",
   amount_paise: 100_000, // ₹1,000 / year
   currency: "INR",
   interval: "yearly",

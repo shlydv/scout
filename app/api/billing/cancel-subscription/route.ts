@@ -24,47 +24,69 @@ export async function POST(request: Request) {
   const { cancel_at_cycle_end } = (await request.json().catch(() => ({}))) as {
     cancel_at_cycle_end?: boolean;
   };
+  // Default: keep Plus until the paid period ends (matches "cancel anytime").
+  const atCycleEnd = cancel_at_cycle_end !== false;
 
   const admin = adminClient();
 
-  // Fetch the user's active subscription
   const { data: sub } = await admin
     .from("subscriptions")
-    .select("razorpay_subscription_id, status")
+    .select("razorpay_subscription_id, status, current_period_end")
     .eq("user_id", auth.user.id)
-    .in("status", ["active", "pending"])
+    .in("status", ["active", "pending", "pending_cancellation"])
+    .order("updated_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (!sub?.razorpay_subscription_id) {
     return NextResponse.json({ error: "No active subscription found" }, { status: 404 });
   }
 
+  const subId = sub.razorpay_subscription_id;
+  const isLegacyOrder = subId.startsWith("order_");
+
   const authHeader = `Basic ${Buffer.from(`${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`).toString("base64")}`;
 
   try {
-    // Cancel at Razorpay — cancel_at_cycle_end=false cancels immediately
-    const cancelRes = await fetch(
-      `${RAZORPAY_BASE}/subscriptions/${sub.razorpay_subscription_id}/cancel`,
-      {
-        method: "POST",
-        headers: { authorization: authHeader, "content-type": "application/json" },
-        body: JSON.stringify({ cancel_at_cycle_end: cancel_at_cycle_end ?? false }),
-      },
-    );
-
-    if (!cancelRes.ok) {
-      const errBody = await cancelRes.json().catch(() => ({}));
-      const msg =
-        typeof errBody === "object" && errBody && "error" in errBody
-          ? JSON.stringify((errBody as { error: unknown }).error)
-          : cancelRes.statusText;
-      return NextResponse.json(
-        { error: `Razorpay cancellation failed: ${msg}` },
-        { status: 502 },
+    if (!isLegacyOrder) {
+      const cancelRes = await fetch(
+        `${RAZORPAY_BASE}/subscriptions/${subId}/cancel`,
+        {
+          method: "POST",
+          headers: { authorization: authHeader, "content-type": "application/json" },
+          body: JSON.stringify({ cancel_at_cycle_end: atCycleEnd }),
+        },
       );
+
+      if (!cancelRes.ok) {
+        const errBody = await cancelRes.json().catch(() => ({}));
+        const msg =
+          typeof errBody === "object" && errBody && "error" in errBody
+            ? JSON.stringify((errBody as { error: unknown }).error)
+            : cancelRes.statusText;
+        return NextResponse.json(
+          { error: `Razorpay cancellation failed: ${msg}` },
+          { status: 502 },
+        );
+      }
     }
 
-    // Update local DB
+    if (atCycleEnd && !isLegacyOrder) {
+      await admin
+        .from("subscriptions")
+        .update({
+          status: "pending_cancellation",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("razorpay_subscription_id", subId);
+      return NextResponse.json({
+        ok: true,
+        status: "pending_cancellation",
+        current_period_end: sub.current_period_end,
+      });
+    }
+
+    // Immediate cancel (or legacy one-time order): drop Plus now.
     await admin
       .from("profiles")
       .update({ plan: "free", updated_at: new Date().toISOString() })
@@ -76,9 +98,9 @@ export async function POST(request: Request) {
         status: "cancelled",
         updated_at: new Date().toISOString(),
       })
-      .eq("razorpay_subscription_id", sub.razorpay_subscription_id);
+      .eq("razorpay_subscription_id", subId);
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, status: "cancelled" });
   } catch (e) {
     console.error("[billing/cancel-subscription]", e instanceof Error ? e.message : e);
     return NextResponse.json(
