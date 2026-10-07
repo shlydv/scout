@@ -750,7 +750,7 @@ export function CatalogView({
     try {
       const result = await fetchAiCatalogSearch(
         prompt,
-        CATALOG_PAGE_SIZE,
+        24,
         "structured",
         savedPrefs,
         session?.access_token,
