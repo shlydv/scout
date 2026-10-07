@@ -7,6 +7,10 @@ import { evaluationRequest, rankDecisions } from "@/lib/search/decision/evaluate
 import { mapDbRow } from "@/lib/search/decision/index-row";
 import type { EvidenceCandidate } from "@/lib/search/decision/retrieval";
 config({ path: ".env.local" });
+// Validate the actual provider with server-only Preview credentials, without
+// exporting secrets locally or exposing a diagnostic endpoint. Production and
+// local builds do not spend inference quota.
+if (process.argv.includes("--preview-build") && process.env.VERCEL_ENV !== "preview") process.exit(0);
 const base: EvidenceCandidate = {
   row: mapDbRow({ product_id: "fixture", slug: "rice-biscuits", name: "Rice biscuits", price_inr: 80 }),
   evidence: { id: "fixture", name: "Rice biscuits", brand: "Example Foods", category: "Biscuits", subcategory: null,
