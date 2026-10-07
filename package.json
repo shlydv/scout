@@ -7,7 +7,7 @@
     "predev": "tsx scripts/sync-lottie.ts",
     "dev": "next dev --turbopack --hostname localhost",
     "dev:lan": "next dev --turbopack --hostname 0.0.0.0",
-    "prebuild": "tsx scripts/sync-lottie.ts",
+    "prebuild": "tsx scripts/sync-lottie.ts && tsx scripts/decision-search-eval.ts --preview-build",
     "build": "next build",
     "cats:sync": "tsx scripts/sync-lottie.ts",
     "start": "next start --hostname localhost",
@@ -74,7 +74,9 @@
     "lm:status": "tsx scripts/lm-run-status.ts",
     "mobile:env": "tsx scripts/sync-mobile-env.ts",
     "mobile:start": "pnpm mobile:env && cd oasis-mobile && pnpm install --ignore-workspace && pnpm start:tunnel",
-    "mobile:start:lan": "pnpm mobile:env && cd oasis-mobile && pnpm install --ignore-workspace && pnpm start:lan"
+    "mobile:start:lan": "pnpm mobile:env && cd oasis-mobile && pnpm install --ignore-workspace && pnpm start:lan",
+    "search:decision-test": "node --import tsx --test scripts/decision-search.test.ts",
+    "search:decision-eval": "node --import tsx scripts/decision-search-eval.ts"
   },
   "dependencies": {
     "@lottiefiles/dotlottie-react": "^0.19.4",

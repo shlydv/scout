@@ -6,7 +6,7 @@ import { Agent, fetch as undiciFetch } from "undici";
 import { EMBEDDING_DIM } from "@/lib/search/v2/types";
 
 const dispatcher = new Agent({
-  connect: { rejectUnauthorized: false, timeout: 20_000 },
+  connect: { timeout: 20_000 },
   bodyTimeout: 60_000,
   headersTimeout: 30_000,
 });
@@ -116,13 +116,14 @@ export async function embedTexts(
   }
 
   // Retry on rate-limit / transient errors so a 429 never silently yields embedding-less rows.
-  const MAX_ATTEMPTS = 5;
+  const MAX_ATTEMPTS = inputType === "query" ? 1 : 5;
   let lastErr: unknown = null;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
       const res = await undiciFetch(`${baseUrl}/embeddings`, {
         method: "POST",
         dispatcher,
+        signal: AbortSignal.timeout(inputType === "query" ? 8_000 : 60_000),
         headers: {
           "content-type": "application/json",
           authorization: `Bearer ${apiKey}`,
@@ -183,7 +184,10 @@ export async function embedText(text: string, inputType: EmbeddingInputType = "d
   const p = embedTexts([text], inputType)
     .then(([vec]) => {
       const result = vec ?? [];
-      embedCache.set(key, result);
+      if (result.length) {
+        embedCache.set(key, result);
+        if (embedCache.size > 512) embedCache.delete(embedCache.keys().next().value!);
+      }
       return result;
     })
     .finally(() => embedInflight.delete(key));

@@ -30,15 +30,18 @@ git push -u origin main
 | `SUPABASE_SERVICE_ROLE_KEY` | From Supabase → Settings → API → `service_role` |
 | `NEXT_PUBLIC_SITE_URL` | Leave empty on first deploy; after deploy set to `https://YOUR-APP.vercel.app` and redeploy |
 
-Optional (AI search — use separate keys so label batch jobs do not starve live search):
+Required for decision search:
 
-| `DEEPSEEK_SEARCH_API_KEY` | Live search parse + rank (`/api/search/ai`) |
-| `DEEPSEEK_LABEL_API_KEY` | Batch label extraction (`pnpm label:deepseek`) |
-| `DEEPSEEK_API_KEY` | Fallback if the keys above are unset |
+| Variable | Value |
+|----------|-------|
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Workers AI → Use REST API → Account ID |
+| `CLOUDFLARE_AUTH_TOKEN` | Workers AI API token, server-only |
+| `VOYAGE_API_KEY` | Existing embedding provider key; preserve the model and 1024 dimensions used to build the index |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → API → public anon key |
 
-Optional (only if you add client-side Supabase later):
+Apply `supabase/migrations/0041_decision_search_candidates.sql` and `0042_compact_vector_retrieval.sql` before deploying the new search. Start with Preview and run the live model evaluation before promoting. Cloudflare supplies inference through REST; hosting stays on Vercel, data stays on Supabase. See [decision search setup and rollout](docs/decision-search.md).
 
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → API → `anon` `public` |
+DeepSeek keys remain optional for batch label extraction and legacy offline tools; live search does not require DeepSeek or Groq.
 
 **Do not** add `GEMINI_API_KEY` to Vercel unless you run OCR/scoring in CI — those scripts run locally, not on the hosted site.
 
@@ -91,8 +94,8 @@ Apply migration `0040_alert_notifications.sql` in Supabase for the in-app alert 
 
 - Open `https://YOUR-APP.vercel.app/search`
 - Set `NEXT_PUBLIC_SITE_URL` to that URL, then **Redeploy** once (Vercel → Deployments → Redeploy) so metadata picks up the env var.
-- Smoke search: `namkeen` (instant catalog), `high protein milk`, `paneer under ₹150`
-- Local regression: `pnpm search:regression` and `pnpm search:regression:live` (needs `.env.local`)
+- Smoke search: `namkeen`, `high protein milk`, `paneer under ₹150`, and an allergen request with incomplete evidence. All submitted searches use the same decision flow.
+- Offline regression: `pnpm search:decision-test` and `node --import tsx scripts/free-access-regression.ts`. Live evidence evaluation: `pnpm search:decision-eval` (requires Cloudflare credentials and consumes quota).
 
 ## Does scraping / OCR update the live site?
 
@@ -104,7 +107,7 @@ Apply migration `0040_alert_notifications.sql` in Supabase for the in-app alert 
 - `pnpm scrape:expand:detail` → PDP pass for rows missing `raw_payload`
 - `pnpm score` → `core_scores` updated
 
-Anyone refreshing the production deployment sees new products within seconds.
+Refresh retrieval with `pnpm search:build-index -- --skip-unchanged` after catalog updates. Search-result caches expire after five minutes; candidate evidence is read from current product records.
 
 **Redeploy only when** you change code or `NEXT_PUBLIC_*` env vars. Pushing to GitHub (`oasis.git`) auto-deploys if the repo is linked to Vercel.
 

@@ -2,7 +2,7 @@ import type { AiSearchResult } from "@/lib/search/ai-search";
 import type { QueryParseResult } from "@/lib/search/query-parse";
 
 const PARSE_TTL_MS = 24 * 60 * 60 * 1000;
-const RESULT_TTL_MS = 60 * 60 * 1000;
+const RESULT_TTL_MS = 5 * 60 * 1000;
 
 type CacheEntry<T> = { at: number; value: T };
 
@@ -10,7 +10,7 @@ const parseCache = new Map<string, CacheEntry<QueryParseResult>>();
 const resultCache = new Map<string, CacheEntry<AiSearchResult>>();
 
 /** Bump when rank/merge logic changes so warm serverless instances drop stale results. */
-const CACHE_VERSION = "v12-trait-weights";
+const CACHE_VERSION = "v15-clef-evidence";
 
 function normalizeKey(prompt: string): string {
   return `${CACHE_VERSION}:${prompt.toLowerCase().replace(/\s+/g, " ").trim()}`;
@@ -46,12 +46,11 @@ import type { AiSearchPreferences } from "@/lib/search/ai-usage";
 /** Stable, order-independent fingerprint of user preferences for cache isolation. */
 function prefKey(prefs: AiSearchPreferences | null | undefined): string {
   if (!prefs || !Object.keys(prefs).length) return "";
-  const parts: string[] = [];
-  if (prefs.diet) parts.push(`diet:${prefs.diet}`);
-  if (prefs.budget) parts.push(`budget:${prefs.budget}`);
-  if (prefs.healthContexts?.length) parts.push(`ctx:${[...prefs.healthContexts].sort().join(",")}`);
-  if (prefs.avoidIngredients?.length) parts.push(`avoid:${[...prefs.avoidIngredients].sort().join(",")}`);
-  return parts.join("|");
+  return JSON.stringify({
+    diet: prefs.diet ?? null, budget: prefs.budget ?? null,
+    healthContexts: [...(prefs.healthContexts ?? [])].sort(),
+    avoidIngredients: [...(prefs.avoidIngredients ?? [])].sort(),
+  });
 }
 
 export function getCachedAiResult(

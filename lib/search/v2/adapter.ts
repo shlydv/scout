@@ -1,6 +1,6 @@
 import { adminClient } from "@/lib/supabase/admin";
 import type { AiSearchItem, AiSearchResult } from "@/lib/search/ai-search";
-import { heuristicParseProductQuery } from "@/lib/search/query-parse";
+import type { ParsedProductQuery } from "@/lib/search/query-parse";
 import { resolveProductVerdict } from "@/lib/scoring/verdict-resolve";
 import { countCanonicalSiblings } from "@/lib/search/v2/canonical-cluster";
 import { getDisplayChips } from "@/lib/search/v2/display-chips";
@@ -32,6 +32,7 @@ function scoreToBand(score: number): ScoreBand {
 function mapParseSource(
   source: SearchV2Result["intent"]["intent_source"],
 ): AiSearchResult["parse_source"] {
+  if (source === "cloudflare") return "cloudflare";
   if (source === "llm-groq" || source === "llm-deepseek") return "deepseek";
   return "heuristic";
 }
@@ -53,7 +54,7 @@ async function enrichDisplayFields(productIds: string[]): Promise<Map<string, Di
       // "column does not exist", which the outer catch swallowed, blanking ALL
       // search images. ocr_image_url (the label-frame URL) is the signal we need.
       .select("id, image_urls, net_weight, mrp_inr, ocr_image_url")
-      .in("id", productIds.slice(0, 200));
+      .in("id", productIds.slice(0, 200)).abortSignal(AbortSignal.timeout(5_000));
     for (const row of data ?? []) {
       try {
         const rawUrls: string[] = Array.isArray(row.image_urls) ? row.image_urls : [];
@@ -87,6 +88,7 @@ function rankedToAiItem(
   display: Map<string, DisplayEnrichment>,
   snapshotIndex: ProductSearchIndexRow[],
   dietaryPrevalence: DietaryPrevalenceMap,
+  decision = false,
 ): AiSearchItem {
   const row = c.row;
   const extra = display.get(row.product_id);
@@ -163,7 +165,7 @@ function rankedToAiItem(
     is_gluten_free: row.is_gluten_free,
     is_palm_oil_free: row.is_palm_oil_free,
     has_added_sugar: row.has_added_sugar,
-    display_chips: getDisplayChips(row, dietaryPrevalence, enrichedReasons),
+    display_chips: decision ? [] : getDisplayChips(row, dietaryPrevalence, enrichedReasons),
   };
 }
 
@@ -178,11 +180,18 @@ export async function searchV2ToAiResult(
   const dietaryPrevalence = v2.dietary_prevalence;
   const snapshotIndex = v2.snapshotIndex;
 
-  const items: AiSearchItem[] = v2.items.map((c) =>
-    rankedToAiItem(c, display, snapshotIndex, dietaryPrevalence),
-  );
+  const items: AiSearchItem[] = v2.items.map((c) => {
+    const item = rankedToAiItem(c, display, snapshotIndex, dietaryPrevalence, !!v2.decision);
+    if (v2.decision) item.display_chips = [];
+    return item;
+  });
 
-  const parsed = heuristicParseProductQuery(v2.intent.raw_query);
+  const parsed: ParsedProductQuery = {
+    product_terms: [], search_keywords: [], exclude_keywords: [], categories: [],
+    hard_constraints: {}, soft_preferences: [], health_contexts: [],
+    sort_intent: v2.intent.sort === "lowest_sugar" ? "best_match" : v2.intent.sort,
+    explanation: v2.summary,
+  };
   const parse_warning =
     v2.intent.intent_source === "degraded"
       ? "Limited understanding — showing best lexical matches"
@@ -191,7 +200,8 @@ export async function searchV2ToAiResult(
   return {
     parsed,
     parse_source: opts.parseSource ?? mapParseSource(v2.intent.intent_source),
-    rank_source: "semantic",
+    rank_source: v2.decision ? "decision" : "semantic",
+    decision: v2.decision,
     intent_tier: v2.intent.kind === "goal" ? "complex" : "structured",
     parse_warning,
     summary: v2.summary,

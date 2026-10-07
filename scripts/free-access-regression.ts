@@ -1,3 +1,5 @@
+import { searchInputSchema } from "@/lib/search/decision/input";
+import { DecisionUnavailableError } from "@/lib/search/decision/cloudflare";
 /** Run with node --import tsx scripts/free-access-regression.ts. External services are mocked. */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -34,6 +36,8 @@ const auth = { supabaseFromBearer: (header: string | null) => header ? {
 } : null };
 const route = load("app/api/search/ai/route.ts", {
   "next/server": next,
+  "@/lib/search/decision/input": { searchInputSchema },
+  "@/lib/search/decision/cloudflare": { DecisionUnavailableError },
   "@/lib/auth/supabase-user": auth,
   "@/lib/supabase/admin": { adminClient: () => ({ from: () => ({ insert: () => Promise.resolve({}) }) }) },
   "@/lib/search/search-cache": { getCachedAiResult: () => null, setCachedAiResult: () => {} },
@@ -82,7 +86,6 @@ let mobileSearches = 0;
 const mobile = load("oasis-mobile/src/lib/run-search.ts", {
   "@/lib/api": { fetchAiSearch: async () => { mobileSearches++; return result; } },
   "@/lib/ai-usage": { readAiSearchPreferences: async () => ({}) },
-  "@/lib/search-intent": { classifyIntent: () => "structured" },
 });
 for (let i = 0; i < 1001; i++) await mobile.runCatalogSearch("yogurt", null, null);
 assert.equal(mobileSearches, 1001, "Mobile must not retain its former 999-search cap");
