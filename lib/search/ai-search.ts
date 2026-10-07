@@ -43,8 +43,9 @@ export type AiSearchItem = CatalogGridItem & {
 
 export type AiSearchResult = {
   parsed: ParsedProductQuery;
-  parse_source: QueryParseResult["source"];
-  rank_source: "deepseek" | "fallback" | "semantic";
+  parse_source: QueryParseResult["source"] | "cloudflare";
+  rank_source: "deepseek" | "fallback" | "semantic" | "decision";
+  decision?: { model: string; input_tokens: number | null; evaluated: number };
   intent_tier: SearchIntentTier;
   parse_warning?: string;
   rank_warning?: string;

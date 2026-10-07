@@ -5,7 +5,7 @@ import type { CatalogGridItem } from "@/lib/products/catalog-api";
 import type { ParsedProductQuery } from "@/lib/search/query-parse";
 import type { ProductListItem } from "@/lib/products/queries";
 export const CATALOG_SNAPSHOT_KEY = "scout-catalog-snapshot";
-export const CATALOG_SNAPSHOT_VERSION = 1;
+export const CATALOG_SNAPSHOT_VERSION = 2;
 
 export type CatalogFactBrowseSnapshot = {
   headline: string;
@@ -27,7 +27,7 @@ export type CatalogSearchSnapshot = {
   aiMode: boolean;
   aiPrompt: string;
   aiSummary: string | null;
-  aiParseSource: "deepseek" | "heuristic" | null;
+  aiParseSource: "deepseek" | "heuristic" | "cloudflare" | null;
   aiRankSource: string | null;
   aiIntentTier: string | null;
   aiRelaxed: boolean;

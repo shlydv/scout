@@ -146,8 +146,6 @@ TAXONOMY — choose category + subcategory from this list ONLY (exact strings):
 ${TAXONOMY_PROMPT}`;
 
 /** Groq API — faster, free-tier alternative to DeepSeek for simple queries. */
-const GROQ_BASE_URL = "https://api.groq.com/openai/v1";
-const GROQ_MODEL = "llama-3.1-8b-instant";
 
 type LlmIntentJson = {
   kind?: SearchIntentKind;
@@ -280,53 +278,7 @@ export async function parseIntentWithLlm(
   const numeric = extractNumericConstraints(query);
   const hints = buildCatalogHints(query, opts.catalogMeta);
 
-  // Tier 1: Groq (fast, free tier, ~400ms). Hit Groq first for simple queries;
-  // DeepSeek escalation only when Groq fails or returns low confidence (<0.7)
-  // or on explicitly escalated queries (≥2 constraints).
-  const groqKey = process.env.GROQ_API_KEY?.trim();
-  let intentFromGroq: SearchIntentV2 | null = null;
-
-  if (groqKey && !opts.escalateDeepseek) {
-    try {
-      const { content } = await deepseekChat({
-        apiKey: groqKey,
-        baseUrl: GROQ_BASE_URL,
-        model: GROQ_MODEL,
-        usageKind: "search",
-        jsonObject: false,
-        deepseekExtras: false, // Groq doesn't support thinking/response_format
-        maxTokens: 400,
-        timeoutMs: 3_000,
-        system: INTENT_SYSTEM_PROMPT,
-        user: `Query: ${query}${hints}`,
-      });
-      const parsed = extractJsonObject(content) as LlmIntentJson;
-      intentFromGroq = normalizeLlmIntent(parsed, query);
-      intentFromGroq.intent_source = "llm-groq";
-
-      // If Groq returned high confidence and plausible output, accept it
-      const hasMeaningfulOutput =
-        intentFromGroq.primary_type || intentFromGroq.brand ||
-        intentFromGroq.goal_phrase || intentFromGroq.kind !== "directed";
-      if ((intentFromGroq.confidence ?? 0) >= 0.7 && hasMeaningfulOutput) {
-        let intent = intentFromGroq;
-        intent = mergeNumericIntoIntent(intent, numeric);
-        if (!intent.comparison_ref && numeric.comparison_ref) {
-          intent = {
-            ...intent,
-            comparison_ref: numeric.comparison_ref,
-            comparison_mode: numeric.comparison_mode ?? null,
-          };
-        }
-        return { intent, llm_calls: 0 }; // Groq is free
-      }
-    } catch {
-      // Groq failed — fall through to DeepSeek
-    }
-  }
-
-  // Tier 2: DeepSeek (slower, higher quality, ~2.5s). Used when Groq is
-  // unavailable, low-confidence, or when the query is explicitly escalated.
+  // Legacy offline intent evaluation only; online search uses Cloudflare.
   let lastErr: unknown;
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
@@ -336,10 +288,7 @@ export async function parseIntentWithLlm(
         maxTokens: 400,
         timeoutMs: attempt === 1 ? 6_000 : 10_000,
         system: INTENT_SYSTEM_PROMPT,
-        user: intentFromGroq
-          // Pass Groq's best guess as context so DeepSeek can refine, not restart
-          ? `Query: ${query}${hints}\nGroq guessed: ${JSON.stringify({ kind: intentFromGroq.kind, brand: intentFromGroq.brand, primary_type: intentFromGroq.primary_type, goal_phrase: intentFromGroq.goal_phrase })}`
-          : `Query: ${query}${hints}`,
+        user: `Query: ${query}${hints}`,
       });
       let intent = normalizeLlmIntent(extractJsonObject(content) as LlmIntentJson, query);
       intent.intent_source = "llm-deepseek";

@@ -185,7 +185,7 @@ export type SearchIntentV2 = {
   comparison_ref: string | null;
   comparison_mode: "healthier_than" | "cheaper_than" | null;
   confidence: number;
-  intent_source: "fast-path" | "llm-groq" | "llm-deepseek" | "cache" | "degraded";
+  intent_source: "cloudflare" | "fast-path" | "llm-groq" | "llm-deepseek" | "cache" | "degraded";
   raw_query: string;
   /** LLM-computed trait weights (28 traits → 0-1) — bypasses separate goal decomposition call */
   trait_weights?: Partial<Record<TraitId, number>>;
@@ -213,7 +213,8 @@ export type SearchV2Result = {
   items: RankedCandidate[];
   relaxed: boolean;
   relaxation_steps: string[];
-  rank_source: "v2_structured" | "v2_goal";
+  rank_source: "v2_structured" | "v2_goal" | "decision";
+  decision?: { model: string; input_tokens: number | null; evaluated: number };
   summary: string;
   llm_calls: number;
   latency_ms: number;

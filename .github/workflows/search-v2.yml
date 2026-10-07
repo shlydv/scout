@@ -1,55 +1,22 @@
-name: Search V2
-
+name: Decision search
 on:
   pull_request:
-    paths:
-      - "lib/search/**"
-      - "scripts/eval-search.ts"
-      - "scripts/search-v2-regression.ts"
-      - "eval/**"
+    paths: ["lib/search/**", "scripts/decision-search*", "app/api/search/**", "supabase/migrations/**", "components/catalog-view.tsx", ".github/workflows/search-v2.yml"]
   push:
     branches: [main, search-improvements]
-    paths:
-      - "lib/search/**"
-      - "scripts/eval-search.ts"
-      - "scripts/search-v2-regression.ts"
-      - "eval/**"
-
+    paths: ["lib/search/**", "scripts/decision-search*", "app/api/search/**", "supabase/migrations/**", "components/catalog-view.tsx", ".github/workflows/search-v2.yml"]
 jobs:
   regression:
     runs-on: ubuntu-latest
-    env:
-      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-      DEEPSEEK_SEARCH_API_KEY: ${{ secrets.DEEPSEEK_SEARCH_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm tsc --noEmit
-      - run: pnpm search:v2-regression
-      - name: Search eval (requires API keys)
-        run: |
-          if [ -z "$GROQ_API_KEY" ]; then
-            echo "::warning::Skipping search:eval — add GROQ_API_KEY repo secret for full merge gate"
-            exit 0
-          fi
-          pnpm search:eval
-        env:
-          SEARCH_V2_ENABLED: "true"
-          SEARCH_EVAL_USE_MEMORY: "1"
-      - name: Trait calibration curve
-        run: |
-          if [ -z "$GROQ_API_KEY" ]; then exit 0; fi
-          pnpm search:eval
-        env:
-          SEARCH_V2_ENABLED: "true"
-          SEARCH_EVAL_USE_MEMORY: "1"
-          SEARCH_EVAL_CALIBRATION: "1"
-        continue-on-error: true
+      - run: pnpm exec tsc --noEmit
+      - run: pnpm exec tsc --noEmit -p tsconfig.decision-tests.json
+      - run: pnpm search:decision-test
+      - run: node --import tsx scripts/free-access-regression.ts
