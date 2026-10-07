@@ -70,13 +70,21 @@ const mixed: EvidenceCandidate[] = Array.from({ length: 24 }, (_, i): EvidenceCa
       : i % 3 === 1 ? { "Free From": "Gluten free", Allergens: "Contains wheat" } : null },
 }));
 const mixedStart = Date.now();
-const mixedResponse = await evaluateCandidates("gluten-free biscuits", null, mixed);
+const mixedResponse = await evaluateCandidates("gluten-free biscuits", null, mixed, async request => {
+  const response = await cloudflareDecide(request);
+  console.log(JSON.stringify({ batch_product: (request.state as { products: { p0: { id: string } } }).products.p0.id, answer: response.answers.p0_match }));
+  return response;
+});
 latencies.push(Date.now() - mixedStart);
 tokens += mixedResponse.inputTokens ?? 0;
 const keptIds = new Set(mixedResponse.items.map(c => c.row.product_id));
 const mixedFailures = mixed.filter((c, i) => keptIds.has(c.row.product_id) !== (i % 3 === 0)).map(c => c.row.product_id);
 failed += mixedFailures.length;
 console.log(JSON.stringify({ batch: "mixed-gluten-evidence", products: mixed.length, failed_ids: mixedFailures, kept: [...keptIds] }));
+const sharedResponse = await cloudflareDecide(evaluationRequest("gluten-free biscuits", null, mixed));
+const sharedKeptIds = new Set(rankDecisions(mixed, sharedResponse).map(c => c.row.product_id));
+console.log(JSON.stringify({ comparison: "shared-context", failed_ids: mixed.filter((c, i) => sharedKeptIds.has(c.row.product_id) !== (i % 3 === 0)).map(c => c.row.product_id), kept: [...sharedKeptIds] }));
+tokens += sharedResponse.usage?.input_tokens ?? 0;
 latencies.sort((a, b) => a - b);
 console.log(JSON.stringify({ cases: cases.length, batch_products: mixed.length, failed, classification_errors: classificationErrors, input_tokens: tokens, p50_ms: latencies[Math.floor(latencies.length * 0.5)], p95_ms: latencies[Math.floor(latencies.length * 0.95)] }));
 process.exitCode = failed || (process.argv.includes("--strict-labels") && classificationErrors) ? 1 : 0;
