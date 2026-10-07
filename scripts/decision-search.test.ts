@@ -50,11 +50,13 @@ test("evidence retains complete ingredients, allergen attributes, units and sour
   assert.equal(evidence.nutrition_per_100g?.source, "label");
   assert.equal(evidence.price_inr, 0);
 });
-test("bounded batches evaluate each product once and select sort once", async () => {
+test("parallel decisions isolate every product's evidence and select sort once", async () => {
   const candidates = Array.from({ length: 30 }, (_, i) => candidate(String(i)));
   const requests: DecisionRequest[] = [];
   const result = await evaluateCandidates("cheap biscuits", { avoidIngredients: ["milk"] }, candidates, async r => { requests.push(r); return response(r); });
   assert.equal(result.items.length, 30);
+  assert.equal(requests.length, 30);
+  assert.ok(requests.every(r => Object.keys((r.state as { products: object }).products).length === 1));
   assert.equal(requests.filter(r => r.questions.sort).length, 1);
   assert.ok(requests.every(r => Object.keys(r.questions).length <= 64));
   assert.equal(result.inputTokens, requests.length * 100);

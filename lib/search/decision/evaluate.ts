@@ -60,35 +60,27 @@ export function orderMatches(items: RankedCandidate[], sort: DecisionSort): Rank
 }
 
 export async function evaluateCandidates(query: string, preferences: AiSearchPreferences | null, candidates: EvidenceCandidate[], decide: Decide = cloudflareDecide) {
-  // Split on serialized size, never truncate ingredient/allergen evidence.
-  const batches: EvidenceCandidate[][] = [];
-  let batch: EvidenceCandidate[] = [];
-  for (const candidate of candidates) {
-    const next = [...batch, candidate];
-    if (next.length > 24 || Buffer.byteLength(JSON.stringify(evaluationRequest(query, preferences, next))) > 47_000) {
-      if (batch.length) batches.push(batch);
-      batch = [candidate];
-    } else batch = next;
-  }
-  if (batch.length) batches.push(batch);
-  // Bound total work before spending quota. Oversized evidence is not truncated.
-  if (batches.length > 6 || batches.some(b => Buffer.byteLength(JSON.stringify(evaluationRequest(query, preferences, b))) > 47_000)) {
+  // A shared multi-product context leaked contradictory evidence between items
+  // in the live evaluation. Each decision sees exactly one product instead.
+  const requests = candidates.map((candidate, i) => evaluationRequest(query, preferences, [candidate], i === 0));
+  const sizes = requests.map(request => Buffer.byteLength(JSON.stringify(request)));
+  // Preflight the entire search before spending any quota. Never truncate labels.
+  if (requests.length > 60 || sizes.some(size => size > 47_000) || sizes.reduce((a, b) => a + b, 0) > 200_000) {
     throw new DecisionUnavailableError("Product evidence is too large to evaluate safely.");
   }
   const items: RankedCandidate[] = [];
   let sort: DecisionSort = "best_match", inputTokens = 0, measuredUsage = true;
-  // Bounded parallelism; additional batches omit the already requested sort question.
-  for (let start = 0; start < batches.length; start += 3) {
-    const responses = await Promise.all(batches.slice(start, start + 3).map((b, offset) => decide(evaluationRequest(query, preferences, b, start + offset === 0))));
+  for (let start = 0; start < requests.length; start += 4) {
+    const responses = await Promise.all(requests.slice(start, start + 4).map(request => decide(request)));
     responses.forEach((response, offset) => {
       if (start + offset === 0) {
         const answer = response.answers.sort;
         if (answer?.type === "choice") sort = answer.choice as DecisionSort;
       }
-      items.push(...rankDecisions(batches[start + offset]!, response));
+      items.push(...rankDecisions([candidates[start + offset]!], response));
       if (response.usage?.input_tokens != null) inputTokens += response.usage.input_tokens;
       else measuredUsage = false;
     });
   }
-  return { items: orderMatches(items, sort), sort, calls: batches.length, inputTokens: measuredUsage ? inputTokens : null };
+  return { items: orderMatches(items, sort), sort, calls: requests.length, inputTokens: measuredUsage ? inputTokens : null };
 }

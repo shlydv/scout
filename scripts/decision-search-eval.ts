@@ -3,7 +3,7 @@
  */
 import { config } from "dotenv";
 import { cloudflareDecide } from "@/lib/search/decision/cloudflare";
-import { evaluationRequest, rankDecisions } from "@/lib/search/decision/evaluate";
+import { evaluationRequest, rankDecisions, evaluateCandidates } from "@/lib/search/decision/evaluate";
 import { mapDbRow } from "@/lib/search/decision/index-row";
 import type { EvidenceCandidate } from "@/lib/search/decision/retrieval";
 config({ path: ".env.local" });
@@ -58,7 +58,7 @@ for (const c of cases) {
   if (!pass) failed++;
   console.log(JSON.stringify({ query: c.query, expected: c.expected, answer, kept, classificationPass, pass }));
 }
-// Exercise the actual 24-product shared context, including conflicting claims
+// Exercise the actual 24-product workflow, including conflicting claims
 // and missing evidence alongside valid matches. Single-product accuracy alone
 // does not establish that evidence remains isolated between products.
 const mixed: EvidenceCandidate[] = Array.from({ length: 24 }, (_, i): EvidenceCandidate => ({
@@ -70,10 +70,10 @@ const mixed: EvidenceCandidate[] = Array.from({ length: 24 }, (_, i): EvidenceCa
       : i % 3 === 1 ? { "Free From": "Gluten free", Allergens: "Contains wheat" } : null },
 }));
 const mixedStart = Date.now();
-const mixedResponse = await cloudflareDecide(evaluationRequest("gluten-free biscuits", null, mixed));
+const mixedResponse = await evaluateCandidates("gluten-free biscuits", null, mixed);
 latencies.push(Date.now() - mixedStart);
-tokens += mixedResponse.usage?.input_tokens ?? 0;
-const keptIds = new Set(rankDecisions(mixed, mixedResponse).map(c => c.row.product_id));
+tokens += mixedResponse.inputTokens ?? 0;
+const keptIds = new Set(mixedResponse.items.map(c => c.row.product_id));
 const mixedFailures = mixed.filter((c, i) => keptIds.has(c.row.product_id) !== (i % 3 === 0)).map(c => c.row.product_id);
 failed += mixedFailures.length;
 console.log(JSON.stringify({ batch: "mixed-gluten-evidence", products: mixed.length, failed_ids: mixedFailures, kept: [...keptIds] }));
