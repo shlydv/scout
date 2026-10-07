@@ -10,7 +10,7 @@ const parseCache = new Map<string, CacheEntry<QueryParseResult>>();
 const resultCache = new Map<string, CacheEntry<AiSearchResult>>();
 
 /** Bump when rank/merge logic changes so warm serverless instances drop stale results. */
-const CACHE_VERSION = "v13-clef-evidence";
+const CACHE_VERSION = "v14-clef-evidence";
 
 function normalizeKey(prompt: string): string {
   return `${CACHE_VERSION}:${prompt.toLowerCase().replace(/\s+/g, " ").trim()}`;

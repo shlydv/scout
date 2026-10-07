@@ -1215,7 +1215,7 @@ export function CatalogView({
         </div>
       ) : (aiMode ? displayedItems.length : total) === 0 ? (
         <EmptyState
-          title="No products match"
+          title={aiMode ? "No confirmed matches" : "No products match"}
           className="py-14"
           action={
             <button
@@ -1232,9 +1232,7 @@ export function CatalogView({
         >
           <p>
             {aiMode
-              ? activeFilterCount > 0
-                ? "Your filters narrowed the results to zero. Remove one to widen the net:"
-                : "Nothing in the catalog satisfies every part of that ask. Drop one constraint — the price cap, a brand, or a nutrition limit — and try again."
+              ? "We couldn’t confirm every requirement from the product information we checked. Try a more specific product name; keep any essential dietary requirements."
               : "These filters rule out the whole catalog. Remove one to widen the net:"}
           </p>
           {(!aiMode && hasFilters) ? (
