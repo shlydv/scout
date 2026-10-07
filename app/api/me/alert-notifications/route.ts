@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requirePlusUser } from "@/lib/auth/require-plus";
+import { requireAuthedUser } from "@/lib/auth/require-user";
 import { adminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
-/** List unread (and recent) in-app alert notifications for Plus users. */
+/** List unread (and recent) in-app alert notifications for signed-in users. */
 export async function GET(req: NextRequest) {
-  const authed = await requirePlusUser(req);
+  const authed = await requireAuthedUser(req);
   if (authed instanceof NextResponse) return authed;
 
   const { data, error } = await adminClient()
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
 
 /** Mark notifications read. Body: { ids?: string[], all?: boolean } */
 export async function POST(req: NextRequest) {
-  const authed = await requirePlusUser(req);
+  const authed = await requireAuthedUser(req);
   if (authed instanceof NextResponse) return authed;
 
   const body = (await req.json().catch(() => ({}))) as {

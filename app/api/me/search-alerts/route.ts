@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
-import { requirePlusUser } from "@/lib/auth/require-plus";
+import { requireAuthedUser } from "@/lib/auth/require-user";
 import { runAlertsForRecords, type AlertRecord } from "@/lib/search/v2/alert-runner";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
-/** List active alerts for the user (Plus). */
+/** List active alerts for the user. */
 export async function GET(req: NextRequest) {
-  const authed = await requirePlusUser(req);
+  const authed = await requireAuthedUser(req);
   if (authed instanceof NextResponse) return authed;
 
   const { data, error } = await adminClient()
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
  * Call from cron or manually; returns alerts with new matches.
  */
 export async function POST(req: NextRequest) {
-  const authed = await requirePlusUser(req);
+  const authed = await requireAuthedUser(req);
   if (authed instanceof NextResponse) return authed;
 
   const supabase = adminClient();

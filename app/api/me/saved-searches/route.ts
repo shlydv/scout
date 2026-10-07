@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
-import { requireAuthedUser, requirePlusUser } from "@/lib/auth/require-plus";
+import { requireAuthedUser } from "@/lib/auth/require-user";
 import type { AiSearchPreferences } from "@/lib/search/ai-usage";
 
 export const dynamic = "force-dynamic";
@@ -34,8 +34,7 @@ export async function POST(req: NextRequest) {
   }
 
   const wantsAlert = Boolean(body?.alert_enabled);
-  // Saving a search is free; enabling alerts requires Plus.
-  const authed = wantsAlert ? await requirePlusUser(req) : await requireAuthedUser(req);
+  const authed = await requireAuthedUser(req);
   if (authed instanceof NextResponse) return authed;
 
   const { data, error } = await adminClient()
@@ -75,8 +74,7 @@ export async function PATCH(req: NextRequest) {
   const id = body?.id?.trim();
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
-  const enablingAlert = body?.alert_enabled === true;
-  const authed = enablingAlert ? await requirePlusUser(req) : await requireAuthedUser(req);
+  const authed = await requireAuthedUser(req);
   if (authed instanceof NextResponse) return authed;
 
   const supabase = adminClient();

@@ -46,9 +46,6 @@ export function SiteFooter() {
             <Link href="/compare" className="block text-(--color-fg-muted) hover:text-(--color-fg)">
               Compare
             </Link>
-            <Link href="/pricing" className="block text-(--color-fg-muted) hover:text-(--color-fg)">
-              Scout Plus
-            </Link>
           </div>
           <div className="space-y-2">
             <p className="text-[11px] uppercase tracking-wider text-(--color-fg-dim)">

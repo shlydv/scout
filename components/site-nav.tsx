@@ -5,25 +5,6 @@ import { NavCartLink } from "@/components/nav-cart-link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/lib/auth/context";
 
-/** "Plus" pill — hidden once the member already pays. */
-function NavPlusLink() {
-  const { ready, profile } = useAuth();
-  if (!ready || profile?.plan === "plus") return null;
-  return (
-    <Link
-      href="/pricing"
-      className="hidden rounded-full border px-3 py-1.5 text-[12px] font-semibold transition hover:opacity-80 sm:inline-flex"
-      style={{
-        borderColor: "color-mix(in srgb, var(--color-accent) 45%, var(--color-line))",
-        color: "var(--color-accent)",
-        backgroundColor: "color-mix(in srgb, var(--color-accent) 7%, transparent)",
-      }}
-    >
-      Plus
-    </Link>
-  );
-}
-
 function NavAuthButton() {
   const { ready, session, profile } = useAuth();
   if (!ready) return null;
@@ -75,7 +56,6 @@ export function SiteNav() {
           </Link>
         </div>
         <div className="flex items-center gap-2">
-          <NavPlusLink />
           <ThemeToggle />
           <NavAuthButton />
         </div>

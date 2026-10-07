@@ -26,27 +26,3 @@ export async function requireAuthedUser(
   }
   return { user: data.user, profile };
 }
-
-export async function requirePlusUser(
-  req: NextRequest | Request,
-): Promise<AuthedUser | NextResponse> {
-  const result = await requireAuthedUser(req);
-  if (result instanceof NextResponse) return result;
-  const unlimited = (process.env.UNLIMITED_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-  const email = (result.profile.email ?? result.user.email ?? "").toLowerCase();
-  if (result.profile.plan === "plus" || unlimited.includes(email)) return result;
-  return NextResponse.json(
-    {
-      error: "Scout Plus required",
-      code: "plus_required",
-    },
-    { status: 402 },
-  );
-}
-
-export function isPlusResponse(value: AuthedUser | NextResponse): value is NextResponse {
-  return value instanceof NextResponse;
-}

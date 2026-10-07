@@ -49,11 +49,7 @@ export default function SearchScreen() {
         setPrompt(trimmed);
       } catch (e) {
         const err = e as Error & { code?: string; status?: number; name?: string };
-        if (err.code === "quota_exceeded" || err.status === 402) {
-          setError(
-            "Free AI searches used for today. Upgrade to Scout Plus for unlimited searches.",
-          );
-        } else if (err.name === "AbortError") {
+        if (err.name === "AbortError") {
           setError("Search took too long — try again in a moment.");
         } else {
           setError(err.message);
@@ -99,11 +95,6 @@ export default function SearchScreen() {
       {error ? (
         <Panel style={styles.errorBox}>
           <Text style={styles.errorText}>{error}</Text>
-          {error.includes("Upgrade") ? (
-            <Pressable style={styles.upgradeBtn} onPress={() => router.push("/subscribe")}>
-              <Text style={styles.upgradeBtnText}>Get Scout Plus</Text>
-            </Pressable>
-          ) : null}
         </Panel>
       ) : null}
 

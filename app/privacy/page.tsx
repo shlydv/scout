@@ -12,7 +12,7 @@ export default function PrivacyPage() {
       <SiteNav />
       <div className="mx-auto max-w-3xl px-6 py-16">
         <h1 className="font-display text-3xl">Privacy Policy</h1>
-        <p className="mt-2 text-sm text-(--color-fg-muted)">Last updated: June 2026</p>
+        <p className="mt-2 text-sm text-(--color-fg-muted)">Last updated: October 2026</p>
 
         <section className="mt-8 space-y-4 text-(--color-fg-muted)">
           <h2 className="font-semibold text-(--color-fg)">What we collect</h2>
@@ -20,9 +20,6 @@ export default function PrivacyPage() {
 
           <h2 className="font-semibold text-(--color-fg)">Search data</h2>
           <p>Your queries and product interactions help us rank results better. This data is associated with your account and never shared with third parties.</p>
-
-          <h2 className="font-semibold text-(--color-fg)">Payments</h2>
-          <p>Payments are processed by Razorpay. We do not store your card or UPI details. Razorpay&apos;s privacy policy applies to all transactions.</p>
 
           <h2 className="font-semibold text-(--color-fg)">Cookies</h2>
           <p>We use a session cookie for authentication. No tracking cookies, no ads.</p>

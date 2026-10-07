@@ -255,19 +255,9 @@ export type UserProfile = {
   email: string | null;
   phone: string | null;
   full_name: string | null;
-  plan: "free" | "plus";
-  ai_searches_remaining: number;
-  ai_searches_limit: number;
 };
 
 export type MeResponse = {
   user: { id: string; email?: string; phone?: string };
   profile: UserProfile;
-};
-
-export type SubscriptionCheckout = {
-  subscription_id: string;
-  checkout_url: string | null;
-  key_id: string;
-  plan: { name: string; amount_display: string; interval: string };
 };

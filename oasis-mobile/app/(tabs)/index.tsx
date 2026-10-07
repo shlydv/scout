@@ -193,11 +193,7 @@ export default function HomeTab() {
       setSearchResult(data);
     } catch (e) {
       const err = e as Error & { code?: string; status?: number; name?: string };
-      if (err.code === "quota_exceeded" || err.status === 402) {
-        setSearchError(
-          "Free AI searches used for today. Upgrade to Scout Plus for unlimited searches.",
-        );
-      } else if (err.name === "AbortError") {
+      if (err.name === "AbortError") {
         setSearchError("Search took too long — try again in a moment.");
       } else {
         setSearchError(err.message ?? "Search failed — try again.");
@@ -259,13 +255,6 @@ export default function HomeTab() {
           <FadeInUp>
             <Panel style={styles.errorBox}>
               <Text style={[styles.errorText, { color: colors.bad }]}>{searchError}</Text>
-              {searchError.includes("Plus") ? (
-                <PressableScale onPress={() => router.push("/subscribe")} haptic="medium">
-                  <View style={[styles.upgradeBtn, { backgroundColor: colors.fg }]}>
-                    <Text style={[styles.upgradeBtnText, { color: colors.bg }]}>Get Scout Plus</Text>
-                  </View>
-                </PressableScale>
-              ) : null}
             </Panel>
           </FadeInUp>
         ) : searchResult ? (

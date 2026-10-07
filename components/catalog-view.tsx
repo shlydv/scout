@@ -33,7 +33,6 @@ import {
 } from "@/lib/catalog/search-session";
 import {
   fetchCatalogMeta,
-  AiSearchError,
   fetchAiCatalogSearch,
   fetchCatalogSearch,
   fetchLandingInsights,
@@ -44,20 +43,14 @@ import {
 import { pickRotatingSlice } from "@/lib/catalog/landing-rotation";
 import { useLandingRotationSlot } from "@/lib/catalog/use-landing-rotation-slot";
 import type { LandingFact, LandingInsights } from "@/lib/products/landing-insights";
-import { AiQuotaCard } from "@/components/ai-quota-card";
-import { SignInGateCard } from "@/components/sign-in-gate-card";
 import { AiSavedPreferencesHint } from "@/components/ai-search-preferences";
 import { SavedSearchActions } from "@/components/saved-search-actions";
 import { setLastSearchContext } from "@/lib/search/v2/search-session";
 import {
-  canUseAiSearch,
   hasSavedPreferences,
   readAiSearchPreferences,
-  readAiSearchUsage,
-  recordAiSearch,
   writeAiSearchPreferences,
   type AiSearchPreferences,
-  type AiSearchUsage,
 } from "@/lib/search/ai-usage";
 import { classifyIntent } from "@/lib/search/intent-classify";
 import { readRecentSearches, recordRecentSearch } from "@/lib/search/recent-searches";
@@ -345,17 +338,12 @@ export function CatalogView({
   const [aiWarning, setAiWarning] = useState<string | null>(null);
   const [aiRefinements, setAiRefinements] = useState<string[]>([]);
   const [aiRelaxationExplanations, setAiRelaxationExplanations] = useState<string[]>([]);
-  const [aiUsage, setAiUsage] = useState<AiSearchUsage | null>(null);
-  const [quotaHit, setQuotaHit] = useState(false);
-  // Anonymous visitor used up the free searches — show the sign-in invitation.
-  const [signInGate, setSignInGate] = useState(false);
   const [aiParsed, setAiParsed] = useState<ParsedProductQuery | null>(null);
   const [dietaryPrevalence, setDietaryPrevalence] = useState<DietaryPrevalenceMap | null>(null);
   const [savedPrefs, setSavedPrefs] = useState<AiSearchPreferences | null>(null);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const examplePrompts = useRotatingPrompts();
-  const { profile, ready: authReady, session } = useAuth();
-  const isPlus = profile?.plan === "plus";
+  const { session } = useAuth();
 
   const aiModeRef = useRef(false);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
@@ -459,21 +447,9 @@ export function CatalogView({
     setShowGoalHint(
       !localStorage.getItem("scout-goal-v1") && !localStorage.getItem("oasis-goal-v1"),
     );
-    setAiUsage(readAiSearchUsage());
     setSavedPrefs(readAiSearchPreferences());
     setRecentSearches(readRecentSearches());
   }, []);
-
-  // Sync client-side quota limit from server profile when auth loads.
-  // The server is authoritative; localStorage defaults to limit=5 which may be wrong.
-  useEffect(() => {
-    if (!authReady || !profile || isPlus) return;
-    setAiUsage((prev) => {
-      const base = prev ?? readAiSearchUsage();
-      if (base.limit === profile.ai_searches_limit) return base;
-      return { ...base, limit: profile.ai_searches_limit };
-    });
-  }, [authReady, profile, isPlus]);
 
   useEffect(() => {
     const el = goalSentinelRef.current;
@@ -851,21 +827,12 @@ export function CatalogView({
     const prompt = (promptOverride ?? aiPrompt).trim();
     if (!prompt) return;
     setLoadError(null);
-    setSignInGate(false);
 
     const intent = classifyIntent(prompt, {
       brands: meta?.filters.brands,
       subcategories: meta?.filters.subcategories,
     });
     setAiIntentTier(intent);
-
-    // Plus members are unlimited; the client-side gate only applies to free use.
-    if (authReady && !isPlus && !canUseAiSearch()) {
-      setAiUsage(readAiSearchUsage());
-      setQuotaHit(true);
-      return;
-    }
-    setQuotaHit(false);
 
     const gen = ++fetchGen.current;
     setAiSearching(true);
@@ -896,7 +863,6 @@ export function CatalogView({
       setAiRefinements(result.refinements);
       setAiRelaxationExplanations(result.relaxation_explanations ?? []);
       setAiParsed(result.parsed);
-      if (authReady && !isPlus) setAiUsage(recordAiSearch());
       setRecentSearches(recordRecentSearch(prompt));
       if (result.v2) {
         setLastSearchContext({
@@ -908,20 +874,11 @@ export function CatalogView({
     } catch (e) {
       if (gen !== fetchGen.current) return;
       const err = e as Error;
-      const code = e instanceof AiSearchError ? e.code : null;
-      if (code === "sign_in_required") {
-        // The conversion moment for signed-out traffic — invite, don't error.
-        setSignInGate(true);
-      } else if (code === "quota_exceeded") {
-        setAiUsage(readAiSearchUsage());
-        setQuotaHit(true);
-      } else {
-        setLoadError(
-          err.name === "AbortError"
-            ? "Search took too long — try again in a moment."
-            : err.message,
-        );
-      }
+      setLoadError(
+        err.name === "AbortError"
+          ? "Search took too long — try again in a moment."
+          : err.message,
+      );
     } finally {
       if (gen === fetchGen.current) {
         setAiSearching(false);
@@ -929,7 +886,7 @@ export function CatalogView({
         setLoading(false);
       }
     }
-  }, [aiPrompt, items.length, savedPrefs, meta?.filters.brands, meta?.filters.subcategories, patch, isPlus]);
+  }, [aiPrompt, items.length, savedPrefs, meta?.filters.brands, meta?.filters.subcategories, patch, session?.access_token]);
 
   const handleFactAction = useCallback(
     async (fact: LandingFact) => {
@@ -1144,27 +1101,10 @@ export function CatalogView({
             </div>
           </form>
 
-          {quotaHit && authReady && !isPlus ? (
-            <AiQuotaCard usage={aiUsage} onDismiss={() => setQuotaHit(false)} />
-          ) : null}
-
-          {signInGate && authReady && !isPlus ? <SignInGateCard onDismiss={() => setSignInGate(false)} /> : null}
-
           {/* Inline failure note — a failed ask must never look like a quiet no-op */}
-          {loadError && !signInGate && !quotaHit ? (
+          {loadError ? (
             <p className="mt-1.5 text-[12px] text-(--color-bad)" role="alert">
               {loadError}
-            </p>
-          ) : null}
-
-          {/* Gentle heads-up when the free allowance is nearly used */}
-          {!quotaHit && authReady && !isPlus && aiUsage && aiUsage.limit - aiUsage.count <= 3 && aiUsage.count > 0 ? (
-            <p className="mt-1.5 text-[11px] text-(--color-fg-dim)">
-              {Math.max(0, aiUsage.limit - aiUsage.count)} free AI search
-              {aiUsage.limit - aiUsage.count === 1 ? "" : "es"} left today ·{" "}
-              <Link href="/pricing" className="underline underline-offset-2 hover:text-(--color-fg)">
-                Plus is unlimited
-              </Link>
             </p>
           ) : null}
 

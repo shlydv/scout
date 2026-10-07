@@ -1,5 +1,5 @@
 import { fetchAiSearch } from "@/lib/api";
-import { canUseAiSearch, readAiSearchPreferences, recordAiSearch } from "@/lib/ai-usage";
+import { readAiSearchPreferences } from "@/lib/ai-usage";
 import { classifyIntent } from "@/lib/search-intent";
 import type { AiSearchResult, CatalogMeta } from "@/types/api";
 
@@ -25,18 +25,9 @@ export async function runCatalogSearch(
     subcategories: catalogMeta?.filters.subcategories,
   });
 
-  if (!(await canUseAiSearch())) {
-    const err = new Error(
-      "Free AI searches used for today. Upgrade to Scout Plus for unlimited searches.",
-    ) as Error & { code?: string };
-    err.code = "quota_exceeded";
-    throw err;
-  }
-
   const preferences = await readAiSearchPreferences();
   const tier = intent === "complex" ? "complex" : "structured";
 
   const result = await fetchAiSearch(trimmed, token, limit, tier, preferences);
-  await recordAiSearch();
   return result;
 }

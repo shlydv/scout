@@ -61,11 +61,11 @@ Paste the same env vars when prompted, or add them in the Vercel dashboard → P
 - `.env.local` is gitignored; never commit keys.
 - Supabase RLS already allows **public read** on `products` and `core_scores`; writes stay blocked for anonymous users.
 
-## Billing (Razorpay) — required once Scout Plus is on
+## Free access
 
-1. Set all five env vars in Vercel: `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_PLAN_ID`, `RAZORPAY_PLAN_ID_YEARLY`, `RAZORPAY_WEBHOOK_SECRET`.
-2. In the Razorpay dashboard → Webhooks, add `https://YOUR-APP.vercel.app/api/billing/webhook` with the same secret, subscribed to the `subscription.*` events.
-3. **Webhooks fail closed**: if `RAZORPAY_WEBHOOK_SECRET` is missing or mismatched, every webhook is rejected and paying users are never upgraded to Plus — verify with a test payment end-to-end.
+Search is unlimited for guests and signed-in users. Accounts are used for saved searches and alerts; there are no paid features or billing endpoints. Old pricing links redirect to search.
+
+When retiring a previous paid deployment, cancel any active recurring subscriptions in the Razorpay dashboard, disable the old webhook, and remove the billing environment variables. Removing application code does not cancel existing payment mandates. Historical database migrations and billing records are retained for reconciliation; the app no longer reads them.
 
 ## Admin, cron & cache purge
 
@@ -76,7 +76,7 @@ Set these in Vercel (Production) so admin tools and alerts are not open to the w
 | `CRON_SECRET` | Vercel Cron + `/api/cron/search-alerts` Bearer auth; also accepts as `/api/revalidate?secret=` |
 | `ADMIN_SECRET` | Optional dedicated secret for `/api/admin/*` and revalidate (falls back to `CRON_SECRET`) |
 | `ADMIN_EMAILS` | Comma-separated Google emails allowed to use `/admin` UI |
-| `UNLIMITED_EMAILS` | Same emails also get unlimited AI (team bypass) |
+| `UNLIMITED_EMAILS` | Legacy alias for the admin email allowlist |
 | `RESEND_API_KEY` | Optional — emails saved-search alert hits; without it, alerts are in-app only |
 
 Apply migration `0040_alert_notifications.sql` in Supabase for the in-app alert inbox.

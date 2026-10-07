@@ -8,7 +8,6 @@ import type {
   LandingInsights,
   MeResponse,
   ProductDetail,
-  SubscriptionCheckout,
 } from "@/types/api";
 
 const DEFAULT_TIMEOUT_MS = 25_000;
@@ -138,13 +137,6 @@ export function fetchAiSearch(
     }),
     token,
     timeoutMs: AI_SEARCH_TIMEOUT_MS,
-  });
-}
-
-export function createSubscription(token: string): Promise<SubscriptionCheckout> {
-  return apiFetch("/api/billing/create-subscription", {
-    method: "POST",
-    token,
   });
 }
 

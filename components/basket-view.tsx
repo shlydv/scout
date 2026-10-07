@@ -26,11 +26,8 @@ import {
 import type { ProductListItem } from "@/lib/products/queries";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/empty-state";
-import { useAuth } from "@/lib/auth/context";
 
 export function BasketView() {
-  const { profile } = useAuth();
-  const isPlus = profile?.plan === "plus";
   const [entries, setEntries] = useState<ReturnType<typeof readBasket>>([]);
   const [catalog, setCatalog] = useState<ProductListItem[]>([]);
   const [swapsBySlug, setSwapsBySlug] = useState<Record<string, SwapSuggestion[]>>({});
@@ -215,24 +212,7 @@ export function BasketView() {
         </p>
       </div>
 
-      {isPlus ? (
-        <BasketHealthReport analysis={analysis} impact={swapImpact} swapsLoading={swapsLoading} />
-      ) : (
-        <div className="rounded-2xl border border-(--color-line) bg-(--color-panel) p-5">
-          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-(--color-fg-dim)">
-            Basket health report
-          </p>
-          <p className="mt-2 text-sm text-(--color-fg-muted)">
-            See your basket grade and how suggested swaps would change the score — included with Scout Plus.
-          </p>
-          <Link
-            href="/pricing"
-            className="mt-3 inline-flex text-[13px] font-semibold text-(--color-accent) hover:underline"
-          >
-            Unlock with Plus →
-          </Link>
-        </div>
-      )}
+      <BasketHealthReport analysis={analysis} impact={swapImpact} swapsLoading={swapsLoading} />
 
       <div className="space-y-2">
         <GoalModePicker value={goal} onChange={pickGoal} compact />

@@ -73,7 +73,7 @@ export default function LoginPage() {
           Sign in to Scout
         </h1>
         <p className="mt-2 text-sm text-(--color-fg-muted)">
-          Save searches, track your basket health, and unlock Scout Plus.
+          Save searches and keep track of your favorite finds. Search is free for everyone.
         </p>
 
         <div className="mt-8 space-y-3">

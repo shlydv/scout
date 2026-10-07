@@ -78,7 +78,7 @@ export function prefetchCatalogSearch(
 
 const AI_SEARCH_FETCH_MS = 55_000;
 
-/** Carries the API's machine-readable code (sign_in_required, quota_exceeded)
+/** Carries the API's machine-readable error code
  *  so the UI can render the right gate instead of a generic failure. */
 export class AiSearchError extends Error {
   code: string | null;

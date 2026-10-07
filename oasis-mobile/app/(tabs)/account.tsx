@@ -68,18 +68,9 @@ export default function AccountTab() {
         <SectionTitle style={styles.title}>Settings</SectionTitle>
 
         <Panel style={styles.card}>
-          <Text style={styles.label}>Plan</Text>
-          <Text style={styles.value}>
-            {profile?.plan === "plus" ? "Scout Plus" : "Free"}
-          </Text>
-          {profile?.plan !== "plus" ? (
-            <Text style={styles.hint}>
-              {profile?.ai_searches_remaining ?? 0} of {profile?.ai_searches_limit ?? 5} AI searches
-              today
-            </Text>
-          ) : (
-            <Text style={styles.hint}>Unlimited AI search · ₹199/mo</Text>
-          )}
+          <Text style={styles.label}>Scout</Text>
+          <Text style={styles.value}>Free for everyone</Text>
+          <Text style={styles.hint}>Unlimited search</Text>
         </Panel>
 
         {profile?.email ? (
@@ -95,12 +86,6 @@ export default function AccountTab() {
           </Panel>
         ) : null}
 
-        {profile?.plan !== "plus" ? (
-          <Pressable style={styles.primary} onPress={() => router.push("/subscribe")}>
-            <Ionicons name="card" size={20} color={colors.bg} />
-            <Text style={styles.primaryText}>Upgrade · UPI or card</Text>
-          </Pressable>
-        ) : null}
 
         {alertHits.length > 0 ? (
           <Panel style={styles.card}>
