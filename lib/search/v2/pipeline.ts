@@ -4,6 +4,7 @@ import { retrieveEvidence } from "@/lib/search/decision/retrieval";
 import { evaluateCandidates } from "@/lib/search/decision/evaluate";
 import { singleFlight } from "@/lib/search/decision/single-flight";
 import { searchInputSchema } from "@/lib/search/decision/input";
+import { DECISION_MODEL } from "@/lib/search/decision/cloudflare";
 import type { SearchV2Result } from "./types";
 
 async function executeSearch(rawQuery: string, opts: { limit?: number; preferences?: AiSearchPreferences | null } = {}): Promise<SearchV2Result> {
@@ -27,7 +28,7 @@ async function executeSearch(rawQuery: string, opts: { limit?: number; preferenc
       : "No confirmed matches in the evaluated candidates. Try rephrasing your request; your requirements were not relaxed.",
     llm_calls: result.calls, latency_ms: Date.now() - started, explored: false,
     snapshotIndex: candidates.map(c => c.row), dietary_prevalence: {},
-    decision: { model: "clef-flash", input_tokens: result.inputTokens, evaluated: candidates.length },
+    decision: { model: DECISION_MODEL, input_tokens: result.inputTokens, evaluated: candidates.length },
   };
 }
 

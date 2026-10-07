@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const DECISION_MODEL = "clef";
+
 export type DecisionQuestion =
   | { type: "choice"; instructions: string; criteria: Record<string, string> }
   | { type: "score"; instructions: string; criteria: string[] };
@@ -45,11 +47,11 @@ export async function cloudflareDecide(request: DecisionRequest): Promise<Decisi
   if (!account || !token) throw new DecisionUnavailableError("Search is not configured yet.");
   const count = Object.keys(request.questions).length;
   if (count < 1 || count > 64) throw new Error("Decision request must contain 1–64 questions");
-  const body = JSON.stringify({ model: "clef-flash", ...request });
+  const body = JSON.stringify({ model: DECISION_MODEL, ...request });
   // Conservative byte bound, including instructions. Never let the service silently truncate labels.
   if (Buffer.byteLength(body, "utf8") > 48_000) throw new DecisionUnavailableError("Product evidence is too large to evaluate safely.");
   try {
-    const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(account)}/ai/run/@cf/cloudflare/clef-flash`, {
+    const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(account)}/ai/run/@cf/cloudflare/${DECISION_MODEL}`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body, signal: AbortSignal.timeout(12_000), cache: "no-store",

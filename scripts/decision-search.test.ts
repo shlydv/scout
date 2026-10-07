@@ -79,8 +79,8 @@ test("Cloudflare uses REST envelope; quota exhaustion never produces results", a
   try {
     const request = evaluationRequest("biscuits", null, [candidate("a")]);
     globalThis.fetch = async (url, init) => {
-      assert.ok(String(url).endsWith("/ai/run/@cf/cloudflare/clef-flash"));
-      assert.equal(JSON.parse(String(init?.body)).model, "clef-flash");
+      assert.ok(String(url).endsWith("/ai/run/@cf/cloudflare/clef"));
+      assert.equal(JSON.parse(String(init?.body)).model, "clef");
       return new Response(JSON.stringify({ success: true, result: response(request) }));
     };
     assert.ok((await cloudflareDecide(request)).answers.p0_match);
