@@ -58,6 +58,25 @@ for (const c of cases) {
   if (!pass) failed++;
   console.log(JSON.stringify({ query: c.query, expected: c.expected, answer, kept, classificationPass, pass }));
 }
+// Exercise the actual 24-product shared context, including conflicting claims
+// and missing evidence alongside valid matches. Single-product accuracy alone
+// does not establish that evidence remains isolated between products.
+const mixed: EvidenceCandidate[] = Array.from({ length: 24 }, (_, i): EvidenceCandidate => ({
+  ...base,
+  row: { ...base.row, product_id: `mixed-${i}` },
+  evidence: { ...base.evidence, id: `mixed-${i}`,
+    ingredients: i % 3 === 2 ? null : base.evidence.ingredients,
+    attributes: i % 3 === 0 ? { "Free From": "Gluten free" }
+      : i % 3 === 1 ? { "Free From": "Gluten free", Allergens: "Contains wheat" } : null },
+}));
+const mixedStart = Date.now();
+const mixedResponse = await cloudflareDecide(evaluationRequest("gluten-free biscuits", null, mixed));
+latencies.push(Date.now() - mixedStart);
+tokens += mixedResponse.usage?.input_tokens ?? 0;
+const keptIds = new Set(rankDecisions(mixed, mixedResponse).map(c => c.row.product_id));
+const mixedFailures = mixed.filter((c, i) => keptIds.has(c.row.product_id) !== (i % 3 === 0)).map(c => c.row.product_id);
+failed += mixedFailures.length;
+console.log(JSON.stringify({ batch: "mixed-gluten-evidence", products: mixed.length, failed_ids: mixedFailures, kept: [...keptIds] }));
 latencies.sort((a, b) => a - b);
-console.log(JSON.stringify({ cases: cases.length, failed, classification_errors: classificationErrors, input_tokens: tokens, p50_ms: latencies[Math.floor(latencies.length * 0.5)], p95_ms: latencies[Math.floor(latencies.length * 0.95)] }));
+console.log(JSON.stringify({ cases: cases.length, batch_products: mixed.length, failed, classification_errors: classificationErrors, input_tokens: tokens, p50_ms: latencies[Math.floor(latencies.length * 0.5)], p95_ms: latencies[Math.floor(latencies.length * 0.95)] }));
 process.exitCode = failed || (process.argv.includes("--strict-labels") && classificationErrors) ? 1 : 0;
