@@ -39,7 +39,7 @@ Required for decision search:
 | `VOYAGE_API_KEY` | Existing embedding provider key; preserve the model and 1024 dimensions used to build the index |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → API → public anon key |
 
-Apply `supabase/migrations/0041_decision_search_candidates.sql` before deploying the new search. Start with Preview and run the live model evaluation before promoting. Cloudflare supplies inference through REST; hosting stays on Vercel, data stays on Supabase. See [decision search setup and rollout](docs/decision-search.md).
+Apply `supabase/migrations/0041_decision_search_candidates.sql` and `0042_compact_vector_retrieval.sql` before deploying the new search. Start with Preview and run the live model evaluation before promoting. Cloudflare supplies inference through REST; hosting stays on Vercel, data stays on Supabase. See [decision search setup and rollout](docs/decision-search.md).
 
 DeepSeek keys remain optional for batch label extraction and legacy offline tools; live search does not require DeepSeek or Groq.
 

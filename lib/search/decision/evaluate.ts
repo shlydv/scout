@@ -38,7 +38,7 @@ export function rankDecisions(candidates: EvidenceCandidate[], response: Decisio
   return candidates.flatMap((c, i) => {
     const match = response.answers[`p${i}_match`];
     const relevance = response.answers[`p${i}_relevance`];
-    // Provisional calibrated acceptance threshold; not a dietary rule.
+    // Provisional acceptance threshold; not a dietary rule.
     if (match?.type !== "choice" || match.choice !== "match" || match.probabilities.match! < 0.8 || relevance?.type !== "score") return [];
     return [{ row: c.row, relevance_score: relevance.score / 4, final_score: relevance.score / 4,
       health_score: (c.row.scout_score ?? 0) / 100, trait_match_score: 0, popularity_score: 0,
@@ -70,7 +70,10 @@ export async function evaluateCandidates(query: string, preferences: AiSearchPre
   }
   const items: RankedCandidate[] = [];
   let sort: DecisionSort = "best_match", inputTokens = 0, measuredUsage = true;
+  const deadline = Date.now() + 24_000;
   for (let start = 0; start < requests.length; start += 4) {
+    // A final 12-second provider timeout must still fit inside Vercel's budget.
+    if (Date.now() >= deadline) throw new DecisionUnavailableError();
     const responses = await Promise.all(requests.slice(start, start + 4).map(request => decide(request)));
     responses.forEach((response, offset) => {
       if (start + offset === 0) {
