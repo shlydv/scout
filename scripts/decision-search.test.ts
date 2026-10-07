@@ -50,14 +50,14 @@ test("evidence retains complete ingredients, allergen attributes, units and sour
   assert.equal(evidence.nutrition_per_100g?.source, "label");
   assert.equal(evidence.price_inr, 0);
 });
-test("parallel decisions isolate every product's evidence and select sort once", async () => {
+test("parallel decisions isolate evidence and keep the question schema consistent", async () => {
   const candidates = Array.from({ length: 30 }, (_, i) => candidate(String(i)));
   const requests: DecisionRequest[] = [];
   const result = await evaluateCandidates("cheap biscuits", { avoidIngredients: ["milk"] }, candidates, async r => { requests.push(r); return response(r); });
   assert.equal(result.items.length, 30);
   assert.equal(requests.length, 30);
   assert.ok(requests.every(r => Object.keys((r.state as { products: object }).products).length === 1));
-  assert.equal(requests.filter(r => r.questions.sort).length, 1);
+  assert.ok(requests.every(r => r.questions.sort));
   assert.ok(requests.every(r => Object.keys(r.questions).length <= 64));
   assert.equal(result.inputTokens, requests.length * 100);
   assert.ok(requests.every(r => JSON.stringify(r.state).includes('"milk"')));
@@ -105,8 +105,9 @@ test("oversized evidence fails before spending any model quota", async () => {
 });
 test("one failed batch prevents a misleading partial successful search", async () => {
   const candidates = Array.from({ length: 30 }, (_, i) => candidate(String(i)));
+  let calls = 0;
   await assert.rejects(evaluateCandidates("biscuits", null, candidates, async r => {
-    if (!r.questions.sort) throw new DecisionUnavailableError();
+    if (++calls === 2) throw new DecisionUnavailableError();
     return response(r);
   }), DecisionUnavailableError);
 });

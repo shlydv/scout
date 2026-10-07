@@ -60,9 +60,9 @@ export function orderMatches(items: RankedCandidate[], sort: DecisionSort): Rank
 }
 
 export async function evaluateCandidates(query: string, preferences: AiSearchPreferences | null, candidates: EvidenceCandidate[], decide: Decide = cloudflareDecide) {
-  // A shared multi-product context leaked contradictory evidence between items
-  // in the live evaluation. Each decision sees exactly one product instead.
-  const requests = candidates.map((candidate, i) => evaluationRequest(query, preferences, [candidate], i === 0));
+  // Keep one product and a consistent question schema per decision. Changing
+  // the set of heads changed confidence in live provider tests.
+  const requests = candidates.map(candidate => evaluationRequest(query, preferences, [candidate]));
   const sizes = requests.map(request => Buffer.byteLength(JSON.stringify(request)));
   // Preflight the entire search before spending any quota. Never truncate labels.
   if (requests.length > 60 || sizes.some(size => size > 47_000) || sizes.reduce((a, b) => a + b, 0) > 200_000) {
