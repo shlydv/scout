@@ -8,7 +8,8 @@ import { plannedToAiResult } from "@/lib/search/planned/adapter";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
-export const preferredRegion = "bom1";
+// Next to the Supabase database (ap-southeast-1); search makes several DB round trips.
+export const preferredRegion = "sin1";
 const CACHE_HEADERS = { "Cache-Control": "private, no-store, max-age=0" };
 
 export async function POST(req: NextRequest) {
