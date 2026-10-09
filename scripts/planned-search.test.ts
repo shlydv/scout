@@ -81,11 +81,11 @@ test("absence is only derived from complete ingredient lists", () => {
   assert.equal(normalizeFacts(input, raw({ ingredients: [["chicken", ["meat"]]], veg: "veg" })).veg, "non_veg");
 });
 
-function item(over: Partial<PlannedItem> = {}): PlannedItem & { hasFacts?: boolean; nutritionOk?: boolean } {
+function item(over: Partial<PlannedItem & { hasFacts: boolean; nutritionOk: boolean }> = {}): PlannedItem & { hasFacts?: boolean; nutritionOk?: boolean } {
   return {
     product_id: "p", slug: "p", name: "P", brand: "B", category: "c", subcategory: "s", l3: "l", price_inr: 50, net_weight: "100 g",
     scout_score: 50, nutrition: { sugar_g_100g: 3 }, kind: "", ingredients: [], claims: [], present: [], may_contain: [], unknown: [],
-    conflicts: [], ingredient_status: "complete", veg: "veg", vegan: null, jain: null, price_per_100: 50, evidence: {},
+    conflicts: [], ingredient_status: "complete", veg: "veg", vegan: null, jain: null, price_per_100: 50, evidence: {}, variant_key: null,
     display: { image_urls: [], mrp_inr: null, ocr_image_url: null, primary_type: null, absolute_score: null, category_rank: null, category_size: null, category_label: null },
     similarity: 0.5, lexical: 0, confirmation: "confirmed", notes: [], score: 0.5, ...over,
   };

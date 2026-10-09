@@ -102,3 +102,25 @@ export const NUMERIC_FIELDS = {
 
 export type NumericField = keyof typeof NUMERIC_FIELDS;
 export const NUMERIC_FIELD_IDS = Object.keys(NUMERIC_FIELDS) as NumericField[];
+
+/** Short shopper-facing names, e.g. for "No palm oil" chips. */
+export const CONCEPT_LABELS: Record<ConceptId, string> = {
+  gluten_source: "gluten", wheat: "wheat", oats: "oats", dairy: "dairy", egg: "egg", soy: "soy", peanut: "peanut",
+  tree_nut: "tree nuts", sesame: "sesame", mustard: "mustard", sulphite: "sulphites", fish_seafood: "fish/seafood",
+  meat: "meat", gelatin: "gelatin", honey: "honey", onion_garlic: "onion/garlic", root_vegetable: "root vegetables",
+  palm_oil: "palm oil", hydrogenated_fat: "hydrogenated fat", unspecified_oil: "unnamed oils", refined_flour: "maida",
+  whole_grain: "whole grains", millet: "millets", added_sugar: "added sugar", artificial_sweetener: "artificial sweeteners",
+  sugar_alcohol: "sugar alcohols", natural_sweetener: "stevia/monk fruit", artificial_colour: "artificial colours",
+  added_colour: "added colours", artificial_flavour: "artificial flavours", added_flavour: "added flavours",
+  preservative: "preservatives", flavour_enhancer: "MSG/flavour enhancers", caffeine: "caffeine",
+  live_cultures: "live cultures", iodised_salt: "iodised salt", alcohol: "alcohol",
+};
+
+/** Short shopper-facing names for numeric fields. */
+export const NUMERIC_LABELS: Record<NumericField, { label: string; unit: string }> = {
+  price_inr: { label: "Price", unit: "₹" }, price_per_100: { label: "Price/100g", unit: "₹" }, pack_qty: { label: "Pack", unit: "g" },
+  energy_kcal: { label: "Calories", unit: "kcal" }, protein_g: { label: "Protein", unit: "g" }, sugar_g: { label: "Sugar", unit: "g" },
+  added_sugar_g: { label: "Added sugar", unit: "g" }, fat_g: { label: "Fat", unit: "g" }, saturated_fat_g: { label: "Sat. fat", unit: "g" },
+  carbs_g: { label: "Carbs", unit: "g" }, fiber_g: { label: "Fibre", unit: "g" }, sodium_mg: { label: "Sodium", unit: "mg" },
+  protein_per_100kcal: { label: "Protein per 100 kcal", unit: "g" }, scout_score: { label: "Scout score", unit: "" },
+};

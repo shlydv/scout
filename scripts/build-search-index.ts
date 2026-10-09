@@ -7,9 +7,8 @@
 import { config } from "dotenv";
 import { createHash } from "node:crypto";
 import { adminClient } from "@/lib/supabase/admin";
-import { embedTexts } from "@/lib/search/v2/embeddings";
-import { productEvidence } from "@/lib/search/decision/retrieval";
-import { computeProductSourceHash } from "@/lib/search/v2/source-hash";
+import { embedTexts } from "@/lib/search/embeddings";
+import { computeProductSourceHash, productEvidence } from "@/lib/search/index-doc";
 import type { Product } from "@/lib/supabase/types";
 config({ path: ".env.local" });
 

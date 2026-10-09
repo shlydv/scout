@@ -3,9 +3,8 @@
   "configurations": [
     {
       "name": "scout-dev",
-      "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["dev"],
-      "cwd": "/Users/sahilyadav/Downloads/oasis2",
+      "runtimeExecutable": "corepack",
+      "runtimeArgs": ["pnpm", "dev"],
       "port": 3000
     }
   ]

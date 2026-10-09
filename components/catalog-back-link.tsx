@@ -1,58 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { flushCatalogSnapshotForNavigation } from "@/lib/catalog/search-session";
-import { catalogReturnHref } from "@/lib/products/catalog-filter";
+import { useRouter } from "next/navigation";
 
-const SESSION_KEY = "scout-catalog-return";
-
-type CatalogParams = {
-  prompt?: string;
-  q?: string;
-  category?: string;
-  subcategory?: string;
-  usecase?: string;
-  brand?: string;
-  scored?: string;
-  labelResolved?: string;
-  min?: string;
-  maxprice?: string;
-  grade?: string;
-  sort?: string;
-  goal?: string;
-  diet?: string;
-  sublabel?: string;
-  verdict?: string;
-};
-
-export function saveCatalogReturnUrl(href: string): void {
-  if (typeof window === "undefined") return;
-  try {
-    sessionStorage.setItem(SESSION_KEY, href);
-    flushCatalogSnapshotForNavigation(href);
-  } catch {
-    /* ignore */
-  }
-}
-
-export function CatalogBackLink({ params }: { params: CatalogParams }) {
-  const fromParams = catalogReturnHref(params);
-  const [href, setHref] = useState(fromParams);
-
-  useEffect(() => {
-    setHref(fromParams);
-    try {
-      const saved = sessionStorage.getItem(SESSION_KEY);
-      if (saved?.startsWith("/search")) setHref(saved);
-    } catch {
-      /* ignore */
-    }
-  }, [fromParams]);
-
+/** PDP back link: returns to the search results the product was opened from, else history. */
+export function CatalogBackLink({ params }: { params: { q?: string; prompt?: string } }) {
+  const router = useRouter();
+  const q = (params.q ?? params.prompt ?? "").trim();
+  const href = q ? `/search?q=${encodeURIComponent(q)}` : "/catalog";
   return (
-    <Link href={href} className="text-sm text-(--color-fg-muted) hover:text-(--color-fg)">
-      ← Catalog
+    <Link
+      href={href}
+      onClick={e => {
+        // Prefer real history (keeps scroll position and filters) when we came from inside Scout.
+        if (!q && typeof window !== "undefined" && document.referrer.startsWith(window.location.origin) && window.history.length > 1) {
+          e.preventDefault();
+          router.back();
+        }
+      }}
+      className="text-sm text-(--color-fg-muted) hover:text-(--color-fg)"
+    >
+      ← {q ? `Results for “${q.length > 32 ? `${q.slice(0, 32)}…` : q}”` : "Back"}
     </Link>
   );
 }

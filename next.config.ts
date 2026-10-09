@@ -15,7 +15,26 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
-    return [{ source: "/blog", destination: "/", permanent: true }];
+    // Old search URLs: ?prompt= (AI search) became ?q=; catalog filters moved to /catalog.
+    // Query strings are passed through to the destination.
+    const catalogKeys = ["category", "subcategory", "usecase", "brand", "grade", "verdict", "sublabel", "sort", "maxprice", "min", "goal", "diet", "slugs"];
+    return [
+      { source: "/blog", destination: "/", permanent: true },
+      {
+        source: "/search",
+        has: [{ type: "query", key: "prompt", value: "(?<prompt>.+)" }],
+        missing: [{ type: "query", key: "q" }],
+        destination: "/search?q=:prompt",
+        permanent: true,
+      },
+      ...catalogKeys.map((key) => ({
+        source: "/search",
+        has: [{ type: "query" as const, key }],
+        missing: [{ type: "query" as const, key: "q" }, { type: "query" as const, key: "prompt" }],
+        destination: "/catalog",
+        permanent: true,
+      })),
+    ];
   },
   images: {
     unoptimized: true,

@@ -4,7 +4,7 @@ import type { IngredientIntelligenceRow } from "@/lib/scoring/ingredient-llm";
 import type { PerServeNutrition } from "@/lib/scoring/serving";
 import type { RoleCohort } from "@/lib/scoring/role-cohort";
 import type { VerdictId } from "@/lib/scoring/verdict";
-import { isArtificialSweetener } from "@/lib/search/ai-retrieval";
+import { isArtificialSweetener } from "@/lib/scoring/sweeteners";
 
 export type SublabelId =
   | "clean_protein"

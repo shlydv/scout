@@ -5,7 +5,7 @@
  * Only the concepts the lost component would carry (gluten_source for flour,
  * dairy for milk) move from absent to unknown, so those products surface as
  * unconfirmed instead of passing exclusion filters. Run after facts:load.
- *   pnpm facts:completeness-audit -- [--dry-run] [--limit 500]
+ *   pnpm facts:completeness-audit -- [--dry-run] [--limit 500] [--ids <uuid,uuid>] [--name <regex>]
  */
 import { config as loadEnv } from "dotenv";
 loadEnv({ path: ".env.local", quiet: true });
@@ -19,6 +19,7 @@ const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");
 const limit = args.includes("--limit") ? Number(args[args.indexOf("--limit") + 1]) : 100_000;
 const nameFilter = args.includes("--name") ? args[args.indexOf("--name") + 1]! : null;
+const ids = args.includes("--ids") ? args[args.indexOf("--ids") + 1]!.split(",").filter(Boolean) : null;
 
 const CONCEPT_LIST = CONCEPT_IDS.join(", ");
 const SYSTEM = `You check whether ingredient lists of Indian packaged foods are missing a main component. Each product has a name, a type and the ingredient list read from its label (OCR may have dropped lines, often the FIRST ingredient).
@@ -36,6 +37,7 @@ async function main() {
     from products p join product_facts f on f.product_id = p.id
     where p.catalog_visible and f.ingredient_status = 'complete' and cardinality(f.ingredients) > 1
       and (${nameFilter}::text is null or p.name ~* ${nameFilter ?? ""} or p.l3_category ~* ${nameFilter ?? ""})
+      and (${ids}::uuid[] is null or p.id = any(${ids}::uuid[]))
     order by p.id limit ${limit}`;
   console.log(`candidates: ${rows.length}`);
   const batches: (typeof rows)[number][][] = [];

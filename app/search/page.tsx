@@ -1,63 +1,33 @@
 import type { Metadata } from "next";
-import { CatalogLoader } from "@/components/catalog-loader";
-import { CatalogBackdrop } from "@/components/catalog-backdrop";
+import { Suspense } from "react";
+import { SearchView } from "@/components/search/search-view";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
-import {
-  getCachedCatalogMeta,
-  getCachedCatalogSearch,
-} from "@/lib/products/catalog-cache";
 
-export const revalidate = 120;
+type Params = Record<string, string | string[] | undefined>;
+const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)?.trim() ?? "";
 
-export const metadata: Metadata = {
-  title: "Ask Scout — search the catalog · Scout",
-  description:
-    "Ask for what you actually need — low-sugar biscuits, high-protein snacks under ₹200 — and get answers scored from the back label.",
-};
-
-type SearchParams = {
-  prompt?: string;
-  q?: string;
-  category?: string;
-  subcategory?: string;
-  usecase?: string;
-  brand?: string;
-  scored?: string;
-  labelResolved?: string;
-  deepseek?: string;
-  min?: string;
-  maxprice?: string;
-  grade?: string;
-  sort?: string;
-  goal?: string;
-  diet?: string;
-  sublabel?: string;
-  verdict?: string;
-  slugs?: string;
-};
-
-/** Shell renders immediately; catalog JSON loads client-side from cached API. */
-export default async function CatalogPage({
-  searchParams,
-}: {
-  searchParams: Promise<SearchParams>;
-}) {
+export async function generateMetadata({ searchParams }: { searchParams: Promise<Params> }): Promise<Metadata> {
   const params = await searchParams;
-  const [meta, initialSearch] = await Promise.all([
-    getCachedCatalogMeta(params.category).catch(() => undefined),
-    getCachedCatalogSearch({ ...params, page: 1, limit: 96 }).catch(() => undefined),
-  ]);
+  const q = one(params.q) || one(params.prompt);
+  return {
+    title: q ? `${q} · Scout search` : "Search · Scout",
+    description: "Describe what you want — low-sugar biscuits, high-protein snacks under ₹200 — and get answers checked against the back label.",
+    robots: q ? { index: false } : undefined,
+  };
+}
 
+export default async function SearchPage({ searchParams }: { searchParams: Promise<Params> }) {
+  const params = await searchParams;
   return (
-    <main className="relative isolate min-h-screen overflow-hidden">
-      <CatalogBackdrop />
+    <main className="min-h-screen bg-(--color-bg)">
       <SiteNav />
-
-      <div className="relative mx-auto max-w-7xl px-3 pb-20 pt-3 md:px-5 md:pt-4">
-        <CatalogLoader initialParams={params} initialMeta={meta} initialSearch={initialSearch} />
+      <div className="mx-auto max-w-7xl px-4 pb-20 pt-6 md:px-6 md:pt-10">
+        <Suspense>
+          {/* ?prompt= and catalog params are redirected in next.config.ts */}
+          <SearchView initialQuery={one(params.q) || one(params.prompt)} />
+        </Suspense>
       </div>
-
       <SiteFooter />
     </main>
   );

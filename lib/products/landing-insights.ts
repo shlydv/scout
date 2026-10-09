@@ -400,7 +400,7 @@ function buildBestInClass(products: ProductListItem[]): LandingBestInClassCatego
       // Best-first within the whole category — NOT gated to daily_staple, which
       // returns empty for treat/skip-heavy aisles (chips, chocolate) and silently
       // fails. The category always has scored products; show them ranked.
-      href: `/search?category=${encodeURIComponent(cat)}&sort=score-desc&scored=1`,
+      href: `/catalog?category=${encodeURIComponent(cat)}`,
       avgScore,
       skipPct,
       products: top.map((p) => ({

@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { collapseVariants } from "@/lib/products/variants";
 import { dietFromParam } from "@/lib/diet/types";
 import { goalFromParam } from "@/lib/goals/types";
 import { buildLandingInsights } from "@/lib/products/landing-insights";
@@ -120,8 +121,8 @@ export async function getCachedCatalogSearch(
   });
 
   return unstable_cache(
-    () =>
-      searchCatalogGrid({
+    async () => {
+      const result = await searchCatalogGrid({
         q: params.q,
         category: params.category,
         subcategory: params.subcategory,
@@ -141,8 +142,11 @@ export async function getCachedCatalogSearch(
         sublabel: params.sublabel,
         verdict: params.verdict,
         slugs: params.slugs ? params.slugs.split(",").map((s) => s.trim()).filter(Boolean) : undefined,
-      }),
-      ["catalog-search", cacheKey],
+      });
+      // One card per product: other pack sizes are attached, not repeated.
+      return { ...result, items: await collapseVariants(result.items) };
+    },
+      ["catalog-search", "v2", cacheKey],
       { revalidate: 600, tags: ["catalog-search"] },
   )();
 }

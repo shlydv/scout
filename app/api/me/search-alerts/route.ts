@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { requireAuthedUser } from "@/lib/auth/require-user";
-import { runAlertsForRecords, type AlertRecord } from "@/lib/search/v2/alert-runner";
+import { runAlertsForRecords, type AlertRecord } from "@/lib/search/alerts/runner";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;

@@ -3,7 +3,6 @@
 import { Minus, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { addToBasket, decrementBasket, readBasket } from "@/lib/basket/storage";
-import { trackSearchInteraction } from "@/lib/products/catalog-api";
 import { cn } from "@/lib/utils";
 
 export function AddToBasketButton({
@@ -72,7 +71,6 @@ export function AddToBasketButton({
             e.preventDefault();
             e.stopPropagation();
             addToBasket(slug, name);
-            if (productId) trackSearchInteraction(productId, "save");
           }}
           className="grid h-8 w-8 place-items-center rounded-full bg-(--color-fg) text-(--color-bg) shadow-sm transition hover:opacity-90 active:scale-90"
         >
@@ -87,7 +85,6 @@ export function AddToBasketButton({
       type="button"
       onClick={() => {
         addToBasket(slug, name);
-        if (productId) trackSearchInteraction(productId, "save");
       }}
       className={
         className ??

@@ -4,7 +4,7 @@
  * per-serving values stored as per-100g, misplaced decimals). Only outliers are
  * sent to the model: values in the top/bottom 4% of their subcategory, or labels
  * failing energy/macro arithmetic. Writes product_facts.nutrition_suspect/_note.
- *   pnpm facts:nutrition-audit -- [--dry-run] [--limit 200]
+ *   pnpm facts:nutrition-audit -- [--dry-run] [--limit 200] [--ids <uuid,uuid>]
  */
 import { config as loadEnv } from "dotenv";
 loadEnv({ path: ".env.local", quiet: true });
@@ -16,6 +16,7 @@ import { deepseekChat, extractJsonObject } from "@/lib/search/deepseek-client";
 const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");
 const limit = args.includes("--limit") ? Number(args[args.indexOf("--limit") + 1]) : 100_000;
+const ids = args.includes("--ids") ? args[args.indexOf("--ids") + 1]!.split(",").filter(Boolean) : null;
 
 const SYSTEM = `You sanity-check nutrition labels of Indian packaged foods. For each product you get its type, ingredient list and nutrition per 100 g (or 100 ml).
 Decide whether the numbers are plausible for THIS product given its ingredients. Typical errors: protein and carbohydrate swapped, per-serving values stored as per-100g, misplaced decimal points, sodium in g instead of mg, values from a different product.
@@ -42,13 +43,13 @@ async function main() {
       from base
     )
     select id, name, l3, ingredients, n from ranked
-    where greatest(r_pr, r_su, r_fa, r_fi, r_so, r_en) >= 0.96 or least(r_pr, r_en) <= 0.04
+    where (${ids}::uuid[] is null or id = any(${ids}::uuid[])) and (greatest(r_pr, r_su, r_fa, r_fi, r_so, r_en) >= 0.96 or least(r_pr, r_en) <= 0.04
        or coalesce(pr, 0) + coalesce(fa, 0) + coalesce(ca, 0) > 105
-       or (en > 50 and pr is not null and fa is not null and ca is not null and abs(4 * pr + 4 * ca + 9 * fa - en) > 0.35 * en + 25)
+       or (en > 50 and pr is not null and fa is not null and ca is not null and abs(4 * pr + 4 * ca + 9 * fa - en) > 0.35 * en + 25))
     order by id limit ${limit}`;
   console.log(`candidates: ${rows.length}`);
 
-  const batches: typeof rows[] = [];
+  const batches: (typeof rows)[number][][] = [];
   for (let i = 0; i < rows.length; i += 12) batches.push(rows.slice(i, i + 12));
   let flagged = 0, tokensIn = 0, tokensOut = 0;
   const updates: { id: string; suspect: boolean; note: string | null }[] = [];

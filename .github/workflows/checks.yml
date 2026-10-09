@@ -1,0 +1,20 @@
+name: Checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec tsc --noEmit
+      - run: pnpm exec tsc --noEmit -p tsconfig.scripts.json
+      - run: pnpm search:test
+      - run: node --import tsx scripts/free-access-regression.ts

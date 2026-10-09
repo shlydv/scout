@@ -30,18 +30,18 @@ git push -u origin main
 | `SUPABASE_SERVICE_ROLE_KEY` | From Supabase → Settings → API → `service_role` |
 | `NEXT_PUBLIC_SITE_URL` | Leave empty on first deploy; after deploy set to `https://YOUR-APP.vercel.app` and redeploy |
 
-Required for decision search:
+Required for search (see [planned search](docs/planned-search.md)):
 
 | Variable | Value |
 |----------|-------|
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Workers AI → Use REST API → Account ID |
-| `CLOUDFLARE_AUTH_TOKEN` | Workers AI API token, server-only |
-| `VOYAGE_API_KEY` | Existing embedding provider key; preserve the model and 1024 dimensions used to build the index |
+| `SUPABASE_DB_URL` | Postgres connection string — use the **transaction pooler (port 6543)** on Vercel |
+| `DEEPSEEK_API_KEY` | Planner and verifier (deepseek-flash) |
+| `VOYAGE_API_KEY` | Query embeddings; must match the index model (voyage-3.5, 1024 dims) |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → API → public anon key |
 
-Apply `supabase/migrations/0041_decision_search_candidates.sql` and `0042_compact_vector_retrieval.sql` before deploying the new search. Start with Preview and run the live model evaluation before promoting. Cloudflare supplies inference through REST; hosting stays on Vercel, data stays on Supabase. See [decision search setup and rollout](docs/decision-search.md).
+Optional: `RESEND_API_KEY` + `NEXT_PUBLIC_SEARCH_ALERTS=1` turn on saved-search alert emails (the "Alert me" button is hidden without them).
 
-DeepSeek keys remain optional for batch label extraction and legacy offline tools; live search does not require DeepSeek or Groq.
+Apply migrations through `0048` (`pnpm db:apply supabase/migrations/<file>.sql`). Functions run in `sin1` (vercel.json), next to the Supabase database.
 
 **Do not** add `GEMINI_API_KEY` to Vercel unless you run OCR/scoring in CI — those scripts run locally, not on the hosted site.
 
@@ -94,8 +94,9 @@ Apply migration `0040_alert_notifications.sql` in Supabase for the in-app alert 
 
 - Open `https://YOUR-APP.vercel.app/search`
 - Set `NEXT_PUBLIC_SITE_URL` to that URL, then **Redeploy** once (Vercel → Deployments → Redeploy) so metadata picks up the env var.
-- Smoke search: `namkeen`, `high protein milk`, `paneer under ₹150`, and an allergen request with incomplete evidence. All submitted searches use the same decision flow.
-- Offline regression: `pnpm search:decision-test` and `node --import tsx scripts/free-access-regression.ts`. Live evidence evaluation: `pnpm search:decision-eval` (requires Cloudflare credentials and consumes quota).
+- Smoke search: `pnpm search:remote -- --url <deployment> "namkeen" "gluten free biscuits under 100" "peanut allergy chocolate"` (uses `VERCEL_BYPASS_SECRET` for protected previews).
+- Offline checks: `pnpm search:test` and `node --import tsx scripts/free-access-regression.ts`. Full eval (uses DeepSeek, a few cents): `pnpm search:eval [-- --hammer]`.
+- After a catalog sync: `pnpm search:build-index -- --skip-unchanged` then `pnpm facts:sync -- --audits`.
 
 ## Does scraping / OCR update the live site?
 

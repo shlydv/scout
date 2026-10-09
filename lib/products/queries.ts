@@ -16,7 +16,7 @@ import {
   productMatchesUsecase,
   productUsecase,
 } from "@/lib/products/catalog-meta";
-import { catalogSearchIlikeTerm } from "@/lib/search/catalog-query-text";
+import { catalogSearchIlikeTerm } from "@/lib/products/catalog-query-text";
 import {
   compareCatalogItems,
   sortCatalogItems,
@@ -279,6 +279,8 @@ export type CatalogGridItem = Pick<
   > | null;
   deepseek_chips?: string[];
   deepseek_why?: string | null;
+  /** Other pack sizes of the same product (lib/products/variants). */
+  sizes?: { slug: string; net_weight: string | null; price_inr: number | null }[];
 };
 
 export type CatalogSearchResult = {
@@ -311,7 +313,7 @@ function toGridItem(row: ProductListItem): CatalogGridItem {
     image_urls: row.image_urls?.length ? [row.image_urls[0]] : [],
     core_scores: row.core_scores
       ? {
-          score: row.core_scores.score,
+          score: row.core_scores.absolute_score ?? row.core_scores.score,
           grade: row.core_scores.grade,
           band: row.core_scores.band,
           verdict: row.core_scores.verdict ?? null,
@@ -357,6 +359,8 @@ function mapListRow(row: Record<string, unknown>): ProductListItem {
       : Array.isArray(scores) && scores[0]
         ? (scores[0] as ProductListItem["core_scores"])
         : null;
+  // One displayed score everywhere: the absolute health score the PDP and verdicts use.
+  if (core && core.absolute_score != null) core.score = core.absolute_score;
 
   return {
     id: row.id as string,
@@ -537,7 +541,7 @@ async function countVisibleCatalogFallback(): Promise<CatalogStatsRpc> {
 function applyDbSort(q: any, sort: CatalogSort): any {
   switch (sort) {
     case "score-asc":
-      return q.order("score", {
+      return q.order("absolute_score", {
         referencedTable: "core_scores",
         ascending: true,
         nullsFirst: false,
@@ -553,7 +557,7 @@ function applyDbSort(q: any, sort: CatalogSort): any {
     case "protein-desc":
     case "score-desc":
     default:
-      return q.order("score", {
+      return q.order("absolute_score", {
         referencedTable: "core_scores",
         ascending: false,
         nullsFirst: false,
@@ -680,13 +684,17 @@ function mapScoreSortedRow(row: Record<string, unknown>): ProductListItem {
     nutrition: null,
     ingredients_raw: null,
     core_scores: {
-      score: row.score as number,
+      score: ((row.absolute_score as number | null) ?? row.score) as number,
       grade: row.grade as Grade,
       band: row.band as ScoreBand,
       verdict: (row.verdict as string | null) ?? null,
       verdict_sublabels: (row.verdict_sublabels as string[] | null) ?? [],
       relative_score: (row.relative_score as number | null) ?? null,
       cohort_size: (row.cohort_size as number | null) ?? null,
+      absolute_score: (row.absolute_score as number | null) ?? null,
+      category_rank: (row.category_rank as number | null) ?? null,
+      category_size: (row.category_size as number | null) ?? null,
+      category_label: (row.category_label as string | null) ?? null,
     },
   } as ProductListItem;
 }
@@ -694,7 +702,7 @@ function mapScoreSortedRow(row: Record<string, unknown>): ProductListItem {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function applyScoreCatalogFilters(q: any, state: CatalogFilterState): any {
   if (state.grade) q = q.eq("grade", state.grade);
-  if (state.minScore > 0) q = q.gte("score", state.minScore);
+  if (state.minScore > 0) q = q.gte("absolute_score", state.minScore);
   if (state.verdict) q = q.eq("verdict", state.verdict);
   // JSONB array containment: verdict_sublabels @> '["sublabel"]'::jsonb
   if (state.sublabel) q = q.filter("verdict_sublabels", "cs", `{"${state.sublabel}"}`);
@@ -723,11 +731,11 @@ function buildScoreSortedCatalogQuery(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let q = (supabase as any)
     .from("core_scores")
-    .select(`score, grade, band, verdict, verdict_sublabels, relative_score, cohort_size, products!inner(${GRID_LIST_FIELDS}, catalog_visible)`)
+    .select(`score, absolute_score, category_rank, category_size, category_label, grade, band, verdict, verdict_sublabels, relative_score, cohort_size, products!inner(${GRID_LIST_FIELDS}, catalog_visible)`)
     .eq("products.platform", "zepto")
     .eq("products.catalog_visible", true);
   q = applyScoreCatalogFilters(q, state);
-  return q.order("score", { ascending, nullsFirst: false });
+  return q.order("absolute_score", { ascending, nullsFirst: false });
 }
 
 async function countScoreSortedCatalogMatches(
@@ -1405,6 +1413,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
     const s = Array.isArray(scores) ? scores[0] : scores;
     if (s && typeof s === "object") core = s as CoreScore;
   }
+  if (core && core.absolute_score != null) core.score = core.absolute_score;
 
   return {
     id: row.id as string,
@@ -1542,16 +1551,16 @@ export async function getHomeShelves(): Promise<HomeShelves> {
 
   const [staplesRes, skipsRes, valueRes, treatsRes, statsRes] = await Promise.all([
     baseQ("daily_staple")
-      .order("score", { referencedTable: "core_scores", ascending: false, nullsFirst: false })
+      .order("absolute_score", { referencedTable: "core_scores", ascending: false, nullsFirst: false })
       .limit(HOME_POOL_LIMIT),
     baseQ("skip")
-      .order("score", { referencedTable: "core_scores", ascending: true, nullsFirst: false })
+      .order("absolute_score", { referencedTable: "core_scores", ascending: true, nullsFirst: false })
       .limit(HOME_POOL_LIMIT),
     baseQ("good_choice")
-      .order("score", { referencedTable: "core_scores", ascending: false, nullsFirst: false })
+      .order("absolute_score", { referencedTable: "core_scores", ascending: false, nullsFirst: false })
       .limit(HOME_POOL_LIMIT),
     baseQ("occasional_treat")
-      .order("score", { referencedTable: "core_scores", ascending: false, nullsFirst: false })
+      .order("absolute_score", { referencedTable: "core_scores", ascending: false, nullsFirst: false })
       .limit(HOME_POOL_LIMIT),
     // Count what users can actually browse (visible catalog), so the landing
     // numbers agree with /insights and /search rather than raw table sizes.

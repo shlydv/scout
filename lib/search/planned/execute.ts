@@ -69,6 +69,7 @@ export type PlannedItem = {
   jain: boolean | null;
   price_per_100: number | null;
   evidence: Record<string, string>;
+  variant_key: string | null;
   display: {
     image_urls: string[]; mrp_inr: number | null; ocr_image_url: string | null; primary_type: string | null;
     absolute_score: number | null; category_rank: number | null; category_size: number | null; category_label: string | null;
@@ -111,7 +112,7 @@ function fieldExpr(field: NumericField): string {
   if (field === "price_inr") return "nullif(p.price_inr, 0)";
   if (field === "price_per_100") return "f.price_per_100";
   if (field === "pack_qty") return "f.pack_qty";
-  if (field === "scout_score") return "si.scout_score";
+  if (field === "scout_score") return "coalesce(si.absolute_score, si.scout_score)";
   if (field === "protein_per_100kcal") {
     return "((p.nutrition->>'protein_g_100g')::numeric * 100 / nullif((p.nutrition->>'energy_kcal_100g')::numeric, 0))";
   }
@@ -167,7 +168,11 @@ async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limi
     if (plan.categories.length) ors.push(`p.category = any(${param(plan.categories, "::text[]")})`);
     conds.push(`(${ors.join(" or ")})`);
   }
-  if (a.useBrands && plan.brands.length) conds.push(`p.brand = any(${param(plan.brands, "::text[]")})`);
+  if (a.useBrands && plan.brands.length) {
+    // Brand families: "Cadbury" also covers "Cadbury CHOCOBAKES" and "Cadbury Bournvita".
+    const b = param(plan.brands, "::text[]");
+    conds.push(`(p.brand = any(${b}) or exists (select 1 from unnest(${b}) x where p.brand ilike x || ' %'))`);
+  }
   if (a.useNameTerms) {
     for (const t of plan.name_terms) {
       conds.push(`(p.name || ' ' || coalesce(f.kind, '')) ~* ${param(nameTermPattern(t))}`);
@@ -223,10 +228,10 @@ async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limi
       limit ${stage1Limit}
     ), cand as (
       select p.id, p.slug, p.name, p.brand, p.category, p.subcategory, p.l3_category, p.price_inr,
-             p.net_weight, p.nutrition, si.scout_score, p.image_urls, p.mrp_inr, p.ocr_image_url,
+             p.net_weight, p.nutrition, coalesce(si.absolute_score, si.scout_score) scout_score, p.image_urls, p.mrp_inr, p.ocr_image_url,
              si.primary_type, si.absolute_score, si.category_rank, si.category_size, si.category_label,
              f.product_id as f_id, f.kind, f.ingredients, f.claims, f.present, f.may_contain, f.unknown,
-             f.conflicts, f.ingredient_status, f.veg, f.vegan, f.jain, f.price_per_100, f.evidence,
+             f.conflicts, f.ingredient_status, f.veg, f.vegan, f.jain, f.price_per_100, f.evidence, f.variant_key,
              ids.sort_value, ${NUTRITION_PLAUSIBLE} as nutrition_ok,
              ${similarity} as similarity,
              ts_rank_cd(si.search_tsv, plainto_tsquery('simple', ${lexQuery})) +
@@ -252,6 +257,7 @@ async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limi
     conflicts: r.conflicts ?? [], ingredient_status: r.ingredient_status, veg: r.veg, vegan: r.vegan,
     jain: r.jain, price_per_100: r.price_per_100 == null ? null : Number(r.price_per_100),
     evidence: r.evidence ?? {},
+    variant_key: r.variant_key ?? null,
     display: {
       image_urls: r.image_urls ?? [], mrp_inr: r.mrp_inr == null ? null : Number(r.mrp_inr),
       ocr_image_url: r.ocr_image_url ?? null, primary_type: r.primary_type ?? null,
@@ -361,7 +367,8 @@ export async function executePlan(sql: Sql, plan: SearchPlan, embedding: number[
   // Up to two widening steps: l3 -> subcategory -> category.
   const relaxOrder = [...plan.relax.filter(k => k !== "scope"), "scope", "scope"];
   for (const key of relaxOrder) {
-    if (items.filter(i => i.confirmation === "confirmed").length >= minConfirmed) break;
+    // Count distinct products, not pack sizes of the same one.
+    if (new Set(items.filter(i => i.confirmation === "confirmed").map(i => i.variant_key ?? i.product_id)).size >= minConfirmed) break;
     const next = { ...attempt };
     if (key === "scope") {
       const wider = widenScope(attempt.plan, vocab);

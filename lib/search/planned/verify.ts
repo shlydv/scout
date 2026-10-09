@@ -16,7 +16,7 @@ export function needsVerification(plan: SearchPlan): boolean {
 }
 
 const SYSTEM = `You check grocery search results. Given a shopper's request and numbered product cards, judge each product independently against the request as the shopper meant it.
-Return JSON {"r":[{"i":<number>,"v":"good"|"ok"|"no","why":"<= 12 words"}]} with one entry per card.
+Return JSON {"r":[{"i":<number>,"v":"good"|"ok"|"no","why":"<= 7 words, only for good"}]} with one entry per card; omit "why" for ok and no.
 - good: clearly what the shopper wants.
 - ok: acceptable but a weaker fit.
 - no: wrong product type for the request, or it plainly contradicts a stated wish (e.g. a sugary drink for "diabetic friendly", a spicy masala snack for a toddler).
@@ -40,7 +40,7 @@ function card(item: PlannedItem, i: number) {
 }
 
 const responseSchema = z.object({
-  r: z.array(z.object({ i: z.number().int(), v: z.enum(["good", "ok", "no"]), why: z.string().catch("") })),
+  r: z.array(z.object({ i: z.number().int(), v: z.enum(["good", "ok", "no"]), why: z.string().optional().catch(undefined) })),
 });
 
 export async function verifyItems(query: string, plan: SearchPlan, items: PlannedItem[], maxItems = 20): Promise<{
@@ -54,7 +54,7 @@ export async function verifyItems(query: string, plan: SearchPlan, items: Planne
     usageKind: "search",
     model: VERIFIER_MODEL,
     jsonObject: true,
-    maxTokens: 60 * batch.length + 100,
+    maxTokens: 28 * batch.length + 120,
     timeoutMs: 15_000,
     system: SYSTEM,
     user: JSON.stringify({ request: query, also_consider: plan.judge, products: batch.map(card) }),
@@ -63,7 +63,7 @@ export async function verifyItems(query: string, plan: SearchPlan, items: Planne
   if (parsed.success) {
     for (const r of parsed.data.r) {
       const item = batch[r.i];
-      if (item) verdicts.set(item.product_id, { v: r.v, why: r.why.slice(0, 120) });
+      if (item) verdicts.set(item.product_id, { v: r.v, why: (r.why ?? "").slice(0, 80) });
     }
   }
   return { verdicts, usage, ms: Date.now() - started };
