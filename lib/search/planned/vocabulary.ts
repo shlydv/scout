@@ -23,8 +23,16 @@ export type CatalogVocabulary = {
 let cached: CatalogVocabulary | null = null;
 const TTL_MS = 30 * 60_000;
 
+let inflight: Promise<CatalogVocabulary> | null = null;
+
+/** Cached per process; concurrent cold callers share one load. */
 export async function loadVocabulary(sql: Sql): Promise<CatalogVocabulary> {
   if (cached && Date.now() - cached.loadedAt < TTL_MS) return cached;
+  inflight ??= fetchVocabulary(sql).finally(() => { inflight = null; });
+  return inflight;
+}
+
+async function fetchVocabulary(sql: Sql): Promise<CatalogVocabulary> {
   const rows = await sql<{ category: string; subcategory: string; l3: string; n: number }[]>`
     select category, subcategory, l3_category l3, count(*)::int n
     from products where catalog_visible and l3_category is not null

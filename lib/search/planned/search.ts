@@ -38,6 +38,26 @@ export function degradedPlan(query: string): SearchPlan {
   };
 }
 
+/** Keep near-duplicate variants (same brand + product line, different flavour/pack) from flooding the top. */
+export function diversify<T extends { brand: string | null; name: string }>(items: T[], maxPerLine = 2, window = 12): T[] {
+  const lineKey = (it: T) => {
+    const brand = (it.brand ?? "").toLowerCase();
+    const words = it.name.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/)
+      .filter(w => w && !brand.includes(w) && !/^\d/.test(w));
+    return `${brand}|${words.slice(0, 3).join(" ")}`;
+  };
+  const head: T[] = [], overflow: T[] = [];
+  const seen = new Map<string, number>();
+  for (const it of items) {
+    const k = lineKey(it);
+    const n = seen.get(k) ?? 0;
+    if (head.length < window && n >= maxPerLine) { overflow.push(it); continue; }
+    seen.set(k, n + 1);
+    head.push(it);
+  }
+  return [...head, ...overflow];
+}
+
 function cacheKey(query: string, prefs: Preferences): string {
   return JSON.stringify([query.trim().toLowerCase().replace(/\s+/g, " "), prefs ?? null]);
 }
@@ -84,6 +104,16 @@ export async function plannedSearch(query: string, opts: { preferences?: Prefere
   }
 
   // The embedding overlaps planning; never let a slow provider stall the search.
+  if (plan.intent === "non_food" || plan.intent === "unclear") {
+    return {
+      query, plan, items: [], unconfirmed: [], relaxed: [], counts: [], reference: null, dropped, llm,
+      summary: plan.intent === "non_food"
+        ? "Scout covers packaged food and drinks only."
+        : "Couldn't understand that as a food search — try describing what you want to eat or drink.",
+      timings: { plan_ms: planMs, embed_ms: 0, execute_ms: 0, verify_ms: 0, total_ms: Date.now() - started, plan_cached: planCached },
+    };
+  }
+
   const { e: vector, ms: embedMs } = await Promise.race([
     embedding,
     new Promise<{ e: null; ms: number }>(resolve => setTimeout(() => resolve({ e: null, ms: -1 }), EMBED_GRACE_MS)),
@@ -96,7 +126,7 @@ export async function plannedSearch(query: string, opts: { preferences?: Prefere
 
   // Results reached by widening the scope always get checked against the request.
   const verify = opts.verify ?? (needsVerification(plan) || exec.relaxed.includes("scope"));
-  if (plan.intent !== "non_food" && verify && confirmed.length) {
+  if (verify && confirmed.length) {
     try {
       const v = await verifyItems(query, plan, confirmed, 20);
       addUsage(v.usage);
@@ -116,10 +146,8 @@ export async function plannedSearch(query: string, opts: { preferences?: Prefere
   const isRelaxed = (i: PlannedSearchItem) => i.notes.some(n => n.startsWith("relaxed "));
   confirmed = [...confirmed.filter(i => !isRelaxed(i)), ...confirmed.filter(isRelaxed).map(i => ({ ...i, relaxed: true }))];
 
-  const items = confirmed.slice(0, limit);
-  const summary = plan.intent === "non_food"
-    ? "Scout covers food and drinks only."
-    : items.length
+  const items = diversify(confirmed).slice(0, limit);
+  const summary = items.length
       ? plan.summary || `${items.length} matches`
       : unconfirmed.length
         ? "No product's label fully confirms your request. Closest options are listed as unconfirmed."

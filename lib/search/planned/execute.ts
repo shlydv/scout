@@ -134,8 +134,7 @@ function numericValue(item: PlannedItem, field: NumericField): number | null {
   return num(NUTRI[field]!);
 }
 
-const ANN_SCOPE_THRESHOLD = 1500;
-const ANN_K = 700;
+const SHORTLIST = 200;
 const RELAX_SIMILARITY_MARGIN = 0.1;
 
 type Attempt = {
@@ -198,33 +197,27 @@ async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limi
   const emb = embedding ? param(`[${embedding.join(",")}]`, "::vector") : null;
   const lexQuery = param(plan.semantic_query || "");
   const sortExpr = plan.sort.field === "relevance" ? null : fieldExpr(plan.sort.field);
-  // Stage 1 picks candidate ids without reading embeddings (except via the ANN
-  // index); stage 2 loads full rows and exact similarity for those ids only.
-  // Reading every 4 KB embedding in a broad scope is what makes free-tier disk slow.
-  const useAnn = !sortExpr && emb != null && a.scopeSize > ANN_SCOPE_THRESHOLD;
+  // Stage 1 picks candidate ids without touching the 4 KB TOASTed embeddings:
+  // relevance ranks by Hamming distance over the inline 128-byte bits in
+  // product_facts; numeric sorts never need vectors. Stage 2 loads full rows and
+  // exact cosine for the shortlist only.
   const nutrientSort = sortExpr != null && NUTRITION_FIELDS.has(plan.sort.field as NumericField);
+  const qbits = emb ? `binary_quantize(${emb})::bit(1024)` : null;
   const stage1Order = sortExpr
     ? `${nutrientSort ? `(${NUTRITION_PLAUSIBLE}) desc, ` : ""}(${sortExpr}) is null, ${sortExpr} ${plan.sort.dir}`
-    : useAnn ? "ann.d" : "p.id";
-  const stage1Limit = sortExpr ? Math.max(limit * 3, 150) : useAnn ? ANN_K : ANN_SCOPE_THRESHOLD + 500;
+    : qbits ? `f.embedding_bits <~> ${qbits} nulls last` : `ts_rank_cd(si.search_tsv, plainto_tsquery('simple', ${lexQuery})) desc`;
+  const stage1Limit = sortExpr ? Math.max(limit * 3, 150) : SHORTLIST;
   const order = sortExpr
     ? `${nutrientSort ? "nutrition_ok desc, " : ""}sort_value is null, sort_value ${plan.sort.dir}, relevance desc`
     : "relevance desc";
   const similarity = emb ? `1 - (si.embedding <=> ${emb})` : "null::float8";
 
   const text = `
-    with ${useAnn ? `ann as materialized (
-      select si.product_id, binary_quantize(si.embedding)::bit(1024) <~> binary_quantize(${emb})::bit(1024) as d
-      from product_search_index si
-      where si.embedding is not null
-      order by binary_quantize(si.embedding)::bit(1024) <~> binary_quantize(${emb})::bit(1024)
-      limit ${ANN_K + 300}
-    ), ` : ""}ids as materialized (
+    with ids as materialized (
       select p.id, ${sortExpr ?? "null::numeric"} as sort_value
       from products p
       join product_search_index si on si.product_id = p.id
       left join product_facts f on f.product_id = p.id
-      ${useAnn ? "join ann on ann.product_id = p.id" : ""}
       where ${conds.join("\n        and ")}
       order by ${stage1Order}
       limit ${stage1Limit}
@@ -248,12 +241,7 @@ async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limi
     order by ${order}
     limit ${Math.max(1, Math.min(400, limit))}`;
 
-  const rows = useAnn
-    ? await sql.begin(async tx => {
-      await tx.unsafe(`set local hnsw.ef_search = ${ANN_K + 300}`);
-      return tx.unsafe(text, params as never[]);
-    })
-    : await sql.unsafe(text, params as never[]);
+  const rows = await sql.unsafe(text, params as never[]);
   return rows.map(r => ({
     product_id: r.id, slug: r.slug, name: r.name, brand: r.brand, category: r.category,
     subcategory: r.subcategory, l3: r.l3_category,
@@ -312,7 +300,8 @@ function rank(items: PlannedItem[], plan: SearchPlan): PlannedItem[] {
     let s = it.score;
     for (const c of it.claims) if (pref.has(c as never)) s += 0.04;
     if (it.conflicts.length) s -= 0.05;
-    if (it.scout_score != null) s += (it.scout_score / 100) * 0.03;
+    // Goals care about healthiness as part of fit; plain product queries barely.
+    if (it.scout_score != null) s += (it.scout_score / 100) * (plan.intent === "goal" ? 0.15 : 0.03);
     return { ...it, score: s };
   });
   // SQL already applied the requested sort; only reorder relevance-sorted results.
