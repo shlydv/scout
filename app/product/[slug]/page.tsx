@@ -25,6 +25,8 @@ import { SiteNav } from "@/components/site-nav";
 import { resolveProductVerdict } from "@/lib/scoring/verdict-resolve";
 import { mergePdpSublabelIds } from "@/lib/scoring/sublabels";
 import { CatalogBackLink } from "@/components/catalog-back-link";
+import { variantInfo } from "@/lib/products/variants";
+import { VERDICT_LABELS } from "@/lib/scoring/verdict";
 import { Reveal } from "@/components/reveal";
 import { PdpSourceDataPanel } from "@/components/pdp-source-data-panel";
 import { buildProductProvenance } from "@/lib/products/data-provenance";
@@ -39,6 +41,7 @@ import { findAlternatives, findSimilarProducts } from "@/lib/products/alternativ
 import { getProductBySlug, getProductsForSwaps } from "@/lib/products/queries";
 import { displayPriceInr, showMrpStrike } from "@/lib/products/display-price";
 import type { Metadata } from "next";
+import Link from "next/link";
 import type { SubScores } from "@/lib/supabase/types";
 
 export const revalidate = 300;
@@ -151,8 +154,22 @@ export default async function ProductPage({
     loadIngredientIntelligenceForDisplay(displayIngredients),
   ]);
 
-  const swaps = findAlternatives(product, swapPool, goal, 8, { diet });
-  const similarProducts = findSimilarProducts(product, swapPool, goal, 8, {
+  // Pack sizes of this product are not "alternatives", and each other product
+  // appears once rather than once per size.
+  const variants = await variantInfo([product.id, ...swapPool.map((p) => p.id)]);
+  const groupOf = (id: string) => variants.get(id)?.key ?? id;
+  const ownGroup = groupOf(product.id);
+  const seenGroups = new Set<string>([ownGroup]);
+  const distinctPool = swapPool.filter((p) => {
+    const g = groupOf(p.id);
+    if (seenGroups.has(g)) return false;
+    seenGroups.add(g);
+    return true;
+  });
+  const otherSizes = (variants.get(product.id)?.sizes ?? []).filter((s) => s.slug !== product.slug);
+
+  const swaps = findAlternatives(product, distinctPool, goal, 8, { diet });
+  const similarProducts = findSimilarProducts(product, distinctPool, goal, 8, {
     diet,
     excludeIds: new Set(swaps.map((s) => s.product.id)),
   });
@@ -262,6 +279,16 @@ export default async function ProductPage({
               {product.net_weight ? ` · ${product.net_weight}` : ""}
             </p>
             <DietBadgeRow badge={dietBadge} selected={diet} />
+            {otherSizes.length > 0 ? (
+              <p className="mt-3 flex flex-wrap items-center gap-1.5 text-[13px] text-(--color-fg-muted)">
+                <span>Also in</span>
+                {otherSizes.map((s) => (
+                  <Link key={s.slug} href={`/product/${s.slug}`} className="rounded-full border border-(--color-line) px-2.5 py-0.5 hover:border-(--color-fg-muted) hover:text-(--color-fg)">
+                    {s.net_weight ?? "other size"}{s.price_inr != null ? ` · ₹${s.price_inr}` : ""}
+                  </Link>
+                ))}
+              </p>
+            ) : null}
             {price != null ? (
               <p className="mt-4 text-2xl font-semibold tabular-nums">
                 ₹{price}
@@ -277,6 +304,11 @@ export default async function ProductPage({
               name={product.name}
               image={product.image_urls?.[0] ?? null}
               zeptoBuyUrl={zeptoBuyUrl}
+              shareText={
+                score?.score != null
+                  ? `Is ${product.name} actually healthy? Scout scores it ${score.absolute_score ?? score.score}/100${verdict ? ` (${VERDICT_LABELS[verdict].title.toLowerCase()})` : ""}${score.opinion?.headline ? ` — ${score.opinion.headline}` : ""}.`
+                  : `${product.name} — read by Scout`
+              }
             />
 
             {verdict && score?.opinion ? (

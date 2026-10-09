@@ -1,48 +1,38 @@
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { HomeRailCard } from "@/components/home-rail-card";
-import { HomeReckoning, HomeCategoryGrid } from "@/components/home-editorial";
-import { RingGlyph } from "@/components/ring-motif";
+import { HomeCategoryGrid } from "@/components/home-editorial";
+import { ConflictCard } from "@/components/insights/conflict-card";
 import { CountUp, Reveal } from "@/components/reveal";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
 import { SEARCH_PROMPTS } from "@/components/search-prompts";
 import { getCachedLandingInsights } from "@/lib/products/catalog-cache";
-import { EMPTY_LANDING_INSIGHTS, type LandingFact, type LandingInsights } from "@/lib/products/landing-insights";
+import { getInsights, type InsightsData } from "@/lib/insights/data";
+import { EMPTY_LANDING_INSIGHTS, type LandingInsights } from "@/lib/products/landing-insights";
 import { getHomeShelves } from "@/lib/products/queries";
+import { collapseVariants } from "@/lib/products/variants";
+import { SHELVES } from "@/lib/shelves";
 
 export const revalidate = 600;
 
-/** A landing fact's destination — mirrors the catalog/ai/expose action shapes. */
-function factHref(fact: LandingFact): string {
-  const a = fact.action;
-  if (a.type === "ai_search") return `/search?prompt=${encodeURIComponent(a.prompt)}`;
-  if (a.type === "expose") return `/search?slugs=${encodeURIComponent(a.slugs.join(","))}`;
-  const p = new URLSearchParams();
-  if (a.verdict) p.set("verdict", a.verdict);
-  if (a.sublabel) p.set("sublabel", a.sublabel);
-  if (a.sort) p.set("sort", a.sort);
-  const qs = p.toString();
-  return qs ? `/search?${qs}` : "/search";
-}
-
 export default async function Home() {
   const shelves = await getHomeShelves();
+  const staples = await collapseVariants(shelves.dailyStaples);
   let insights: LandingInsights = EMPTY_LANDING_INSIGHTS;
+  let facts: InsightsData | null = null;
   try {
-    insights = await getCachedLandingInsights();
+    [insights, facts] = await Promise.all([getCachedLandingInsights(), getInsights()]);
   } catch (err) {
-    console.warn("[home] landing insights skipped:", err);
+    console.warn("[home] insights skipped:", err);
   }
+  const oneIn = facts?.conflictedProducts ? Math.round(facts.claimers / facts.conflictedProducts) : 0;
 
   // Typewriter starts on a different phrase each day.
   const dayIndex = Math.floor(Date.now() / 86_400_000);
   const promptStart = dayIndex % SEARCH_PROMPTS.length;
   const examples = [0, 1, 2].map((i) => SEARCH_PROMPTS[(promptStart + i) % SEARCH_PROMPTS.length]!);
 
-  // One proof fact, told editorially. Prefer a "bad" finding — it's the hook.
-  const proof =
-    insights.facts.find((f) => f.tone === "bad") ?? insights.facts[0] ?? null;
 
   return (
     <main className="min-h-screen">
@@ -69,10 +59,13 @@ export default async function Home() {
           {/* The one action */}
           <form
             action="/search"
+            method="get"
             className="mt-9 flex w-full max-w-xl items-center gap-2 rounded-2xl border border-(--color-line-strong) bg-(--color-panel) p-2 shadow-sm transition focus-within:border-(--color-fg-muted) focus-within:shadow-md focus-within:ring-4 focus-within:ring-(--color-accent)/10"
           >
             <input
-              name="prompt"
+              name="q"
+              required
+              minLength={2}
               type="search"
               autoComplete="off"
               placeholder="Search a snack, or describe what you want…"
@@ -95,7 +88,7 @@ export default async function Home() {
               <span key={ex} className="flex items-center gap-2">
                 {i > 0 && <span className="text-(--color-fg-dim)/40">·</span>}
                 <Link
-                  href={`/search?prompt=${encodeURIComponent(ex)}`}
+                  href={`/search?q=${encodeURIComponent(ex)}`}
                   className="text-(--color-fg-muted) underline-offset-4 transition hover:text-(--color-fg) hover:underline"
                 >
                   {ex}
@@ -109,7 +102,7 @@ export default async function Home() {
               <span className="font-medium text-(--color-fg-muted) tabular-nums">
                 <CountUp value={shelves.totalScored} />
               </span>{" "}
-              <Link href="/search" className="underline-offset-4 transition hover:text-(--color-fg) hover:underline">
+              <Link href="/catalog" className="underline-offset-4 transition hover:text-(--color-fg) hover:underline">
                 products scored across India&apos;s quick-commerce shelves
               </Link>
             </p>
@@ -117,42 +110,61 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ── One proof, told with confidence ──────────────────────────────── */}
-      {proof && (
-        <section className="relative overflow-hidden border-b border-(--color-line) bg-(--color-bg-soft)">
-          {/* score-ring motif behind the big stat — a ring around a number */}
-          <RingGlyph className="absolute left-1/2 top-1/2 h-[340px] w-[340px] -translate-x-1/2 -translate-y-[58%] opacity-60 md:h-[440px] md:w-[440px]" />
-          <Reveal className="relative z-10 mx-auto flex max-w-3xl flex-col items-center px-6 py-20 text-center md:py-28">
-            <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-(--color-fg-dim)">
-              What we found
-            </p>
-            <p className="font-display mt-5 text-7xl leading-none text-(--color-accent) md:text-8xl">
-              {proof.stat}
-            </p>
-            <p className="font-display mt-5 max-w-2xl text-balance text-2xl leading-snug text-(--color-fg) md:text-[1.9rem]">
-              {proof.headline}
-            </p>
-            <Link
-              href={factHref(proof)}
-              className="mt-7 inline-flex items-center gap-1.5 text-sm font-medium text-(--color-fg-muted) underline-offset-4 transition hover:text-(--color-fg) hover:underline"
-            >
-              {proof.cta}
-              <ArrowUpRight className="h-3.5 w-3.5" />
+      {/* ── Start from a goal ──────────────────────────────────────────── */}
+      <section className="border-b border-(--color-line)">
+        <Reveal className="mx-auto max-w-7xl px-6 py-14 md:py-20">
+          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-(--color-fg-dim)">Start from a goal</p>
+              <h2 className="font-display mt-3 text-3xl leading-tight md:text-[2.5rem]">Shortlists, checked against the label.</h2>
+            </div>
+            <Link href="/shelves" className="inline-flex items-center gap-1.5 text-sm font-medium text-(--color-fg-muted) transition hover:text-(--color-fg)">
+              All shelves <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+            {SHELVES.slice(0, 6).map(s => (
+              <Link key={s.slug} href={`/shelves/${s.slug}`} className="u-lift rounded-2xl border border-(--color-line) bg-(--color-panel) p-4 hover:border-(--color-fg-muted)">
+                <span className="text-2xl" aria-hidden>{s.emoji}</span>
+                <span className="mt-2 block text-[15px] font-medium leading-snug text-(--color-fg)">{s.title}</span>
+              </Link>
+            ))}
+          </div>
+        </Reveal>
+      </section>
+
+      {/* ── The hook: what the pack says vs what the label says ─────────── */}
+      {facts && facts.conflicts.length >= 3 && (
+        <section className="border-b border-(--color-line) bg-(--color-bg-soft)">
+          <Reveal className="mx-auto max-w-7xl px-6 py-16 md:py-24">
+            <div className="mb-9 flex flex-wrap items-end justify-between gap-4">
+              <div className="max-w-2xl">
+                <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-(--color-fg-dim)">Front of pack vs back of pack</p>
+                <h2 className="font-display mt-3 text-3xl leading-tight md:text-[2.5rem]">
+                  {oneIn ? `1 in ${oneIn} “free-from” claims doesn’t survive the ingredient list.` : "Claims that don't survive the ingredient list."}
+                </h2>
+                <p className="mt-3 text-[15px] leading-relaxed text-(--color-fg-muted)">
+                  Sugar-free packs that list sugar. “No palm oil” chips fried in palmolein. Every one checked twice against the printed label.
+                </p>
+              </div>
+              <Link href="/insights/claims" className="inline-flex items-center gap-1.5 text-sm font-medium text-(--color-fg-muted) transition hover:text-(--color-fg)">
+                See all {facts.conflictedProducts} <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {facts.conflicts.slice(0, 6).map(c => <ConflictCard key={`${c.id}-${c.claim}`} c={c} />)}
+            </div>
           </Reveal>
         </section>
       )}
-
-      {/* ── The hook: marketing vs reality ───────────────────────────────── */}
-      {insights.dodgeList.length > 0 && <HomeReckoning products={insights.dodgeList} />}
 
       {/* ── The light after the shade: what Scout actually loves ──────────── */}
       <Rail
         eyebrow="What Scout loves"
         title="Worth buying every week."
         subtitle="Whole foods or close to it — top scores, no concern flags."
-        cta={{ href: "/search?verdict=daily_staple", label: "All staples" }}
-        items={shelves.dailyStaples}
+        cta={{ href: "/catalog?verdict=daily_staple", label: "All staples" }}
+        items={staples}
       />
 
       {/* ── Explore: every aisle, judged ──────────────────────────────────── */}

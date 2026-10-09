@@ -4,7 +4,7 @@
  *   1. extract facts for visible products that are new or whose label/claims changed
  *   2. upsert them (embedding bits backfilled)
  *   3. refresh derived columns for everything (variant key, pack size, price per 100)
- *   4. with --audits: run the nutrition and completeness audits on the changed products
+ *   4. with --audits: nutrition + completeness audits on changed products, then verify label conflicts
  *
  *   pnpm facts:sync                 # extract + load changed products
  *   pnpm facts:sync -- --audits     # also audit them
@@ -65,7 +65,7 @@ async function main() {
 
   if (audits && !dryRun && changed.length) {
     const ids = changed.map(p => p.id).join(",");
-    for (const script of ["scripts/facts-nutrition-audit.ts", "scripts/facts-completeness-audit.ts"]) {
+    for (const script of ["scripts/facts-nutrition-audit.ts", "scripts/facts-completeness-audit.ts", "scripts/facts-conflicts.ts"]) {
       execFileSync(process.execPath, ["--import", "tsx", script, "--ids", ids], { stdio: "inherit" });
     }
   }

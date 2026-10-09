@@ -5,7 +5,7 @@ import type { CatalogGridItem } from "@/lib/products/queries";
 
 export function gridItemToCard(item: CatalogGridItem): SearchCard {
   const cs = item.core_scores;
-  const score = cs?.score ?? null;
+  const score = cs?.absolute_score ?? cs?.score ?? null;
   return {
     id: item.id, slug: item.slug, name: item.name, brand: item.brand,
     image: item.image_urls?.[0] ?? null,

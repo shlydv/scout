@@ -112,7 +112,7 @@ function fieldExpr(field: NumericField): string {
   if (field === "price_inr") return "nullif(p.price_inr, 0)";
   if (field === "price_per_100") return "f.price_per_100";
   if (field === "pack_qty") return "f.pack_qty";
-  if (field === "scout_score") return "si.scout_score";
+  if (field === "scout_score") return "coalesce(si.absolute_score, si.scout_score)";
   if (field === "protein_per_100kcal") {
     return "((p.nutrition->>'protein_g_100g')::numeric * 100 / nullif((p.nutrition->>'energy_kcal_100g')::numeric, 0))";
   }
@@ -228,7 +228,7 @@ async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limi
       limit ${stage1Limit}
     ), cand as (
       select p.id, p.slug, p.name, p.brand, p.category, p.subcategory, p.l3_category, p.price_inr,
-             p.net_weight, p.nutrition, si.scout_score, p.image_urls, p.mrp_inr, p.ocr_image_url,
+             p.net_weight, p.nutrition, coalesce(si.absolute_score, si.scout_score) scout_score, p.image_urls, p.mrp_inr, p.ocr_image_url,
              si.primary_type, si.absolute_score, si.category_rank, si.category_size, si.category_label,
              f.product_id as f_id, f.kind, f.ingredients, f.claims, f.present, f.may_contain, f.unknown,
              f.conflicts, f.ingredient_status, f.veg, f.vegan, f.jain, f.price_per_100, f.evidence, f.variant_key,

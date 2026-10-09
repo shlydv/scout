@@ -1,625 +1,129 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
-import {
-  ArrowRight,
-  TrendingUp,
-  TrendingDown,
-  Leaf,
-  Heart,
-  Dumbbell,
-  AlertTriangle,
-  Award,
-  BarChart3,
-  Sparkles,
-  Baby,
-} from "lucide-react";
-import { InsightFeaturedCard, InsightProductCard } from "@/components/insight-product-card";
-import {
-  InsightsCarouselSlide,
-  InsightsProductCarousel,
-} from "@/components/insights-product-carousel";
-import { InsightsBrandBoard } from "@/components/insights-brand-board";
+import { ArrowUpRight } from "lucide-react";
+import { ConflictCard } from "@/components/insights/conflict-card";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
-import {
-  getCachedScoredCatalogForInsights,
-  getCachedScoredVerdictStats,
-} from "@/lib/products/catalog-cache";
-import { marketingCallout } from "@/lib/products/insight-copy";
-import { buildInsights } from "@/lib/products/insights";
-import { CountUp, Reveal } from "@/components/reveal";
-import { SketchUnderline } from "@/components/scout-motifs";
+import { CONFLICT_KIND_LABELS, getInsights, type AisleStat } from "@/lib/insights/data";
 
-export const revalidate = 600;
+export const revalidate = 86400;
 
 export const metadata: Metadata = {
   title: "What we found · Scout",
-  description:
-    "Patterns across the Indian grocery catalog — daily staples, marketing traps, and the aisles that actually deliver.",
+  description: "What's really inside India's packaged food — counted from the back labels of every product Scout has read.",
 };
 
-export default async function InsightsPage() {
-  let products: Awaited<ReturnType<typeof getCachedScoredCatalogForInsights>> = [];
-  try {
-    products = await getCachedScoredCatalogForInsights();
-  } catch (err) {
-    console.warn("[insights] catalog load failed:", err);
-  }
-  const ins = buildInsights(products.filter((p) => p.core_scores));
-  // Header numbers come from exact counts over the whole catalog; the lists
-  // below still draw from the bounded sample.
-  const stats = await getCachedScoredVerdictStats().catch(() => ({
-    totalScored: ins.totalScored,
-    dailyStapleCount: ins.dailyStapleCount,
-    skipCount: ins.skipCount,
-  }));
+function Section({ eyebrow, title, intro, children, action }: { eyebrow: string; title: string; intro?: string; children: React.ReactNode; action?: React.ReactNode }) {
+  return (
+    <section className="border-t border-(--color-line) py-14 md:py-20">
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div className="max-w-2xl">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-(--color-fg-dim)">{eyebrow}</p>
+          <h2 className="font-display mt-2 text-3xl leading-tight text-(--color-fg) md:text-4xl">{title}</h2>
+          {intro && <p className="mt-3 text-[15px] leading-relaxed text-(--color-fg-muted)">{intro}</p>}
+        </div>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
 
-  const topCategories = ins.categoryStats.slice(0, 5);
-  const bottomCategories = [...ins.categoryStats].reverse().slice(0, 5);
+function AisleBars({ rows, colour, noun }: { rows: AisleStat[]; colour: string; noun: string }) {
+  return (
+    <ol className="grid gap-2.5">
+      {rows.map(r => (
+        <li key={r.aisle} className="grid grid-cols-[minmax(0,10rem)_1fr_auto] items-center gap-3 text-sm md:grid-cols-[14rem_1fr_auto]">
+          <Link href={`/catalog?subcategory=${encodeURIComponent(r.aisle)}`} className="truncate text-(--color-fg) hover:underline">{r.aisle}</Link>
+          <div className="h-2.5 overflow-hidden rounded-full bg-(--color-bg-soft)" role="img" aria-label={`${r.pct}% ${noun}`}>
+            <div className="h-full rounded-full" style={{ width: `${r.pct}%`, backgroundColor: colour }} />
+          </div>
+          <span className="w-24 text-right tabular-nums text-(--color-fg-muted)"><span className="font-semibold text-(--color-fg)">{r.pct}%</span> of {r.total}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+export default async function InsightsPage() {
+  const d = await getInsights();
+  const oneIn = d.conflictedProducts ? Math.round(d.claimers / d.conflictedProducts) : 0;
 
   return (
     <main className="min-h-screen bg-(--color-bg)">
       <SiteNav />
-
-      <div className="border-b border-(--color-line)">
-        <div className="mx-auto max-w-7xl px-5 py-12 md:px-6 md:py-16">
-          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-(--color-fg-dim)">
-            <CountUp value={stats.totalScored} className="tabular-nums" /> products analysed
-          </p>
-          <h1 className="relative mt-3 inline-block font-display text-4xl leading-tight md:text-5xl">
-            What we found
-            <SketchUnderline className="absolute -bottom-2.5 left-0 h-2.5 w-[62%] text-(--color-accent)" />
+      <div className="mx-auto max-w-6xl px-4 md:px-6">
+        <header className="py-14 md:py-20">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-(--color-fg-dim)">What we found</p>
+          <h1 className="font-display mt-3 max-w-3xl text-balance text-4xl leading-[1.05] text-(--color-fg) md:text-6xl">
+            We read the back of {d.total.toLocaleString("en-IN")} packs. Here&apos;s what&apos;s inside.
           </h1>
-          <p className="mt-5 max-w-2xl text-lg leading-relaxed text-(--color-fg-muted)">
-            Patterns across the full catalog — staples, traps, and aisles that actually deliver.
+          <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-(--color-fg-muted)">
+            Every number on this page is a count of ingredient lists and nutrition panels printed on packaged foods sold on India&apos;s quick-commerce apps. No lab tests, no estimates — just the label, read carefully.
           </p>
-          <div className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-sm text-(--color-fg-muted)">
-            <span>Avg score <strong className="text-(--color-fg) tabular-nums">{ins.avgScore}/100</strong></span>
-            <span className="text-(--color-line-strong)">·</span>
-            <span><strong className="text-(--color-good) tabular-nums"><CountUp value={stats.dailyStapleCount} /></strong> daily staple{stats.dailyStapleCount === 1 ? "" : "s"}</span>
-            <span className="text-(--color-line-strong)">·</span>
-            <span><strong className="text-(--color-bad) tabular-nums"><CountUp value={stats.skipCount} /></strong> skip-worthy</span>
-            <span className="text-(--color-line-strong)">·</span>
-            <span><strong className="text-(--color-fg) tabular-nums">{ins.categoryStats.length}</strong> categories</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-7xl space-y-20 px-5 pb-24 pt-14 md:space-y-24 md:px-6">
-        <Section
-          icon={<Leaf className="h-5 w-5" />}
-          tone="good"
-          title="Daily staple shelf"
-          subtitle={`${stats.dailyStapleCount.toLocaleString()} ${stats.dailyStapleCount === 1 ? "product scores" : "products score"} ≥80 with clean ingredients — worth buying every week.`}
-          href="/search?verdict=daily_staple"
-          hrefLabel="Browse staples"
-        >
-          <InsightsProductCarousel ariaLabel="Daily staples">
-            {ins.dailyStaples.map(({ product }) => (
-              <InsightsCarouselSlide key={product.id}>
-                <InsightProductCard
-                  product={product}
-                  accent="value"
-                  headline={`Score ${product.core_scores?.score ?? "—"} · Daily staple`}
-                  subline={product.category ?? ""}
-                />
-              </InsightsCarouselSlide>
+          <dl className="mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-(--color-line) bg-(--color-line) md:grid-cols-3">
+            {d.ingredientStats.map(s => (
+              <div key={s.concept} className="bg-(--color-panel) p-5 md:p-6">
+                <dt className="sr-only">{s.label}</dt>
+                <dd>
+                  <span className="font-display text-4xl text-(--color-fg) md:text-5xl">{s.pct}%</span>
+                  <span className="mt-1 block text-sm text-(--color-fg-muted)">of products {s.label}</span>
+                </dd>
+              </div>
             ))}
-          </InsightsProductCarousel>
-        </Section>
+          </dl>
+        </header>
 
         <Section
-          icon={<AlertTriangle className="h-5 w-5" />}
-          tone="warn"
-          title="Don't fall for the front label"
-          subtitle="Health-halo claims checked against actual nutrition and ingredients."
-          href="/search"
-          hrefLabel={`${ins.misleading.length} flagged`}
-          hrefStyle="warn"
+          eyebrow="Front of pack vs back of pack"
+          title={oneIn ? `1 in ${oneIn} “free-from” claims doesn’t survive the ingredient list.` : "Claims that don't survive the ingredient list."}
+          intro={`${d.claimers.toLocaleString("en-IN")} products make a claim like “sugar free”, “no palm oil” or “gluten free”. For ${d.conflictedProducts}, their own ingredient list says otherwise. Each one below is checked twice: by our label reader and by a second, stricter review that drops anything debatable.`}
+          action={<Link href="/insights/claims" className="inline-flex items-center gap-1 text-sm font-medium text-(--color-accent) hover:underline">See all {d.conflictedProducts}<ArrowUpRight className="h-3.5 w-3.5" /></Link>}
         >
-          {ins.featuredMisleading ? (
-            <div className="mb-6">
-              <InsightFeaturedCard
-                product={ins.featuredMisleading}
-                callout={marketingCallout(ins.featuredMisleading)}
-              />
-            </div>
-          ) : null}
-          <InsightsProductCarousel ariaLabel="Marketing reality check">
-            {ins.misleading.slice(0, 16).map(({ product }) => {
-              const c = marketingCallout(product);
-              return (
-                <InsightsCarouselSlide key={product.id}>
-                  <InsightProductCard
-                    product={product}
-                    accent="warn"
-                    badge="Callout"
-                    headline={c.reality}
-                    subline={c.claim}
-                  />
-                </InsightsCarouselSlide>
-              );
-            })}
-          </InsightsProductCarousel>
-        </Section>
-
-        <Section
-          icon={<TrendingDown className="h-5 w-5" />}
-          tone="bad"
-          title="Products to skip"
-          subtitle="Score below 40 or hazardous additives — avoid when you have alternatives."
-          href="/search?verdict=skip"
-          hrefLabel="Full skip list"
-        >
-          <InsightsProductCarousel ariaLabel="Skip-worthy products">
-            {ins.skipWorthy.slice(0, 16).map(({ product }) => (
-              <InsightsCarouselSlide key={product.id}>
-                <InsightProductCard
-                  product={product}
-                  accent="warn"
-                  headline={`Score ${product.core_scores?.score ?? "—"} · Skip`}
-                  subline={
-                    (product.core_scores?.verdict_sublabels as string[] | undefined)
-                      ?.slice(0, 2)
-                      .map((s) => s.replace(/_/g, " "))
-                      .join(" · ") ?? ""
-                  }
-                />
-              </InsightsCarouselSlide>
+          <div className="mb-6 flex flex-wrap gap-2">
+            {d.conflictsByKind.slice(0, 8).map(k => (
+              <Link key={k.kind} href={`/insights/claims?kind=${k.kind}`} className="rounded-full border border-(--color-line) bg-(--color-panel) px-3 py-1 text-sm text-(--color-fg-muted) hover:border-(--color-line-strong) hover:text-(--color-fg)">
+                {CONFLICT_KIND_LABELS[k.kind] ?? k.kind} <span className="tabular-nums text-(--color-fg-dim)">{k.count}</span>
+              </Link>
             ))}
-          </InsightsProductCarousel>
-        </Section>
-
-        <Section
-          icon={<BarChart3 className="h-5 w-5" />}
-          tone="neutral"
-          title="Which aisles actually deliver"
-          subtitle="Average score by category (minimum 10 products per aisle)."
-        >
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-(--color-line) bg-(--color-panel) p-5">
-              <p className="mb-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-(--color-good)">
-                <TrendingUp className="h-3.5 w-3.5" /> Top aisles
-              </p>
-              <ul className="space-y-3">
-                {topCategories.map((c) => (
-                  <CategoryRow key={c.category} stat={c} positive />
-                ))}
-              </ul>
-            </div>
-            <div className="rounded-2xl border border-(--color-line) bg-(--color-panel) p-5">
-              <p className="mb-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-(--color-bad)">
-                <TrendingDown className="h-3.5 w-3.5" /> Worst aisles
-              </p>
-              <ul className="space-y-3">
-                {bottomCategories.map((c) => (
-                  <CategoryRow key={c.category} stat={c} positive={false} />
-                ))}
-              </ul>
-            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {d.conflicts.slice(0, 9).map(c => <ConflictCard key={`${c.id}-${c.claim}`} c={c} />)}
           </div>
         </Section>
 
-        <Section
-          icon={<BarChart3 className="h-5 w-5" />}
-          tone="neutral"
-          title="What the catalog actually contains"
-          subtitle="How often each quality or concern signal appears across scored products."
-        >
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl border border-(--color-line) bg-(--color-panel) p-5">
-              <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-(--color-good)">
-                Positive signals
-              </p>
-              <ul className="space-y-2.5">
-                {ins.topSublabels.map((s) => (
-                  <SublabelBar key={s.id} label={s.label} pct={s.pct} tone="good" />
-                ))}
-              </ul>
-            </div>
-            <div className="rounded-2xl border border-(--color-line) bg-(--color-panel) p-5">
-              <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-(--color-bad)">
-                Concern flags
-              </p>
-              <ul className="space-y-2.5">
-                {ins.bottomSublabels.map((s) => (
-                  <SublabelBar key={s.id} label={s.label} pct={s.pct} tone="bad" />
-                ))}
-              </ul>
-            </div>
-          </div>
-        </Section>
-
-        {ins.gymPicks.length > 0 ? (
-          <Section
-            icon={<Dumbbell className="h-5 w-5" />}
-            tone="good"
-            title="Gym & performance"
-            subtitle="High protein with low processing — fuel without junk."
-            href="/search?goal=gym"
-            hrefLabel="Gym goal shelf"
-          >
-            <InsightsProductCarousel ariaLabel="Gym picks">
-              {ins.gymPicks.map(({ product }) => (
-                <InsightsCarouselSlide key={product.id}>
-                  <InsightProductCard
-                    product={product}
-                    accent="value"
-                    headline={`${product.nutrition?.protein_g_100g ?? "—"}g protein / 100g`}
-                    subline={`Score ${product.core_scores?.score ?? "—"}`}
-                  />
-                </InsightsCarouselSlide>
-              ))}
-            </InsightsProductCarousel>
+        <div className="grid gap-x-12 md:grid-cols-2">
+          <Section eyebrow="Where sugar hides" title="Added sugar, aisle by aisle" intro="Share of products in each aisle whose ingredient list includes sugar, jaggery, syrups or other added sweeteners.">
+            <AisleBars rows={d.sugarByAisle} colour="var(--color-accent)" noun="contain added sugar" />
           </Section>
-        ) : null}
-
-        {ins.gutHealthPicks.length > 0 ? (
-          <Section
-            icon={<Heart className="h-5 w-5" />}
-            tone="good"
-            title="Good for gut health"
-            subtitle="Probiotic or prebiotic ingredients — dahi, kimchi, kefir, and more."
-          >
-            <InsightsProductCarousel ariaLabel="Gut health picks">
-              {ins.gutHealthPicks.map(({ product }) => (
-                <InsightsCarouselSlide key={product.id}>
-                  <InsightProductCard
-                    product={product}
-                    accent="value"
-                    headline="Probiotic / prebiotic"
-                    subline={`Score ${product.core_scores?.score ?? "—"} · ${product.category ?? ""}`}
-                  />
-                </InsightsCarouselSlide>
-              ))}
-            </InsightsProductCarousel>
+          <Section eyebrow="Palm oil" title="Where palm oil turns up most" intro="Share of products in each aisle that list palm oil or palmolein.">
+            <AisleBars rows={d.palmByAisle} colour="var(--score-poor)" noun="contain palm oil" />
           </Section>
-        ) : null}
-
-        {ins.lowCalorieFills.length > 0 ? (
-          <Section
-            icon={<Leaf className="h-5 w-5" />}
-            tone="good"
-            title="Good for weight loss"
-            subtitle="Low calorie per serve but still filling — not just empty low-cal marketing."
-            href="/search?goal=fat-loss"
-            hrefLabel="Fat loss shelf"
-          >
-            <InsightsProductCarousel ariaLabel="Weight loss picks">
-              {ins.lowCalorieFills.map(({ product }) => (
-                <InsightsCarouselSlide key={product.id}>
-                  <InsightProductCard
-                    product={product}
-                    accent="value"
-                    headline="Low-cal & filling"
-                    subline={`Score ${product.core_scores?.score ?? "—"} · ${product.category ?? ""}`}
-                  />
-                </InsightsCarouselSlide>
-              ))}
-            </InsightsProductCarousel>
-          </Section>
-        ) : null}
-
-        {ins.fiberLeaders.length > 0 ? (
-          <Section
-            icon={<Sparkles className="h-5 w-5" />}
-            tone="good"
-            title="Fiber leaders"
-            subtitle="Whole grains, legumes, and staples that actually move the needle on fibre."
-            href="/search?sublabel=rich_in_fiber"
-            hrefLabel="High-fiber picks"
-          >
-            <InsightsProductCarousel ariaLabel="Fiber leaders">
-              {ins.fiberLeaders.map(({ product }) => (
-                <InsightsCarouselSlide key={product.id}>
-                  <InsightProductCard
-                    product={product}
-                    accent="value"
-                    headline={`${product.nutrition?.fiber_g_100g ?? "—"}g fiber / 100g`}
-                    subline={`Score ${product.core_scores?.score ?? "—"} · ${product.category ?? ""}`}
-                  />
-                </InsightsCarouselSlide>
-              ))}
-            </InsightsProductCarousel>
-          </Section>
-        ) : null}
-
-        {ins.kidFriendly.length > 0 ? (
-          <Section
-            icon={<Baby className="h-5 w-5" />}
-            tone="good"
-            title="Kid-friendly shelf"
-            subtitle="No artificial flavours or hidden sweeteners — snacks and staples parents can trust."
-            href="/search?goal=kids"
-            hrefLabel="Kids goal shelf"
-          >
-            <InsightsProductCarousel ariaLabel="Kid-friendly picks">
-              {ins.kidFriendly.map(({ product }) => (
-                <InsightsCarouselSlide key={product.id}>
-                  <InsightProductCard
-                    product={product}
-                    accent="value"
-                    headline={`Score ${product.core_scores?.score ?? "—"}`}
-                    subline={product.category ?? ""}
-                  />
-                </InsightsCarouselSlide>
-              ))}
-            </InsightsProductCarousel>
-          </Section>
-        ) : null}
-
-        {ins.bestInCohort.length > 0 ? (
-          <Section
-            icon={<Award className="h-5 w-5" />}
-            tone="warn"
-            title="Best of a bad bunch"
-            subtitle="Top of their aisle even when the category skews unhealthy — your best option there."
-          >
-            <InsightsProductCarousel ariaLabel="Best in cohort">
-              {ins.bestInCohort.map(({ product }) => (
-                <InsightsCarouselSlide key={product.id}>
-                  <InsightProductCard
-                    product={product}
-                    accent="snack"
-                    badge="Best in category"
-                    headline={`Top ${100 - (product.core_scores?.relative_score ?? 80)}% of its category`}
-                    subline={`Score ${product.core_scores?.score ?? "—"}`}
-                  />
-                </InsightsCarouselSlide>
-              ))}
-            </InsightsProductCarousel>
-          </Section>
-        ) : null}
-
-        {ins.ultraProcessedWorst.length > 0 ? (
-          <Section
-            icon={<AlertTriangle className="h-5 w-5" />}
-            tone="bad"
-            title="Most ultra-processed"
-            subtitle="Heavy NOVA-4 ingredient load — high processing, low intrinsic quality."
-          >
-            <InsightsProductCarousel ariaLabel="Ultra-processed">
-              {ins.ultraProcessedWorst.map(({ product }) => (
-                <InsightsCarouselSlide key={product.id}>
-                  <InsightProductCard
-                    product={product}
-                    accent="warn"
-                    headline="Ultra-processed"
-                    subline={`Score ${product.core_scores?.score ?? "—"}`}
-                  />
-                </InsightsCarouselSlide>
-              ))}
-            </InsightsProductCarousel>
-          </Section>
-        ) : null}
-
-        <section>
-          <InsightsBrandBoard cleanest={ins.cleanestBrands} weakest={ins.weakestBrands} />
-        </section>
-
-        <div className="rounded-2xl border border-(--color-line) bg-(--color-panel) px-6 py-10 text-center">
-          <p className="text-[15px] text-(--color-fg-muted)">
-            Want the full picture on one product?
-          </p>
-          <Link
-            href="/search"
-            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-(--color-fg) px-5 py-2.5 text-sm font-medium text-(--color-bg) hover:opacity-90"
-          >
-            Browse catalog
-            <ArrowRight className="h-4 w-4" />
-          </Link>
         </div>
-      </div>
 
+        <Section eyebrow="The good news" title="The best thing in every big aisle" intro="The highest-scoring product in each of the largest aisles — a good place to start your next basket." action={<Link href="/shelves" className="inline-flex items-center gap-1 text-sm font-medium text-(--color-accent) hover:underline">Browse goal shelves<ArrowUpRight className="h-3.5 w-3.5" /></Link>}>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {d.bestByAisle.map(b => (
+              <Link key={b.aisle} href={`/product/${b.best.slug}`} className="group overflow-hidden rounded-2xl border border-(--color-line) bg-(--color-panel) hover:border-(--color-line-strong)">
+                <div className="relative aspect-square bg-white">
+                  {b.best.image && <Image src={b.best.image} alt={b.best.name} fill sizes="(min-width: 1024px) 22vw, 45vw" className="object-contain p-4" />}
+                  {b.best.score != null && <span className="absolute left-2.5 top-2.5 rounded-lg bg-(--score-excellent) px-2 py-1 font-display text-base font-bold text-white">{b.best.score}</span>}
+                </div>
+                <div className="p-3.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-(--color-fg-dim)">Best of {b.total} in {b.aisle}</p>
+                  <p className="mt-1 line-clamp-2 text-sm font-medium text-(--color-fg) group-hover:underline">{b.best.name}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </Section>
+
+        <p className="border-t border-(--color-line) py-10 text-sm text-(--color-fg-dim)">
+          How we count: products are read from their pack images and ingredient lists, then each ingredient is mapped to plain concepts (added sugar, palm oil, maida…) with the source line kept as evidence. Labels that are incomplete or unreadable are left out of percentages rather than guessed. Spot a mistake? Tell us from any product page.
+        </p>
+      </div>
       <SiteFooter />
     </main>
-  );
-}
-
-function StatPill({
-  label,
-  value,
-  unit,
-  tone,
-}: {
-  label: string;
-  value: string;
-  unit: string;
-  tone: "good" | "bad" | "neutral";
-}) {
-  const color =
-    tone === "good"
-      ? "var(--color-good)"
-      : tone === "bad"
-        ? "var(--color-bad)"
-        : "var(--color-fg-dim)";
-  return (
-    <div
-      className="rounded-2xl border p-4"
-      style={{
-        borderColor: `color-mix(in srgb, ${color} 25%, var(--color-line))`,
-        backgroundColor: `color-mix(in srgb, ${color} 8%, var(--color-panel))`,
-      }}
-    >
-      <p
-        className="text-[11px] font-medium uppercase tracking-[0.14em]"
-        style={{ color: `color-mix(in srgb, ${color} 70%, var(--color-fg-muted))` }}
-      >
-        {label}
-      </p>
-      <p className="mt-1 font-display text-3xl leading-none tabular-nums" style={{ color }}>
-        {value}
-        <span
-          className="ml-1 text-sm font-normal"
-          style={{ color: `color-mix(in srgb, ${color} 65%, var(--color-fg-dim))` }}
-        >
-          {unit}
-        </span>
-      </p>
-    </div>
-  );
-}
-
-function Section({
-  icon,
-  tone = "neutral",
-  title,
-  subtitle,
-  href,
-  hrefLabel,
-  hrefStyle = "default",
-  children,
-}: {
-  icon: React.ReactNode;
-  tone?: "good" | "bad" | "warn" | "neutral";
-  title: string;
-  subtitle: string;
-  href?: string;
-  hrefLabel?: string;
-  hrefStyle?: "default" | "warn";
-  children: React.ReactNode;
-}) {
-  const accent =
-    tone === "good"
-      ? "var(--color-good)"
-      : tone === "bad"
-        ? "var(--color-bad)"
-        : tone === "warn"
-          ? "var(--color-warn)"
-          : "var(--color-accent)";
-  const linkWarn = hrefStyle === "warn";
-
-  return (
-    <Reveal as="section" className="scroll-mt-24">
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <span
-            className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-            style={{
-              backgroundColor: `color-mix(in srgb, ${accent} 14%, var(--color-panel))`,
-              color: accent,
-            }}
-          >
-            {icon}
-          </span>
-          <div>
-            <h2 className="font-display text-2xl md:text-3xl">{title}</h2>
-            <p className="mt-1.5 max-w-xl text-[14px] leading-relaxed text-(--color-fg-muted)">
-              {subtitle}
-            </p>
-          </div>
-        </div>
-        {href && hrefLabel ? (
-          <Link
-            href={href}
-            className="shrink-0 rounded-full border px-3 py-1 text-sm font-medium transition hover:opacity-80"
-            style={
-              linkWarn
-                ? {
-                    borderColor: `color-mix(in srgb, var(--color-warn) 35%, var(--color-line))`,
-                    color: "var(--color-warn)",
-                    backgroundColor: `color-mix(in srgb, var(--color-warn) 8%, var(--color-panel))`,
-                  }
-                : {
-                    borderColor: `color-mix(in srgb, var(--color-good) 35%, var(--color-line))`,
-                    color: "var(--color-good)",
-                    backgroundColor: `color-mix(in srgb, var(--color-good) 8%, var(--color-panel))`,
-                  }
-            }
-          >
-            {hrefLabel} →
-          </Link>
-        ) : null}
-      </div>
-      <div className="px-2 sm:px-6">{children}</div>
-    </Reveal>
-  );
-}
-
-function SublabelBar({
-  label,
-  pct,
-  tone,
-}: {
-  label: string;
-  pct: number;
-  tone: "good" | "bad";
-}) {
-  const color = tone === "good" ? "var(--color-good)" : "var(--color-bad)";
-  return (
-    <li className="group flex items-center gap-3">
-      <span className="w-32 shrink-0 truncate text-[13px] capitalize text-(--color-fg-muted) sm:w-36">
-        {label}
-      </span>
-      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-(--color-line)/60">
-        <div
-          className="h-full rounded-full transition-[width] duration-500"
-          style={{
-            width: `${Math.max(2, Math.min(pct, 100))}%`,
-            backgroundColor: color,
-            opacity: 0.85,
-          }}
-        />
-      </div>
-      <span className="w-9 shrink-0 text-right text-[11px] font-medium tabular-nums" style={{ color }}>
-        {pct}%
-      </span>
-    </li>
-  );
-}
-
-function CategoryRow({
-  stat,
-  positive,
-}: {
-  stat: {
-    category: string;
-    avgScore: number;
-    count: number;
-    dailyStapleCount: number;
-    skipCount: number;
-  };
-  positive: boolean;
-}) {
-  const score = Math.round(stat.avgScore);
-  const color =
-    score >= 70
-      ? "var(--color-good)"
-      : score >= 50
-        ? "var(--color-good)"
-        : score >= 35
-          ? "var(--color-warn)"
-          : "var(--color-bad)";
-  return (
-    <li className="flex items-center gap-3">
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[13px] font-medium text-(--color-fg)">{stat.category}</p>
-        <p className="text-[11px] text-(--color-fg-dim)">
-          {stat.count} products
-          {positive
-            ? stat.dailyStapleCount > 0
-              ? ` · ${stat.dailyStapleCount} staples`
-              : ""
-            : stat.skipCount > 0
-              ? ` · ${stat.skipCount} skip`
-              : ""}
-        </p>
-        <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-(--color-line)/60">
-          <div
-            className="h-full rounded-full"
-            style={{ width: `${Math.max(2, Math.min(score, 100))}%`, backgroundColor: color, opacity: 0.8 }}
-          />
-        </div>
-      </div>
-      <span
-        className="shrink-0 rounded-full px-2.5 py-0.5 text-sm font-bold tabular-nums"
-        style={{
-          color,
-          backgroundColor: `color-mix(in srgb, ${color} 14%, var(--color-panel))`,
-        }}
-      >
-        {score}
-      </span>
-    </li>
   );
 }

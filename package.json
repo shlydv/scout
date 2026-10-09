@@ -72,7 +72,8 @@
     "facts:completeness-audit": "tsx scripts/facts-completeness-audit.ts",
     "facts:sync": "tsx scripts/facts-sync.ts",
     "search:eval": "tsx scripts/planned-eval.ts",
-    "search:test": "node --import tsx --test scripts/planned-search.test.ts"
+    "search:test": "node --import tsx --test scripts/planned-search.test.ts",
+    "facts:conflicts": "tsx scripts/facts-conflicts.ts"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.57.0",
