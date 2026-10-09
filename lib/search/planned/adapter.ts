@@ -4,11 +4,20 @@ import type { ParsedProductQuery } from "@/lib/search/query-parse";
 import { normalizeProductImageUrls } from "@/lib/products/catalog-hero-image";
 import { resolveProductVerdict } from "@/lib/scoring/verdict-resolve";
 import { scoreToBand, scoreToGrade } from "@/lib/search/v2/adapter";
-import { CLAIMS, type ClaimId } from "@/lib/facts/vocab";
+import type { ClaimId } from "@/lib/facts/vocab";
 import type { PlannedSearchItem, PlannedSearchResult } from "./search";
 
+/** Short chip text for claims (the vocab descriptions are written for the model). */
+const CLAIM_CHIP: Record<ClaimId, string> = {
+  gluten_free: "Gluten free", no_palm_oil: "No palm oil", no_added_sugar: "No added sugar", sugar_free: "Sugar free",
+  no_preservatives: "No preservatives", no_artificial_colours: "No artificial colours", no_artificial_flavours: "No artificial flavours",
+  no_maida: "No maida", vegan: "Vegan", organic: "Organic", high_protein: "High protein", high_fibre: "High fibre",
+  low_fat: "Low fat", zero_trans_fat: "Zero trans fat", lactose_free: "Lactose free", keto: "Keto", diabetic_friendly: "Diabetic friendly",
+  baked_not_fried: "Baked, not fried", whole_grain: "Whole grain", non_gmo: "Non-GMO", jain: "Jain", kids: "For kids",
+};
+
+// Price is already on every card, so price sorts add no chip.
 const SORT_LABEL: Partial<Record<string, (it: PlannedSearchItem) => string | null>> = {
-  price_inr: it => (it.price_inr != null ? `₹${it.price_inr}` : null),
   price_per_100: it => (it.price_per_100 != null ? `₹${it.price_per_100.toFixed(1)}/100g` : null),
   protein_g: it => (it.nutrition?.protein_g_100g != null ? `Protein ${it.nutrition.protein_g_100g}g/100g` : null),
   sugar_g: it => (it.nutrition?.sugar_g_100g != null ? `Sugar ${it.nutrition.sugar_g_100g}g/100g` : null),
@@ -26,7 +35,7 @@ function reasons(it: PlannedSearchItem, r: PlannedSearchResult): string[] {
       out.push(`No ${c.replace(/_source$/, "").replace(/_/g, " ")}`);
     }
   }
-  for (const c of it.claims) if ((r.plan.claims_preferred as string[]).includes(c)) out.push(CLAIMS[c as ClaimId]);
+  for (const c of it.claims) if ((r.plan.claims_preferred as string[]).includes(c) || (r.plan.claims_required as string[]).includes(c)) out.push(CLAIM_CHIP[c as ClaimId] ?? c);
   if (it.why && it.verdict === "good") out.push(it.why);
   return [...new Set(out)].slice(0, 4);
 }
