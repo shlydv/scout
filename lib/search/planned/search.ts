@@ -1,15 +1,18 @@
 /**
- * Planned search: plan (DeepSeek) -> execute (SQL over facts) -> verify (only
- * for judgement queries). The query embedding runs in parallel with planning.
+ * Planned search: plan (DeepSeek, cached) -> execute (SQL over facts) -> verify
+ * (judgement queries only) -> collapse pack sizes. The query embedding runs in
+ * parallel with planning.
  */
-import { embedText, isEmbeddingConfigured } from "@/lib/search/v2/embeddings";
-import { searchSql } from "./db";
+import { embedText, isEmbeddingConfigured } from "@/lib/search/embeddings";
+import { searchSql, type Sql } from "./db";
 import { executePlan, type PlannedItem } from "./execute";
-import { planQuery, type Preferences, type SearchPlan } from "./plan";
+import { getCachedPlan, planCacheKey, storePlan } from "./plan-cache";
+import { planQuery, plannerFingerprint, type Preferences, type SearchPlan } from "./plan";
 import { needsVerification, verifyItems, type Verdict } from "./verify";
 import { loadVocabulary } from "./vocabulary";
 
-export type PlannedSearchItem = PlannedItem & { verdict?: Verdict; why?: string; relaxed?: boolean };
+export type SizeOption = { product_id: string; slug: string; net_weight: string | null; price_inr: number | null; price_per_100: number | null };
+export type PlannedSearchItem = PlannedItem & { verdict?: Verdict; why?: string; relaxed?: boolean; sizes?: SizeOption[] };
 
 export type PlannedSearchResult = {
   query: string;
@@ -25,8 +28,6 @@ export type PlannedSearchResult = {
   dropped: string[];
 };
 
-const PLAN_CACHE = new Map<string, { at: number; plan: SearchPlan; dropped: string[] }>();
-const PLAN_TTL_MS = 6 * 60 * 60_000;
 const EMBED_GRACE_MS = 1200;
 
 export function degradedPlan(query: string): SearchPlan {
@@ -38,7 +39,7 @@ export function degradedPlan(query: string): SearchPlan {
   };
 }
 
-/** Keep near-duplicate variants (same brand + product line, different flavour/pack) from flooding the top. */
+/** Keep near-duplicate product lines (same brand, different flavour) from flooding the top. */
 export function diversify<T extends { brand: string | null; name: string }>(items: T[], maxPerLine = 2, window = 12): T[] {
   const lineKey = (it: T) => {
     const brand = (it.brand ?? "").toLowerCase();
@@ -58,8 +59,32 @@ export function diversify<T extends { brand: string | null; name: string }>(item
   return [...head, ...overflow];
 }
 
-function cacheKey(query: string, prefs: Preferences): string {
-  return JSON.stringify([query.trim().toLowerCase().replace(/\s+/g, " "), prefs ?? null]);
+/** One card per pack-size group; the first (best-ranked) member represents it. */
+export function collapseVariants<T extends { variant_key: string | null; product_id: string }>(items: T[]): T[] {
+  const seen = new Set<string>();
+  return items.filter(it => {
+    const k = it.variant_key ?? it.product_id;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+/** All visible sizes for each shown card, cheapest first (one query). */
+async function attachSizes(sql: Sql, items: PlannedSearchItem[]): Promise<PlannedSearchItem[]> {
+  const keys = [...new Set(items.map(i => i.variant_key).filter((k): k is string => !!k))];
+  if (!keys.length) return items;
+  const rows = await sql<(SizeOption & { variant_key: string })[]>`
+    select f.variant_key, p.id product_id, p.slug, p.net_weight, p.price_inr::float8 price_inr, f.price_per_100::float8 price_per_100
+    from product_facts f join products p on p.id = f.product_id
+    where p.catalog_visible and f.variant_key = any(${keys}::text[])
+    order by f.variant_key, f.pack_qty nulls last, p.price_inr`;
+  const byKey = new Map<string, SizeOption[]>();
+  for (const { variant_key, ...size } of rows) byKey.set(variant_key, [...(byKey.get(variant_key) ?? []), size]);
+  return items.map(i => {
+    const sizes = i.variant_key ? byKey.get(i.variant_key) : undefined;
+    return sizes && sizes.length > 1 ? { ...i, sizes } : i;
+  });
 }
 
 export async function plannedSearch(query: string, opts: { preferences?: Preferences; limit?: number; verify?: boolean } = {}): Promise<PlannedSearchResult> {
@@ -80,20 +105,21 @@ export async function plannedSearch(query: string, opts: { preferences?: Prefere
     ? embedText(query, "query").then(e => ({ e, ms: Date.now() - embedStarted })).catch(() => ({ e: null, ms: Date.now() - embedStarted }))
     : Promise.resolve({ e: null as number[] | null, ms: 0 });
 
-  const key = cacheKey(query, prefs);
-  const hit = PLAN_CACHE.get(key);
+  const vocab = await loadVocabulary(sql);
+  const key = planCacheKey(query, prefs, plannerFingerprint(vocab));
   let plan: SearchPlan, dropped: string[], planMs = 0, planCached = false;
-  if (hit && Date.now() - hit.at < PLAN_TTL_MS) {
-    ({ plan, dropped } = hit);
+  const cached = await getCachedPlan(sql, key);
+  if (cached) {
+    ({ plan, dropped } = cached);
     planCached = true;
+    planMs = Date.now() - started;
   } else {
-    const vocab = await loadVocabulary(sql);
     try {
       const r = await planQuery(query, vocab, prefs);
       addUsage(r.usage);
       ({ plan, dropped } = r);
       planMs = r.ms;
-      PLAN_CACHE.set(key, { at: Date.now(), plan, dropped });
+      storePlan(sql, key, plan, dropped);
     } catch (error) {
       // Planner unavailable: closest matches only, no filters, clearly labelled.
       console.error("[planned-search] planner failed", error instanceof Error ? error.message : error);
@@ -103,7 +129,6 @@ export async function plannedSearch(query: string, opts: { preferences?: Prefere
     }
   }
 
-  // The embedding overlaps planning; never let a slow provider stall the search.
   if (plan.intent === "non_food" || plan.intent === "unclear") {
     return {
       query, plan, items: [], unconfirmed: [], relaxed: [], counts: [], reference: null, dropped, llm,
@@ -114,14 +139,15 @@ export async function plannedSearch(query: string, opts: { preferences?: Prefere
     };
   }
 
+  // The embedding overlaps planning; never let a slow provider stall the search.
   const { e: vector, ms: embedMs } = await Promise.race([
     embedding,
     new Promise<{ e: null; ms: number }>(resolve => setTimeout(() => resolve({ e: null, ms: -1 }), EMBED_GRACE_MS)),
   ]);
-  const exec = await executePlan(sql, plan, vector, { limit, vocab: await loadVocabulary(sql) });
+  const exec = await executePlan(sql, plan, vector, { limit, vocab });
 
-  let confirmed: PlannedSearchItem[] = exec.items.filter(i => i.confirmation === "confirmed");
-  let unconfirmed: PlannedSearchItem[] = exec.items.filter(i => i.confirmation !== "confirmed");
+  let confirmed: PlannedSearchItem[] = collapseVariants(exec.items.filter(i => i.confirmation === "confirmed"));
+  const unconfirmed: PlannedSearchItem[] = collapseVariants(exec.items.filter(i => i.confirmation !== "confirmed"));
   let verifyMs = 0;
 
   // Results reached by widening the scope always get checked against the request.
@@ -129,17 +155,16 @@ export async function plannedSearch(query: string, opts: { preferences?: Prefere
   if (verify && confirmed.length) {
     try {
       // Verify everything that can be shown; never append an unverified tail.
-      const pool = diversify(confirmed).slice(0, Math.min(limit + 6, 30));
+      const pool = diversify(confirmed).slice(0, Math.min(limit + 4, 28));
       const v = await verifyItems(query, plan, pool, pool.length);
       addUsage(v.usage);
       verifyMs = v.ms;
       const judged = pool.map(i => ({ ...i, verdict: v.verdicts.get(i.product_id)?.v, why: v.verdicts.get(i.product_id)?.why }));
       const kept = judged.filter(i => i.verdict !== "no");
       // Keep the requested numeric order; for relevance, strong fits first.
-      const ordered = plan.sort.field === "relevance"
+      confirmed = plan.sort.field === "relevance"
         ? [...kept.filter(i => i.verdict !== "ok"), ...kept.filter(i => i.verdict === "ok")]
         : kept;
-      confirmed = ordered;
     } catch {
       // Verification is a refinement; on failure keep the executor's results.
     }
@@ -148,15 +173,18 @@ export async function plannedSearch(query: string, opts: { preferences?: Prefere
   const isRelaxed = (i: PlannedSearchItem) => i.notes.some(n => n.startsWith("relaxed "));
   confirmed = [...confirmed.filter(i => !isRelaxed(i)), ...confirmed.filter(isRelaxed).map(i => ({ ...i, relaxed: true }))];
 
-  const items = diversify(confirmed).slice(0, limit);
+  const shown = diversify(confirmed).slice(0, limit);
+  const extra = unconfirmed.slice(0, 12);
+  const withSizes = await attachSizes(sql, [...shown, ...extra]).catch(() => [...shown, ...extra]);
+  const items = withSizes.slice(0, shown.length);
   const summary = items.length
-      ? plan.summary || `${items.length} matches`
-      : unconfirmed.length
-        ? "No product's label fully confirms your request. Closest options are listed as unconfirmed."
-        : "No products match this request.";
+    ? plan.summary || `${items.length} matches`
+    : extra.length
+      ? "No product's label fully confirms your request. Closest options are listed as unconfirmed."
+      : "No products match this request.";
 
   return {
-    query, plan, items, unconfirmed: unconfirmed.slice(0, 12), relaxed: exec.relaxed, counts: exec.counts,
+    query, plan, items, unconfirmed: withSizes.slice(shown.length), relaxed: exec.relaxed, counts: exec.counts,
     reference: exec.reference, summary, dropped, llm,
     timings: { plan_ms: planMs, embed_ms: embedMs, execute_ms: exec.ms, verify_ms: verifyMs, total_ms: Date.now() - started, plan_cached: planCached },
   };

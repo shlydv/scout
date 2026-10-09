@@ -7,7 +7,7 @@
 import { config } from "dotenv";
 import { createHash } from "node:crypto";
 import { adminClient } from "@/lib/supabase/admin";
-import { embedTexts } from "@/lib/search/v2/embeddings";
+import { embedTexts } from "@/lib/search/embeddings";
 import { productEvidence } from "@/lib/search/decision/retrieval";
 import { computeProductSourceHash } from "@/lib/search/v2/source-hash";
 import type { Product } from "@/lib/supabase/types";

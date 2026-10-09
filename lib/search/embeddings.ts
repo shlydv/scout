@@ -3,7 +3,8 @@
  * Voyage AI (default) or OpenAI-compatible /embeddings endpoint.
  */
 import { Agent, fetch as undiciFetch } from "undici";
-import { EMBEDDING_DIM } from "@/lib/search/v2/types";
+/** Dimensions of the stored product embeddings (voyage-3.5). */
+export const EMBEDDING_DIM = 1024;
 
 const dispatcher = new Agent({
   connect: { timeout: 20_000 },

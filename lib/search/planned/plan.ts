@@ -4,6 +4,7 @@
  * claims, numeric fields). Every identifier is validated against the live
  * vocabulary; anything unknown is dropped, never guessed.
  */
+import crypto from "node:crypto";
 import { z } from "zod";
 import { deepseekChat, extractJsonObject, mergeUsage as mergeUsageLoose, type DeepseekUsage } from "@/lib/search/deepseek-client";
 import {
@@ -71,6 +72,18 @@ const rawPlanSchema = z.object({
 const conceptLines = CONCEPT_IDS.map(id => `- ${id}: ${CONCEPTS[id]}`).join("\n");
 const claimLines = CLAIM_IDS.map(id => `- ${id}: ${CLAIMS[id]}`).join("\n");
 const numericLines = NUMERIC_FIELD_IDS.map(id => `- ${id}: ${NUMERIC_FIELDS[id]}`).join("\n");
+
+const fingerprints = new WeakMap<CatalogVocabulary, string>();
+
+/** Changes whenever the planner prompt or catalog vocabulary changes (plan cache key). */
+export function plannerFingerprint(vocab: CatalogVocabulary): string {
+  let fp = fingerprints.get(vocab);
+  if (!fp) {
+    fp = `${PLAN_VERSION}:${PLANNER_MODEL}:${crypto.createHash("sha1").update(systemPrompt(vocab)).digest("hex").slice(0, 12)}`;
+    fingerprints.set(vocab, fp);
+  }
+  return fp;
+}
 
 function systemPrompt(vocab: CatalogVocabulary): string {
   return `You plan product searches over an Indian grocery catalog (packaged food and drinks). Convert the shopper's request into one JSON search plan. Understand English, Hindi and Hinglish (doodh=milk, cheeni=sugar, bina=without, atta=flour, namkeen=savoury snack mix, makhana=fox nut, chaas=buttermilk).
