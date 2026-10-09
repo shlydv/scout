@@ -66,22 +66,13 @@ export async function generateMetadata({
     (score
       ? `Scout health score ${score.score}/100. We read the back label so you don't have to.`
       : "We read the back label so you don't have to.");
-  const image = product.image_urls?.[0];
-
+  // The share image comes from ./opengraph-image.tsx (score + verdict card);
+  // setting images here would override it with the bare product photo.
   return {
     title,
     description,
-    openGraph: {
-      title,
-      description,
-      type: "website",
-      ...(image ? { images: [{ url: image }] } : {}),
-    },
-    twitter: {
-      card: image ? "summary_large_image" : "summary",
-      title,
-      description,
-    },
+    openGraph: { title, description, type: "website" },
+    twitter: { card: "summary_large_image", title, description },
   };
 }
 

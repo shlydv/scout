@@ -19,7 +19,9 @@ export function SearchResultCard({ card, query, muted = false }: { card: SearchC
   const [sizesOpen, setSizesOpen] = useState(false);
   const href = `/product/${card.slug}?q=${encodeURIComponent(query)}`;
   const tier = card.score != null ? catalogTierStyle(card.score, card.verdict).fill : "var(--color-fg-dim)";
-  const rank = card.rank ? rankShort(card.rank.rank, card.rank.size) : null;
+  // Only a genuinely good rank is worth a badge ("#56 in …" reads as noise).
+  const rankRaw = card.rank ? rankShort(card.rank.rank, card.rank.size) : null;
+  const rank = rankRaw && !rankRaw.startsWith("#") ? rankRaw : null;
   const cheapest = card.sizes.length ? Math.min(...card.sizes.map(s => s.price_inr ?? Infinity)) : null;
 
   return (
