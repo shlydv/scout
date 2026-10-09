@@ -27,6 +27,7 @@ export type PlannedSearchResult = {
 
 const PLAN_CACHE = new Map<string, { at: number; plan: SearchPlan; dropped: string[] }>();
 const PLAN_TTL_MS = 6 * 60 * 60_000;
+const EMBED_GRACE_MS = 1200;
 
 export function degradedPlan(query: string): SearchPlan {
   return {
@@ -82,14 +83,20 @@ export async function plannedSearch(query: string, opts: { preferences?: Prefere
     }
   }
 
-  const { e: vector, ms: embedMs } = await embedding;
-  const exec = await executePlan(sql, plan, vector, { limit });
+  // The embedding overlaps planning; never let a slow provider stall the search.
+  const { e: vector, ms: embedMs } = await Promise.race([
+    embedding,
+    new Promise<{ e: null; ms: number }>(resolve => setTimeout(() => resolve({ e: null, ms: -1 }), EMBED_GRACE_MS)),
+  ]);
+  const exec = await executePlan(sql, plan, vector, { limit, vocab: await loadVocabulary(sql) });
 
   let confirmed: PlannedSearchItem[] = exec.items.filter(i => i.confirmation === "confirmed");
   let unconfirmed: PlannedSearchItem[] = exec.items.filter(i => i.confirmation !== "confirmed");
   let verifyMs = 0;
 
-  if (plan.intent !== "non_food" && (opts.verify ?? needsVerification(plan)) && confirmed.length) {
+  // Results reached by widening the scope always get checked against the request.
+  const verify = opts.verify ?? (needsVerification(plan) || exec.relaxed.includes("scope"));
+  if (plan.intent !== "non_food" && verify && confirmed.length) {
     try {
       const v = await verifyItems(query, plan, confirmed, 20);
       addUsage(v.usage);

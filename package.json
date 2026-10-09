@@ -82,7 +82,8 @@
     "search:plan": "tsx scripts/plan-try.ts",
     "facts:load": "tsx scripts/facts-load.ts",
     "facts:audit": "tsx scripts/facts-audit.ts",
-    "search:planned-eval": "tsx scripts/planned-eval.ts"
+    "search:planned-eval": "tsx scripts/planned-eval.ts",
+    "facts:nutrition-audit": "tsx scripts/facts-nutrition-audit.ts"
   },
   "dependencies": {
     "@lottiefiles/dotlottie-react": "^0.19.4",

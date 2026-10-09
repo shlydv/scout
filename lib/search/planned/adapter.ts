@@ -31,11 +31,26 @@ function reasons(it: PlannedSearchItem, r: PlannedSearchResult): string[] {
   return [...new Set(out)].slice(0, 4);
 }
 
-function warning(it: PlannedSearchItem): string | null {
+export function relaxLabel(key: string, plan: PlannedSearchResult["plan"]): string {
+  if (key === "scope") return "From a related category";
+  if (key === "name_terms") return `No exact "${plan.name_terms.join(", ").replace(/\|/g, "/")}" match`;
+  if (key === "brands") return `Other brands than ${plan.brands.join(", ")}`;
+  if (key === "claims_required") return "Pack doesn't state the requested claim";
+  if (key.startsWith("numeric:")) {
+    const field = key.slice(8);
+    const n = plan.numeric.find(x => x.field === field);
+    if (field === "price_inr" && n) return `Above your ₹${n.value} limit`;
+    return n ? `Outside your ${field.replace(/_/g, " ")} ${n.op} ${n.value} limit` : `Outside your ${field.replace(/_/g, " ")} limit`;
+  }
+  return "Closest available match";
+}
+
+function warning(it: PlannedSearchItem, r: PlannedSearchResult): string | null {
   if (it.confirmation === "unconfirmed") return `Unconfirmed: ${it.notes.find(n => !n.startsWith("relaxed")) ?? "label incomplete"}`;
   const mayContain = it.notes.find(n => n.startsWith("may contain"));
   if (mayContain) return mayContain[0]!.toUpperCase() + mayContain.slice(1);
-  if (it.relaxed) return it.notes.find(n => n.startsWith("relaxed"))?.replace("relaxed", "Outside your") ?? null;
+  const relaxed = it.notes.filter(n => n.startsWith("relaxed ")).map(n => n.slice(8));
+  if (relaxed.length) return relaxLabel(relaxed[0]!.startsWith("price") || r.plan.numeric.some(x => x.field === relaxed[0]) ? `numeric:${relaxed[0]}` : relaxed[0]!, r.plan);
   if (it.conflicts.length) return "Label claim conflicts with ingredients — check pack";
   return null;
 }
@@ -61,7 +76,7 @@ function toItem(it: PlannedSearchItem, r: PlannedSearchResult): AiSearchItem {
     ai_match_score: Math.round(Math.max(0, Math.min(1, it.score)) * 100),
     ai_health_score: scout ?? undefined,
     ai_match_reasons: reasons(it, r),
-    ai_match_warning: warning(it),
+    ai_match_warning: warning(it, r),
     sugar_g: num("sugar_g_100g"), protein_g: num("protein_g_100g"),
     fat_g: num("fat_g_100g"), fiber_g: num("fiber_g_100g"),
     is_vegan: it.vegan, is_gluten_free: free("gluten_source"), is_palm_oil_free: free("palm_oil"),
@@ -81,7 +96,7 @@ export function plannedToAiResult(r: PlannedSearchResult, limit: number): AiSear
     hard_constraints: {}, soft_preferences: [], health_contexts: [],
     sort_intent: sortIntent, explanation: r.summary,
   };
-  const relaxNotes = r.relaxed.map(k => `Loosened ${k.replace("numeric:", "").replace(/_/g, " ")} to find more matches`);
+  const relaxNotes = [...new Set(r.relaxed.map(k => relaxLabel(k, r.plan)))].map(l => `${l} — shown after exact matches`);
   let summary = r.summary;
   if (r.plan.strict && !r.items.length && r.unconfirmed.length) {
     summary = "No product's label confirms it is safe for this request. Products with incomplete labels are not shown.";

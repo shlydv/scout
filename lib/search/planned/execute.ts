@@ -12,6 +12,35 @@
 import type { ConceptId, NumericField } from "@/lib/facts/vocab";
 import type { Sql } from "./db";
 import type { NumericFilter, SearchPlan } from "./plan";
+import type { CatalogVocabulary } from "./vocabulary";
+
+/** Approximate number of visible products in the plan's scope. */
+export function scopeSize(plan: SearchPlan, vocab: CatalogVocabulary | null, useScope: boolean): number {
+  if (!vocab) return Number.MAX_SAFE_INTEGER;
+  const all = [...vocab.l3.values()];
+  if (!useScope || (!plan.l3.length && !plan.subcategories.length && !plan.categories.length)) {
+    return all.reduce((n, x) => n + x.count, 0);
+  }
+  const l3 = new Set(plan.l3), subs = new Set(plan.subcategories), cats = new Set(plan.categories);
+  return all.filter(x => l3.has(`${x.subcategory} > ${x.l3}`) || subs.has(x.subcategory) || cats.has(x.category))
+    .reduce((n, x) => n + x.count, 0);
+}
+
+/** Widen scope one level (l3 -> subcategory -> category); never to the whole catalog. */
+export function widenScope(plan: SearchPlan, vocab: CatalogVocabulary | null): SearchPlan | null {
+  if (!vocab) return null;
+  if (plan.l3.length) {
+    const subs = new Set(plan.subcategories);
+    for (const q of plan.l3) { const node = vocab.l3.get(q); if (node) subs.add(node.subcategory); }
+    return { ...plan, l3: [], subcategories: [...subs] };
+  }
+  if (plan.subcategories.length) {
+    const cats = new Set(plan.categories);
+    for (const s of plan.subcategories) { const c = vocab.subcategories.get(s); if (c) cats.add(c); }
+    return { ...plan, subcategories: [], categories: [...cats] };
+  }
+  return null;
+}
 
 export type Confirmation = "confirmed" | "unconfirmed";
 
@@ -65,9 +94,21 @@ const NUTRI: Record<string, string> = {
   carbs_g: "carbs_g_100g", fiber_g: "fiber_g_100g", sodium_mg: "sodium_mg_100g",
 };
 
+/** Label physics: macros cannot exceed 100 g and energy must roughly equal 4p + 4c + 9f. */
+const NUTRITION_PLAUSIBLE = `(
+  not coalesce(f.nutrition_suspect, false)
+  and coalesce((p.nutrition->>'protein_g_100g')::numeric, 0) + coalesce((p.nutrition->>'fat_g_100g')::numeric, 0)
+    + coalesce((p.nutrition->>'carbs_g_100g')::numeric, 0) <= 105
+  and (p.nutrition->>'energy_kcal_100g' is null or p.nutrition->>'protein_g_100g' is null
+    or p.nutrition->>'fat_g_100g' is null or p.nutrition->>'carbs_g_100g' is null
+    or abs(4 * (p.nutrition->>'protein_g_100g')::numeric + 4 * (p.nutrition->>'carbs_g_100g')::numeric
+      + 9 * (p.nutrition->>'fat_g_100g')::numeric - (p.nutrition->>'energy_kcal_100g')::numeric)
+      <= 0.35 * (p.nutrition->>'energy_kcal_100g')::numeric + 25))`;
+const NUTRITION_FIELDS = new Set<NumericField>(["energy_kcal", "protein_g", "sugar_g", "added_sugar_g", "fat_g", "saturated_fat_g", "carbs_g", "fiber_g", "sodium_mg", "protein_per_100kcal"]);
+
 /** Whitelisted SQL expression per numeric field (never interpolate model output). */
 function fieldExpr(field: NumericField): string {
-  if (field === "price_inr") return "p.price_inr";
+  if (field === "price_inr") return "nullif(p.price_inr, 0)";
   if (field === "price_per_100") return "f.price_per_100";
   if (field === "pack_qty") return "f.pack_qty";
   if (field === "scout_score") return "si.scout_score";
@@ -93,8 +134,13 @@ function numericValue(item: PlannedItem, field: NumericField): number | null {
   return num(NUTRI[field]!);
 }
 
+const ANN_SCOPE_THRESHOLD = 1500;
+const ANN_K = 700;
+const RELAX_SIMILARITY_MARGIN = 0.1;
+
 type Attempt = {
   plan: SearchPlan;
+  scopeSize: number;
   useScope: boolean;
   useBrands: boolean;
   useNameTerms: boolean;
@@ -103,9 +149,10 @@ type Attempt = {
 };
 
 function nameTermPattern(term: string): string {
-  // Prefix match on word boundary, tolerant of plural/suffix forms ("strawberr" ~ strawberries).
-  const stem = term.toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/(ies|es|s)$/, "");
-  return `\\m${stem}`;
+  // "haldi|turmeric" = alternatives. Prefix match on word boundary, tolerant of
+  // plural/suffix forms ("strawberr" ~ strawberries).
+  const alts = term.toLowerCase().split("|").map(t => t.replace(/[^a-z0-9 ]/g, "").trim().replace(/(ies|es|s)$/, "")).filter(Boolean);
+  return `\\m(${alts.join("|")})`;
 }
 
 async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limit: number): Promise<PlannedItem[]> {
@@ -116,7 +163,7 @@ async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limi
 
   if (a.useScope && (plan.l3.length || plan.subcategories.length || plan.categories.length)) {
     const ors: string[] = [];
-    if (plan.l3.length) ors.push(`p.l3_category = any(${param(plan.l3, "::text[]")})`);
+    if (plan.l3.length) ors.push(`(p.subcategory || ' > ' || p.l3_category) = any(${param(plan.l3, "::text[]")})`);
     if (plan.subcategories.length) ors.push(`p.subcategory = any(${param(plan.subcategories, "::text[]")})`);
     if (plan.categories.length) ors.push(`p.category = any(${param(plan.categories, "::text[]")})`);
     conds.push(`(${ors.join(" or ")})`);
@@ -150,33 +197,63 @@ async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limi
 
   const emb = embedding ? param(`[${embedding.join(",")}]`, "::vector") : null;
   const lexQuery = param(plan.semantic_query || "");
-  const similarity = emb ? `1 - (si.embedding <=> ${emb})` : "null::float8";
   const sortExpr = plan.sort.field === "relevance" ? null : fieldExpr(plan.sort.field);
+  // Stage 1 picks candidate ids without reading embeddings (except via the ANN
+  // index); stage 2 loads full rows and exact similarity for those ids only.
+  // Reading every 4 KB embedding in a broad scope is what makes free-tier disk slow.
+  const useAnn = !sortExpr && emb != null && a.scopeSize > ANN_SCOPE_THRESHOLD;
+  const nutrientSort = sortExpr != null && NUTRITION_FIELDS.has(plan.sort.field as NumericField);
+  const stage1Order = sortExpr
+    ? `${nutrientSort ? `(${NUTRITION_PLAUSIBLE}) desc, ` : ""}(${sortExpr}) is null, ${sortExpr} ${plan.sort.dir}`
+    : useAnn ? "ann.d" : "p.id";
+  const stage1Limit = sortExpr ? Math.max(limit * 3, 150) : useAnn ? ANN_K : ANN_SCOPE_THRESHOLD + 500;
   const order = sortExpr
-    ? `(${sortExpr}) is null, ${sortExpr} ${plan.sort.dir}, relevance desc`
+    ? `${nutrientSort ? "nutrition_ok desc, " : ""}sort_value is null, sort_value ${plan.sort.dir}, relevance desc`
     : "relevance desc";
+  const similarity = emb ? `1 - (si.embedding <=> ${emb})` : "null::float8";
 
   const text = `
-    with cand as (
+    with ${useAnn ? `ann as materialized (
+      select si.product_id, binary_quantize(si.embedding)::bit(1024) <~> binary_quantize(${emb})::bit(1024) as d
+      from product_search_index si
+      where si.embedding is not null
+      order by binary_quantize(si.embedding)::bit(1024) <~> binary_quantize(${emb})::bit(1024)
+      limit ${ANN_K + 300}
+    ), ` : ""}ids as materialized (
+      select p.id, ${sortExpr ?? "null::numeric"} as sort_value
+      from products p
+      join product_search_index si on si.product_id = p.id
+      left join product_facts f on f.product_id = p.id
+      ${useAnn ? "join ann on ann.product_id = p.id" : ""}
+      where ${conds.join("\n        and ")}
+      order by ${stage1Order}
+      limit ${stage1Limit}
+    ), cand as (
       select p.id, p.slug, p.name, p.brand, p.category, p.subcategory, p.l3_category, p.price_inr,
              p.net_weight, p.nutrition, si.scout_score, p.image_urls, p.mrp_inr, p.ocr_image_url,
              si.primary_type, si.absolute_score, si.category_rank, si.category_size, si.category_label,
              f.product_id as f_id, f.kind, f.ingredients, f.claims, f.present, f.may_contain, f.unknown,
              f.conflicts, f.ingredient_status, f.veg, f.vegan, f.jain, f.price_per_100, f.evidence,
+             ids.sort_value, ${NUTRITION_PLAUSIBLE} as nutrition_ok,
              ${similarity} as similarity,
              ts_rank_cd(si.search_tsv, plainto_tsquery('simple', ${lexQuery})) +
                ts_rank_cd(si.search_tsv, websearch_to_tsquery('simple', replace(${lexQuery}, ' ', ' or '))) as lexical
-      from products p
+      from ids
+      join products p on p.id = ids.id
       join product_search_index si on si.product_id = p.id
       left join product_facts f on f.product_id = p.id
-      where ${conds.join("\n        and ")}
     )
     select *, coalesce(similarity, 0) * 1.0 + least(lexical, 1) * 0.15 as relevance
     from cand
     order by ${order}
     limit ${Math.max(1, Math.min(400, limit))}`;
 
-  const rows = await sql.unsafe(text, params as never[]);
+  const rows = useAnn
+    ? await sql.begin(async tx => {
+      await tx.unsafe(`set local hnsw.ef_search = ${ANN_K + 300}`);
+      return tx.unsafe(text, params as never[]);
+    })
+    : await sql.unsafe(text, params as never[]);
   return rows.map(r => ({
     product_id: r.id, slug: r.slug, name: r.name, brand: r.brand, category: r.category,
     subcategory: r.subcategory, l3: r.l3_category,
@@ -197,13 +274,15 @@ async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limi
     },
     similarity: r.similarity == null ? null : Number(r.similarity),
     lexical: Number(r.lexical ?? 0), confirmation: "confirmed", notes: [], score: Number(r.relevance ?? 0),
-    hasFacts: r.f_id != null,
+    hasFacts: r.f_id != null, nutritionOk: r.nutrition_ok !== false,
   } as PlannedItem & { hasFacts: boolean }));
 }
 
 /** Mark each item confirmed/unconfirmed and explain why. */
-export function confirm(item: PlannedItem & { hasFacts?: boolean }, plan: SearchPlan, numeric: NumericFilter[]): PlannedItem {
+export function confirm(item: PlannedItem & { hasFacts?: boolean; nutritionOk?: boolean }, plan: SearchPlan, numeric: NumericFilter[]): PlannedItem {
   const notes: string[] = [];
+  const usesNutrition = numeric.some(n => NUTRITION_FIELDS.has(n.field)) || NUTRITION_FIELDS.has(plan.sort.field as NumericField);
+  if (usesNutrition && item.nutritionOk === false) notes.push("nutrition label looks inconsistent");
   const hasFacts = item.hasFacts !== false;
   const state = (c: ConceptId) =>
     !hasFacts ? "unknown"
@@ -222,8 +301,8 @@ export function confirm(item: PlannedItem & { hasFacts?: boolean }, plan: Search
   for (const n of numeric) if (numericValue(item, n.field) == null) notes.push(`${n.field.replace(/_/g, " ")} not on label`);
   // may_contain under a non-strict exclusion is a warning, not a failure.
   const blocking = notes.filter(n => !n.startsWith("may contain"));
-  const { hasFacts: _drop, ...rest } = item as PlannedItem & { hasFacts?: boolean };
-  void _drop;
+  const { hasFacts: _drop, nutritionOk: _ok, ...rest } = item as PlannedItem & { hasFacts?: boolean; nutritionOk?: boolean };
+  void _drop; void _ok;
   return { ...rest, notes, confirmation: blocking.length ? "unconfirmed" : "confirmed" };
 }
 
@@ -266,7 +345,8 @@ async function resolveReference(sql: Sql, plan: SearchPlan, embedding: number[] 
   return { query: reference, value: median, products: rows.map(r => r.name as string) };
 }
 
-export async function executePlan(sql: Sql, plan: SearchPlan, embedding: number[] | null, opts: { limit?: number; minConfirmed?: number } = {}): Promise<ExecuteResult> {
+export async function executePlan(sql: Sql, plan: SearchPlan, embedding: number[] | null, opts: { limit?: number; minConfirmed?: number; vocab?: CatalogVocabulary | null } = {}): Promise<ExecuteResult> {
+  const vocab = opts.vocab ?? null;
   const started = Date.now();
   const limit = opts.limit ?? 24;
   const minConfirmed = opts.minConfirmed ?? 3;
@@ -275,7 +355,7 @@ export async function executePlan(sql: Sql, plan: SearchPlan, embedding: number[
   if (plan.comparison && reference) {
     baseNumeric.push({ field: plan.comparison.field, op: plan.comparison.dir === "higher" ? ">" : "<", value: reference.value });
   }
-  let attempt: Attempt = { plan, useScope: true, useBrands: true, useNameTerms: true, useClaimsRequired: true, numeric: baseNumeric };
+  let attempt: Attempt = { plan, scopeSize: scopeSize(plan, vocab, true), useScope: true, useBrands: true, useNameTerms: true, useClaimsRequired: true, numeric: baseNumeric };
   const relaxed: string[] = [];
   const counts: ExecuteResult["counts"] = [];
   const pool = Math.max(limit * 4, 60);
@@ -288,18 +368,31 @@ export async function executePlan(sql: Sql, plan: SearchPlan, embedding: number[
   };
 
   let items = await run("initial");
-  for (const key of plan.relax) {
+  // Widening scope one level is always available as the last resort.
+  // Up to two widening steps: l3 -> subcategory -> category.
+  const relaxOrder = [...plan.relax.filter(k => k !== "scope"), "scope", "scope"];
+  for (const key of relaxOrder) {
     if (items.filter(i => i.confirmation === "confirmed").length >= minConfirmed) break;
     const next = { ...attempt };
-    if (key === "scope") next.useScope = false;
+    if (key === "scope") {
+      const wider = widenScope(attempt.plan, vocab);
+      if (!wider) continue;
+      next.plan = wider;
+    }
     else if (key === "brands") next.useBrands = false;
     else if (key === "name_terms") next.useNameTerms = false;
     else if (key === "claims_required") next.useClaimsRequired = false;
     else if (key.startsWith("numeric:")) next.numeric = attempt.numeric.filter(n => `numeric:${n.field}` !== key);
     else continue;
     if (JSON.stringify(next) === JSON.stringify(attempt)) continue;
+    next.scopeSize = scopeSize(next.plan, vocab, next.useScope);
     attempt = next;
-    const relaxedItems = await run(key);
+    let relaxedItems = await run(key);
+    if (key === "scope") {
+      // A wider scope must not drag in unrelated products: stay near the best match.
+      const best = Math.max(...relaxedItems.map(i => i.similarity ?? 0), 0);
+      relaxedItems = relaxedItems.filter(i => i.similarity == null || i.similarity >= best - RELAX_SIMILARITY_MARGIN);
+    }
     // Keep the stricter results first; relaxation only adds what is missing.
     const seen = new Set(items.map(i => i.product_id));
     items = [...items, ...relaxedItems.filter(i => !seen.has(i.product_id)).map(i => ({ ...i, notes: [...i.notes, `relaxed ${key.replace("numeric:", "")}`] }))];

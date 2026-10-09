@@ -41,20 +41,28 @@ function matches(hay: string, pat: string): boolean {
   return new RegExp(`\\b${stem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "i").test(hay);
 }
 
+const typeText = (it: PlannedSearchResult["items"][number]) =>
+  `${it.l3 ?? ""} ${it.subcategory ?? ""} ${it.category ?? ""} ${it.kind ?? ""}`.toLowerCase();
+
+/** Fraction of the top 5 matching any include pattern (stricter than pass/fail; reported separately). */
+export function precisionAt5(c: EvalCase, r: PlannedSearchResult): number | null {
+  if (!c.must_include_patterns.length || !r.items.length) return null;
+  const top = r.items.slice(0, 5);
+  return top.filter(it => c.must_include_patterns.some(p => matches(text(it) + " " + typeText(it), p))).length / top.length;
+}
+
+// Same semantics as the original eval-search runner: some result matches ANY include
+// pattern; exclusions check the product type (not name words like "Doodh Biscuits").
 function check(c: EvalCase, r: PlannedSearchResult): string[] {
   const fails: string[] = [];
   const top = r.items.slice(0, 10);
-  const min = c.min_results ?? 1;
+  const min = c.min_results ?? (c.must_include_patterns.length ? 1 : 0);
   if (r.items.length < min) fails.push(`only ${r.items.length} results (< ${min})`);
-  for (const p of c.must_include_patterns) {
-    if (top.length && !top.some(it => matches(text(it), p))) fails.push(`no top-10 item matches "${p}"`);
-  }
-  if (c.must_include_patterns.length) {
-    const off = top.slice(0, 5).filter(it => !c.must_include_patterns.some(p => matches(text(it), p)));
-    if (off.length) fails.push(`top-5 off-target: ${off.map(o => o.name.slice(0, 40)).join("; ")}`);
+  if (c.must_include_patterns.length && r.items.length && !r.items.some(it => c.must_include_patterns.some(p => matches(text(it) + " " + typeText(it), p)))) {
+    fails.push(`no result matches any of ${c.must_include_patterns.join("/")}`);
   }
   for (const it of top) for (const p of c.must_exclude_patterns) {
-    if (matches(text(it), p)) fails.push(`excluded "${p}" in: ${it.name.slice(0, 50)}`);
+    if (matches(`${it.l3 ?? ""} ${it.subcategory ?? ""} ${it.category ?? ""}`, p)) fails.push(`excluded "${p}" in: ${it.name.slice(0, 50)} (${it.l3})`);
   }
   if (c.expected_top1_patterns?.length && r.items[0] && !c.expected_top1_patterns.some(p => matches(text(r.items[0]!), p))) {
     fails.push(`top1 "${r.items[0].name.slice(0, 50)}" misses ${c.expected_top1_patterns.join("/")}`);
@@ -105,6 +113,8 @@ async function main() {
     if (fails.length && r) console.log(`        plan: ${JSON.stringify({ l3: r.plan.l3.slice(0, 6), sub: r.plan.subcategories, brands: r.plan.brands, ex: r.plan.exclude, req: r.plan.require, num: r.plan.numeric, sort: r.plan.sort, terms: r.plan.name_terms })}`);
   }
   const passed = results.filter(x => !x.fails.length).length;
+  const precs = results.flatMap(x => (x.r ? [precisionAt5(x.c, x.r)] : [])).filter((v): v is number => v != null);
+  console.log(`precision@5 (strict, any include pattern per item): ${(precs.reduce((a, b) => a + b, 0) / Math.max(1, precs.length)).toFixed(3)} over ${precs.length} cases`);
   console.log(`\n${passed}/${results.length} passed · latency p50 ${pct(0.5)}ms p90 ${pct(0.9)}ms max ${lat.at(-1)}ms · ${calls} LLM calls, ${tokensIn} in / ${tokensOut} out tokens`);
   fs.writeFileSync(".cache/eval/planned-eval.json", JSON.stringify(results.map(x => ({ id: x.c.id, query: x.c.query, fails: x.fails, plan: x.r?.plan, timings: x.r?.timings, top: x.r?.items.slice(0, 10).map(i => i.name) })), null, 1));
 

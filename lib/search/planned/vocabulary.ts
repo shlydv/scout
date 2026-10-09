@@ -7,8 +7,12 @@
 import type { Sql } from "./db";
 
 export type CatalogVocabulary = {
-  l3: Map<string, { category: string; subcategory: string; count: number }>;
+  /** Keyed by the qualified name "Subcategory > l3" (l3 names repeat across subcategories). */
+  l3: Map<string, { category: string; subcategory: string; l3: string; count: number }>;
+  /** lowercased qualified name -> qualified name */
   l3Lower: Map<string, string>;
+  /** lowercased bare l3 -> every qualified name carrying it */
+  l3Bare: Map<string, string[]>;
   subcategories: Map<string, string>; // subcategory -> category
   categories: Set<string>;
   brands: { name: string; lower: string; count: number }[];
@@ -29,14 +33,15 @@ export async function loadVocabulary(sql: Sql): Promise<CatalogVocabulary> {
     select brand, count(*)::int n from products where catalog_visible and brand is not null
     group by 1 order by 1`;
 
-  const l3 = new Map<string, { category: string; subcategory: string; count: number }>();
+  const l3 = new Map<string, { category: string; subcategory: string; l3: string; count: number }>();
+  const l3Bare = new Map<string, string[]>();
   const subcategories = new Map<string, string>();
   const categories = new Set<string>();
   const grouped = new Map<string, string[]>();
   for (const r of rows) {
-    // An l3 name can repeat across subcategories; keep the larger one as canonical.
-    const prev = l3.get(r.l3);
-    if (!prev || prev.count < r.n) l3.set(r.l3, { category: r.category, subcategory: r.subcategory, count: r.n });
+    const qualified = `${r.subcategory} > ${r.l3}`;
+    l3.set(qualified, { category: r.category, subcategory: r.subcategory, l3: r.l3, count: r.n });
+    l3Bare.set(r.l3.toLowerCase(), [...(l3Bare.get(r.l3.toLowerCase()) ?? []), qualified]);
     subcategories.set(r.subcategory, r.category);
     categories.add(r.category);
     const key = `${r.category} > ${r.subcategory}`;
@@ -46,6 +51,7 @@ export async function loadVocabulary(sql: Sql): Promise<CatalogVocabulary> {
   cached = {
     l3,
     l3Lower: new Map([...l3.keys()].map(k => [k.toLowerCase(), k])),
+    l3Bare,
     subcategories,
     categories,
     brands: brandRows.map(b => ({ name: b.brand, lower: b.brand.toLowerCase(), count: b.n })),

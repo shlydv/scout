@@ -16,6 +16,7 @@ export function searchSql(): Sql {
     max: 6, idle_timeout: 30, connect_timeout: 10, prepare: false,
     ssl: { rejectUnauthorized: false },
     connection: { statement_timeout: 8000 },
+    onnotice: () => {},
   });
   return pool;
 }
