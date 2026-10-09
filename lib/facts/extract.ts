@@ -45,7 +45,7 @@ const conceptEnum = z.enum(CONCEPT_IDS as [ConceptId, ...ConceptId[]]);
 const rawSchema = z.object({
   i: z.number().int(),
   ing_status: z.enum(["complete", "partial", "garbage", "missing"]),
-  ingredients: z.array(z.tuple([z.string(), z.array(z.string())])).max(80).default([]),
+  ingredients: z.array(z.tuple([z.string(), z.array(z.string())])).max(300).default([]),
   present: z.record(z.string(), z.string()).default({}),
   may_contain: z.array(z.string()).default([]),
   unknown: z.record(z.string(), z.string()).default({}),
@@ -162,7 +162,7 @@ export async function extractFactsBatch(batch: FactsInput[]): Promise<{ facts: P
     usageKind: "label",
     model: FACTS_MODEL,
     jsonObject: true,
-    maxTokens: 700 * batch.length + 200,
+    maxTokens: Math.min(8000, 1100 * batch.length + 600),
     timeoutMs: 120_000,
     system: FACTS_SYSTEM_PROMPT,
     user: buildUserPayload(batch),
