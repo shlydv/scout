@@ -128,16 +128,18 @@ export async function plannedSearch(query: string, opts: { preferences?: Prefere
   const verify = opts.verify ?? (needsVerification(plan) || exec.relaxed.includes("scope"));
   if (verify && confirmed.length) {
     try {
-      const v = await verifyItems(query, plan, confirmed, 20);
+      // Verify everything that can be shown; never append an unverified tail.
+      const pool = diversify(confirmed).slice(0, Math.min(limit + 6, 30));
+      const v = await verifyItems(query, plan, pool, pool.length);
       addUsage(v.usage);
       verifyMs = v.ms;
-      const judged = confirmed.slice(0, 20).map(i => ({ ...i, verdict: v.verdicts.get(i.product_id)?.v, why: v.verdicts.get(i.product_id)?.why }));
+      const judged = pool.map(i => ({ ...i, verdict: v.verdicts.get(i.product_id)?.v, why: v.verdicts.get(i.product_id)?.why }));
       const kept = judged.filter(i => i.verdict !== "no");
       // Keep the requested numeric order; for relevance, strong fits first.
       const ordered = plan.sort.field === "relevance"
         ? [...kept.filter(i => i.verdict !== "ok"), ...kept.filter(i => i.verdict === "ok")]
         : kept;
-      confirmed = [...ordered, ...confirmed.slice(20)];
+      confirmed = ordered;
     } catch {
       // Verification is a refinement; on failure keep the executor's results.
     }
