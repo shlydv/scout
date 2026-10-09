@@ -7,7 +7,7 @@
     "predev": "tsx scripts/sync-lottie.ts",
     "dev": "next dev --turbopack --hostname localhost",
     "dev:lan": "next dev --turbopack --hostname 0.0.0.0",
-    "prebuild": "tsx scripts/sync-lottie.ts && tsx scripts/decision-search-eval.ts --preview-build",
+    "prebuild": "tsx scripts/sync-lottie.ts",
     "build": "next build",
     "cats:sync": "tsx scripts/sync-lottie.ts",
     "start": "next start --hostname localhost",

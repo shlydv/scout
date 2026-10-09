@@ -28,6 +28,15 @@ export type PlannedSearchResult = {
 const PLAN_CACHE = new Map<string, { at: number; plan: SearchPlan; dropped: string[] }>();
 const PLAN_TTL_MS = 6 * 60 * 60_000;
 
+export function degradedPlan(query: string): SearchPlan {
+  return {
+    intent: "product", l3: [], subcategories: [], categories: [], brands: [], name_terms: [],
+    require: [], exclude: [], strict: false, claims_required: [], claims_preferred: [], diet: {},
+    numeric: [], sort: { field: "relevance", dir: "desc" }, semantic_query: query, judge: [],
+    relax: [], comparison: null, summary: "Closest matches",
+  };
+}
+
 function cacheKey(query: string, prefs: Preferences): string {
   return JSON.stringify([query.trim().toLowerCase().replace(/\s+/g, " "), prefs ?? null]);
 }
@@ -58,11 +67,19 @@ export async function plannedSearch(query: string, opts: { preferences?: Prefere
     planCached = true;
   } else {
     const vocab = await loadVocabulary(sql);
-    const r = await planQuery(query, vocab, prefs);
-    addUsage(r.usage);
-    ({ plan, dropped } = r);
-    planMs = r.ms;
-    PLAN_CACHE.set(key, { at: Date.now(), plan, dropped });
+    try {
+      const r = await planQuery(query, vocab, prefs);
+      addUsage(r.usage);
+      ({ plan, dropped } = r);
+      planMs = r.ms;
+      PLAN_CACHE.set(key, { at: Date.now(), plan, dropped });
+    } catch (error) {
+      // Planner unavailable: closest matches only, no filters, clearly labelled.
+      console.error("[planned-search] planner failed", error instanceof Error ? error.message : error);
+      plan = degradedPlan(query);
+      dropped = ["planner:degraded"];
+      planMs = Date.now() - started;
+    }
   }
 
   const { e: vector, ms: embedMs } = await embedding;

@@ -77,7 +77,7 @@ function check(c: EvalCase, r: PlannedSearchResult): string[] {
 
 function hammerQueries(): string[] {
   const src = fs.readFileSync("scripts/search-hammer.ts", "utf8");
-  return [...new Set([...src.matchAll(/\bq:\s*"([^"]+)"/g)].map(m => m[1]!))];
+  return [...new Set([...src.matchAll(/\bquery:\s*"([^"]+)"/g)].map(m => m[1]!))];
 }
 
 async function main() {

@@ -40,6 +40,10 @@ export type PlannedItem = {
   jain: boolean | null;
   price_per_100: number | null;
   evidence: Record<string, string>;
+  display: {
+    image_urls: string[]; mrp_inr: number | null; ocr_image_url: string | null; primary_type: string | null;
+    absolute_score: number | null; category_rank: number | null; category_size: number | null; category_label: string | null;
+  };
   similarity: number | null;
   lexical: number;
   confirmation: Confirmation;
@@ -155,7 +159,8 @@ async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limi
   const text = `
     with cand as (
       select p.id, p.slug, p.name, p.brand, p.category, p.subcategory, p.l3_category, p.price_inr,
-             p.net_weight, p.nutrition, si.scout_score,
+             p.net_weight, p.nutrition, si.scout_score, p.image_urls, p.mrp_inr, p.ocr_image_url,
+             si.primary_type, si.absolute_score, si.category_rank, si.category_size, si.category_label,
              f.product_id as f_id, f.kind, f.ingredients, f.claims, f.present, f.may_contain, f.unknown,
              f.conflicts, f.ingredient_status, f.veg, f.vegan, f.jain, f.price_per_100, f.evidence,
              ${similarity} as similarity,
@@ -181,7 +186,16 @@ async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limi
     present: r.present ?? [], may_contain: r.may_contain ?? [], unknown: r.unknown ?? [],
     conflicts: r.conflicts ?? [], ingredient_status: r.ingredient_status, veg: r.veg, vegan: r.vegan,
     jain: r.jain, price_per_100: r.price_per_100 == null ? null : Number(r.price_per_100),
-    evidence: r.evidence ?? {}, similarity: r.similarity == null ? null : Number(r.similarity),
+    evidence: r.evidence ?? {},
+    display: {
+      image_urls: r.image_urls ?? [], mrp_inr: r.mrp_inr == null ? null : Number(r.mrp_inr),
+      ocr_image_url: r.ocr_image_url ?? null, primary_type: r.primary_type ?? null,
+      absolute_score: r.absolute_score == null ? null : Number(r.absolute_score),
+      category_rank: r.category_rank == null ? null : Number(r.category_rank),
+      category_size: r.category_size == null ? null : Number(r.category_size),
+      category_label: r.category_label ?? null,
+    },
+    similarity: r.similarity == null ? null : Number(r.similarity),
     lexical: Number(r.lexical ?? 0), confirmation: "confirmed", notes: [], score: Number(r.relevance ?? 0),
     hasFacts: r.f_id != null,
   } as PlannedItem & { hasFacts: boolean }));

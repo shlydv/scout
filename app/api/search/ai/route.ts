@@ -3,9 +3,8 @@ import { supabaseFromBearer } from "@/lib/auth/supabase-user";
 import { adminClient } from "@/lib/supabase/admin";
 import { getCachedAiResult, setCachedAiResult } from "@/lib/search/search-cache";
 import { searchInputSchema } from "@/lib/search/decision/input";
-import { DecisionUnavailableError } from "@/lib/search/decision/cloudflare";
-import { runSearchV2 } from "@/lib/search/v2/pipeline";
-import { searchV2ToAiResult } from "@/lib/search/v2/adapter";
+import { plannedSearch } from "@/lib/search/planned/search";
+import { plannedToAiResult } from "@/lib/search/planned/adapter";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -21,8 +20,12 @@ export async function POST(req: NextRequest) {
 
   // Search is free for guests and signed-in users. Identity is only for history.
   try {
-    const search = await runSearchV2(prompt, { limit, preferences });
-    const result = await searchV2ToAiResult(search, { limit });
+    const search = await plannedSearch(prompt, { limit, preferences });
+    const result = plannedToAiResult(search, limit);
+    if (process.env.SEARCH_TELEMETRY === "1") {
+      console.log(JSON.stringify({ type: "planned_search", ...search.timings, llm: search.llm, items: search.items.length,
+        unconfirmed: search.unconfirmed.length, relaxed: search.relaxed, intent: search.plan.intent }));
+    }
     setCachedAiResult(prompt, limit, "structured", result, preferences);
     const authHeader = req.headers.get("authorization");
     if (authHeader) {
@@ -41,7 +44,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("[search/ai]", error instanceof Error ? error.name : "SearchError");
     return NextResponse.json({
-      error: error instanceof DecisionUnavailableError ? error.message : "Search is temporarily unavailable. Please try again later.",
+      error: "Search is temporarily unavailable. Please try again later.",
       code: "search_unavailable",
     }, { status: 503, headers: CACHE_HEADERS });
   }

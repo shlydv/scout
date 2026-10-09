@@ -14,7 +14,7 @@ function dataQualityWarning(score: number): string | null {
   return null;
 }
 
-function scoreToGrade(score: number): Grade {
+export function scoreToGrade(score: number): Grade {
   if (score >= 80) return "A";
   if (score >= 65) return "B";
   if (score >= 50) return "C";
@@ -22,7 +22,7 @@ function scoreToGrade(score: number): Grade {
   return "F";
 }
 
-function scoreToBand(score: number): ScoreBand {
+export function scoreToBand(score: number): ScoreBand {
   if (score >= 75) return "excellent";
   if (score >= 55) return "good";
   if (score >= 40) return "poor";
