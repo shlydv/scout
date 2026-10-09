@@ -1,6 +1,6 @@
 import { adminClient } from "@/lib/supabase/admin";
 import type { AiSearchPreferences } from "@/lib/search/ai-usage";
-import { runSearchV2 } from "@/lib/search/v2/pipeline";
+import { plannedSearch } from "@/lib/search/planned/search";
 import { deliverAlertTriggers } from "@/lib/search/v2/alert-notify";
 
 export type AlertRecord = {
@@ -30,7 +30,7 @@ export async function runAlertsForRecords(alerts: AlertRecord[]): Promise<AlertT
     // Per-alert isolation: one bad query/timeout must not abort the whole cron sweep.
     try {
       const prefs = (alert.preferences as Record<string, unknown>) ?? {};
-      const result = await runSearchV2(String(alert.query), {
+      const result = await plannedSearch(String(alert.query), {
         limit: 12,
         preferences: prefs as AiSearchPreferences,
       });

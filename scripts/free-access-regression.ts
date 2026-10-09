@@ -1,5 +1,4 @@
 import { searchInputSchema } from "@/lib/search/decision/input";
-import { DecisionUnavailableError } from "@/lib/search/decision/cloudflare";
 /** Run with node --import tsx scripts/free-access-regression.ts. External services are mocked. */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -37,12 +36,11 @@ const auth = { supabaseFromBearer: (header: string | null) => header ? {
 const route = load("app/api/search/ai/route.ts", {
   "next/server": next,
   "@/lib/search/decision/input": { searchInputSchema },
-  "@/lib/search/decision/cloudflare": { DecisionUnavailableError },
   "@/lib/auth/supabase-user": auth,
   "@/lib/supabase/admin": { adminClient: () => ({ from: () => ({ insert: () => Promise.resolve({}) }) }) },
   "@/lib/search/search-cache": { getCachedAiResult: () => null, setCachedAiResult: () => {} },
-  "@/lib/search/v2/pipeline": { runSearchV2: async () => { searches++; return {}; } },
-  "@/lib/search/v2/adapter": { searchV2ToAiResult: async () => result },
+  "@/lib/search/planned/search": { plannedSearch: async () => { searches++; return { timings: {}, llm: {}, items: [], unconfirmed: [], relaxed: [], plan: {} }; } },
+  "@/lib/search/planned/adapter": { plannedToAiResult: () => result },
 });
 const request = (token: string | null, prompt = "yogurt") => ({
   headers: new Headers(token ? { authorization: `Bearer ${token}`, "x-forwarded-for": "127.0.0.1" } : { "x-forwarded-for": "127.0.0.1" }),

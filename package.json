@@ -7,7 +7,7 @@
     "predev": "tsx scripts/sync-lottie.ts",
     "dev": "next dev --turbopack --hostname localhost",
     "dev:lan": "next dev --turbopack --hostname 0.0.0.0",
-    "prebuild": "tsx scripts/sync-lottie.ts && tsx scripts/decision-search-eval.ts --preview-build",
+    "prebuild": "tsx scripts/sync-lottie.ts",
     "build": "next build",
     "cats:sync": "tsx scripts/sync-lottie.ts",
     "start": "next start --hostname localhost",
@@ -76,7 +76,18 @@
     "mobile:start": "pnpm mobile:env && cd oasis-mobile && pnpm install --ignore-workspace && pnpm start:tunnel",
     "mobile:start:lan": "pnpm mobile:env && cd oasis-mobile && pnpm install --ignore-workspace && pnpm start:lan",
     "search:decision-test": "node --import tsx --test scripts/decision-search.test.ts",
-    "search:decision-eval": "node --import tsx scripts/decision-search-eval.ts"
+    "search:decision-eval": "node --import tsx scripts/decision-search-eval.ts",
+    "facts:extract": "tsx scripts/facts-extract.ts",
+    "search:try": "tsx scripts/search-try.ts",
+    "search:plan": "tsx scripts/plan-try.ts",
+    "facts:load": "tsx scripts/facts-load.ts",
+    "facts:audit": "tsx scripts/facts-audit.ts",
+    "search:planned-eval": "tsx scripts/planned-eval.ts",
+    "facts:nutrition-audit": "tsx scripts/facts-nutrition-audit.ts",
+    "db:apply": "tsx scripts/db-apply-migration.ts",
+    "search:remote": "tsx scripts/search-remote.ts",
+    "facts:completeness-audit": "tsx scripts/facts-completeness-audit.ts",
+    "search:planned-test": "node --import tsx --test scripts/planned-search.test.ts"
   },
   "dependencies": {
     "@lottiefiles/dotlottie-react": "^0.19.4",

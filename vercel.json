@@ -4,5 +4,8 @@
       "path": "/api/cron/search-alerts",
       "schedule": "0 3 * * *"
     }
+  ],
+  "regions": [
+    "sin1"
   ]
 }
