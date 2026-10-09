@@ -76,7 +76,11 @@
     "mobile:start": "pnpm mobile:env && cd oasis-mobile && pnpm install --ignore-workspace && pnpm start:tunnel",
     "mobile:start:lan": "pnpm mobile:env && cd oasis-mobile && pnpm install --ignore-workspace && pnpm start:lan",
     "search:decision-test": "node --import tsx --test scripts/decision-search.test.ts",
-    "search:decision-eval": "node --import tsx scripts/decision-search-eval.ts"
+    "search:decision-eval": "node --import tsx scripts/decision-search-eval.ts",
+    "facts:extract": "tsx scripts/facts-extract.ts",
+    "search:try": "tsx scripts/search-try.ts",
+    "search:plan": "tsx scripts/plan-try.ts",
+    "facts:load": "tsx scripts/facts-load.ts"
   },
   "dependencies": {
     "@lottiefiles/dotlottie-react": "^0.19.4",
