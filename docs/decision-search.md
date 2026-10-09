@@ -1,4 +1,6 @@
-# Decision search implementation plan
+# Decision search implementation plan (superseded)
+
+> Superseded by [planned-search.md](planned-search.md). Kept for history.
 
 ## Target
 Vercel API → Supabase vector + full-text shortlist → current product evidence → Cloudflare Clef decisions → validated matches and one ordering → web/mobile.
