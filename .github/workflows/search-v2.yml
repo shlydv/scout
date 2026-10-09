@@ -1,10 +1,10 @@
-name: Decision search
+name: Search
 on:
   pull_request:
-    paths: ["lib/search/**", "scripts/decision-search*", "app/api/search/**", "supabase/migrations/**", "components/catalog-view.tsx", ".github/workflows/search-v2.yml"]
+    paths: ["lib/search/**", "lib/facts/**", "scripts/decision-search*", "scripts/planned-search*", "app/api/search/**", "supabase/migrations/**", "components/catalog-view.tsx", ".github/workflows/search-v2.yml"]
   push:
     branches: [main, search-improvements]
-    paths: ["lib/search/**", "scripts/decision-search*", "app/api/search/**", "supabase/migrations/**", "components/catalog-view.tsx", ".github/workflows/search-v2.yml"]
+    paths: ["lib/search/**", "lib/facts/**", "scripts/decision-search*", "scripts/planned-search*", "app/api/search/**", "supabase/migrations/**", "components/catalog-view.tsx", ".github/workflows/search-v2.yml"]
 jobs:
   regression:
     runs-on: ubuntu-latest
@@ -19,4 +19,5 @@ jobs:
       - run: pnpm exec tsc --noEmit
       - run: pnpm exec tsc --noEmit -p tsconfig.decision-tests.json
       - run: pnpm search:decision-test
+      - run: pnpm search:planned-test
       - run: node --import tsx scripts/free-access-regression.ts

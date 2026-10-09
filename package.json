@@ -86,7 +86,8 @@
     "facts:nutrition-audit": "tsx scripts/facts-nutrition-audit.ts",
     "db:apply": "tsx scripts/db-apply-migration.ts",
     "search:remote": "tsx scripts/search-remote.ts",
-    "facts:completeness-audit": "tsx scripts/facts-completeness-audit.ts"
+    "facts:completeness-audit": "tsx scripts/facts-completeness-audit.ts",
+    "search:planned-test": "node --import tsx --test scripts/planned-search.test.ts"
   },
   "dependencies": {
     "@lottiefiles/dotlottie-react": "^0.19.4",
