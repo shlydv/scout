@@ -80,7 +80,9 @@
     "facts:extract": "tsx scripts/facts-extract.ts",
     "search:try": "tsx scripts/search-try.ts",
     "search:plan": "tsx scripts/plan-try.ts",
-    "facts:load": "tsx scripts/facts-load.ts"
+    "facts:load": "tsx scripts/facts-load.ts",
+    "facts:audit": "tsx scripts/facts-audit.ts",
+    "search:planned-eval": "tsx scripts/planned-eval.ts"
   },
   "dependencies": {
     "@lottiefiles/dotlottie-react": "^0.19.4",
