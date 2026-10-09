@@ -13,7 +13,7 @@ import {
   runSearchAlerts,
   updateSavedSearch,
   type SavedSearchRow,
-} from "@/lib/search/v2/saved-searches-client";
+} from "@/lib/search/saved-searches";
 
 type Identity = {
   provider: string;

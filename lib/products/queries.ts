@@ -16,7 +16,7 @@ import {
   productMatchesUsecase,
   productUsecase,
 } from "@/lib/products/catalog-meta";
-import { catalogSearchIlikeTerm } from "@/lib/search/catalog-query-text";
+import { catalogSearchIlikeTerm } from "@/lib/products/catalog-query-text";
 import {
   compareCatalogItems,
   sortCatalogItems,
@@ -279,6 +279,8 @@ export type CatalogGridItem = Pick<
   > | null;
   deepseek_chips?: string[];
   deepseek_why?: string | null;
+  /** Other pack sizes of the same product (lib/products/variants). */
+  sizes?: { slug: string; net_weight: string | null; price_inr: number | null }[];
 };
 
 export type CatalogSearchResult = {

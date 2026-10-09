@@ -3,8 +3,10 @@
 import { Bell, Bookmark } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth/context";
-import type { AiSearchPreferences } from "@/lib/search/ai-usage";
-import { saveSearch } from "@/lib/search/v2/saved-searches-client";
+import type { AiSearchPreferences } from "@/lib/search/preferences";
+import { saveSearch } from "@/lib/search/saved-searches";
+
+const ALERTS_ENABLED = process.env.NEXT_PUBLIC_SEARCH_ALERTS === "1";
 
 export function SavedSearchActions({
   query,
@@ -52,7 +54,8 @@ export function SavedSearchActions({
         <Bookmark className="h-3.5 w-3.5" />
         Save search
       </button>
-      <button
+      {/* Alert emails need RESEND_API_KEY on the server; don't offer what can't be delivered. */}
+      {ALERTS_ENABLED ? <button
         type="button"
         disabled={busy}
         onClick={() => void handleSave(true)}
@@ -60,7 +63,7 @@ export function SavedSearchActions({
       >
         <Bell className="h-3.5 w-3.5" />
         Alert me
-      </button>
+      </button> : null}
       {status ? <span className="text-xs text-(--color-fg-dim)">{status}</span> : null}
     </div>
   );

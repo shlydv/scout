@@ -84,8 +84,7 @@ function check(c: EvalCase, r: PlannedSearchResult): string[] {
 }
 
 function hammerQueries(): string[] {
-  const src = fs.readFileSync("scripts/search-hammer.ts", "utf8");
-  return [...new Set([...src.matchAll(/\bquery:\s*"([^"]+)"/g)].map(m => m[1]!))];
+  return JSON.parse(fs.readFileSync("eval/hammer-queries.json", "utf8")) as string[];
 }
 
 async function main() {

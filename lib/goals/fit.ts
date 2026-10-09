@@ -6,7 +6,7 @@ import {
   goalCaption,
   type GoalFeatureInput,
 } from "./features";
-import { isInfantOrBabyProductLabels } from "@/lib/search/audience-gate";
+import { isInfantOrBabyProductLabels } from "@/lib/goals/audience-gate";
 import { finalizeGoalFit } from "./health-penalties";
 import type { GoalId } from "./types";
 

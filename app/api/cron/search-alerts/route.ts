@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { runAllActiveAlerts } from "@/lib/search/v2/alert-runner";
+import { runAllActiveAlerts } from "@/lib/search/alerts/runner";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;

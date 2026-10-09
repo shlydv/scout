@@ -1,5 +1,4 @@
 import type { CatalogFilters, CatalogGridItem, CatalogSearchResult } from "@/lib/products/queries";
-import type { AiSearchResult } from "@/lib/search/ai-search";
 import type { LandingInsights } from "@/lib/products/landing-insights";
 
 export type CatalogMetaResponse = {
@@ -76,84 +75,6 @@ export function prefetchCatalogSearch(
   void fetchCatalogSearch(params).catch(() => {});
 }
 
-const AI_SEARCH_FETCH_MS = 55_000;
-
-/** Carries the API's machine-readable error code
- *  so the UI can render the right gate instead of a generic failure. */
-export class AiSearchError extends Error {
-  code: string | null;
-  constructor(message: string, code: string | null = null) {
-    super(message);
-    this.name = "AiSearchError";
-    this.code = code;
-  }
-}
-
-export async function fetchAiCatalogSearch(
-  prompt: string,
-  limit = 24,
-  tier?: "structured" | "complex",
-  preferences?: import("@/lib/search/ai-usage").AiSearchPreferences | null,
-  accessToken?: string | null,
-): Promise<AiSearchResult> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), AI_SEARCH_FETCH_MS);
-  const headers: Record<string, string> = { "content-type": "application/json", "cache-control": "no-store" };
-  if (accessToken) headers["authorization"] = `Bearer ${accessToken}`;
-  const res = await fetch("/api/search/ai", {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ prompt, limit, tier, preferences: preferences ?? undefined }),
-    signal: controller.signal,
-    cache: "no-store",
-  }).finally(() => clearTimeout(timer));
-  if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as { error?: string; code?: string } | null;
-    throw new AiSearchError(body?.error ?? `HTTP ${res.status}`, body?.code ?? null);
-  }
-  return (await res.json()) as AiSearchResult;
-}
-
-export type CanonicalVariantItem = {
-  id: string;
-  slug: string;
-  name: string;
-  brand: string | null;
-  net_weight: string | null;
-  price_inr: number | null;
-  mrp_inr: number | null;
-  image_urls: string[];
-  scout_score: number | null;
-};
-
-export async function fetchCanonicalVariants(productId: string): Promise<CanonicalVariantItem[]> {
-  const res = await fetch(`/api/search/canonical?product_id=${encodeURIComponent(productId)}`, {
-    cache: "no-store",
-  });
-  if (!res.ok) return [];
-  const body = (await res.json()) as { items?: CanonicalVariantItem[] };
-  return body.items ?? [];
-}
-
-/** §10 popularity loop — fire-and-forget click/save tracking */
-export function trackSearchInteraction(productId: string, kind: "click" | "save"): void {
-  let goal_id: string | null = null;
-  if (typeof window !== "undefined") {
-    try {
-      const raw = sessionStorage.getItem("scout_last_search_v2");
-      if (raw) goal_id = (JSON.parse(raw) as { goal_id?: string }).goal_id ?? null;
-    } catch {
-      // ignore
-    }
-  }
-  void fetch("/api/search/interaction", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ product_id: productId, kind, goal_id }),
-    keepalive: true,
-  }).catch(() => {});
-}
-
 let landingCache: { at: number; data: LandingInsights } | null = null;
 const LANDING_CACHE_MS = 300_000;
 
@@ -168,4 +89,4 @@ export async function fetchLandingInsights(): Promise<LandingInsights> {
   return data;
 }
 
-export type { CatalogGridItem, CatalogSearchResult, AiSearchResult, LandingInsights };
+export type { CatalogGridItem, CatalogSearchResult, LandingInsights };

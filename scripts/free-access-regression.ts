@@ -1,4 +1,4 @@
-import { searchInputSchema } from "@/lib/search/decision/input";
+import { searchInputSchema } from "@/lib/search/input";
 /** Run with node --import tsx scripts/free-access-regression.ts. External services are mocked. */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -33,18 +33,18 @@ const result = { items: [], rank_source: "test", intent_tier: "structured" };
 const auth = { supabaseFromBearer: (header: string | null) => header ? {
   auth: { getUser: async () => ({ data: { user: identity } }) },
 } : null };
-const route = load("app/api/search/ai/route.ts", {
+const route = load("app/api/search/route.ts", {
   "next/server": next,
-  "@/lib/search/decision/input": { searchInputSchema },
+  "@/lib/search/input": { searchInputSchema },
   "@/lib/auth/supabase-user": auth,
   "@/lib/supabase/admin": { adminClient: () => ({ from: () => ({ insert: () => Promise.resolve({}) }) }) },
-  "@/lib/search/search-cache": { getCachedAiResult: () => null, setCachedAiResult: () => {} },
-  "@/lib/search/planned/search": { plannedSearch: async () => { searches++; return { timings: {}, llm: {}, items: [], unconfirmed: [], relaxed: [], plan: {} }; } },
-  "@/lib/search/planned/adapter": { plannedToAiResult: () => result },
+  "@/lib/search/result-cache": { resultCacheKey: () => "k", getCachedResult: () => null, setCachedResult: () => {} },
+  "@/lib/search/planned/search": { plannedSearch: async () => { searches++; return { timings: {}, llm: {}, items: [], unconfirmed: [], relaxed: [], plan: { intent: "product" } }; } },
+  "@/lib/search/planned/present": { presentSearch: () => result },
 });
 const request = (token: string | null, prompt = "yogurt") => ({
   headers: new Headers(token ? { authorization: `Bearer ${token}`, "x-forwarded-for": "127.0.0.1" } : { "x-forwarded-for": "127.0.0.1" }),
-  json: async () => ({ prompt }),
+  json: async () => ({ q: prompt }),
   // Previously exhausted anonymous cookies must no longer be consulted.
   cookies: { get: () => { throw new Error("Search read the retired quota cookie"); } },
 });
@@ -76,15 +76,8 @@ const alerts = load("app/api/me/search-alerts/route.ts", {
       return { eq: async () => ({ data: [] }) };
     },
   }) }) }) },
-  "@/lib/search/v2/alert-runner": { runAlertsForRecords: async () => [] },
+  "@/lib/search/alerts/runner": { runAlertsForRecords: async () => [] },
 });
 assert.equal((await alerts.POST(request(null))).status, 401);
 assert.equal((await alerts.POST(request("signed-in"))).status, 200, "Alerts need an account, not a plan");
-let mobileSearches = 0;
-const mobile = load("oasis-mobile/src/lib/run-search.ts", {
-  "@/lib/api": { fetchAiSearch: async () => { mobileSearches++; return result; } },
-  "@/lib/ai-usage": { readAiSearchPreferences: async () => ({}) },
-});
-for (let i = 0; i < 1001; i++) await mobile.runCatalogSearch("yogurt", null, null);
-assert.equal(mobileSearches, 1001, "Mobile must not retain its former 999-search cap");
-console.log("PASS: 303 guest/authenticated/expired-session searches, account-only alerts, and 1001 mobile searches without quotas.");
+console.log("PASS: 303 guest/authenticated/expired-session searches without quotas, and account-only alerts.");

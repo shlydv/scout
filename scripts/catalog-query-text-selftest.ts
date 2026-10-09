@@ -1,4 +1,4 @@
-import { catalogSearchIlikeTerm } from "@/lib/search/catalog-query-text";
+import { catalogSearchIlikeTerm } from "@/lib/products/catalog-query-text";
 
 const cases: [string, string | null][] = [
   ["healthy noodles", "noodles"],

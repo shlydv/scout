@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { requireAuthedUser } from "@/lib/auth/require-user";
-import type { AiSearchPreferences } from "@/lib/search/ai-usage";
+import type { AiSearchPreferences } from "@/lib/search/preferences";
 
 export const dynamic = "force-dynamic";
 
