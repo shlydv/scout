@@ -2,6 +2,12 @@ import Image from "next/image";
 import Link from "next/link";
 import type { LabelConflict } from "@/lib/insights/data";
 
+/** Pack text arrives as printed ("TRANS FAT FREE", "zero palm oil"); show it in sentence case. */
+function sentenceCase(t: string): string {
+  const s = t === t.toUpperCase() || t === t.toLowerCase() ? t.toLowerCase() : t;
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 /** "The pack says / the label says" callout for one verified contradiction. */
 export function ConflictCard({ c }: { c: LabelConflict }) {
   return (
@@ -18,11 +24,11 @@ export function ConflictCard({ c }: { c: LabelConflict }) {
       <dl className="mt-auto grid grid-cols-2 border-t border-(--color-line) text-[13px]">
         <div className="border-r border-(--color-line) p-3.5">
           <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-(--color-fg-dim)">The pack says</dt>
-          <dd className="mt-1 font-medium text-(--color-fg)">“{c.claim}”</dd>
+          <dd className="mt-1 font-medium text-(--color-fg)">“{sentenceCase(c.claim)}”</dd>
         </div>
         <div className="p-3.5">
           <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-(--color-bad)">The label says</dt>
-          <dd className="mt-1 text-(--color-fg-muted)">{c.reality}</dd>
+          <dd className="mt-1 text-(--color-fg-muted)">{sentenceCase(c.reality)}</dd>
         </div>
       </dl>
     </Link>
