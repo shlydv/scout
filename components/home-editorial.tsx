@@ -31,7 +31,7 @@ export function HomeReckoning({ products }: { products: LandingDodgeProduct[] })
             </p>
           </div>
           <Link
-            href="/search?verdict=skip&sort=score-asc"
+            href="/catalog?verdict=skip&sort=score-asc"
             className="inline-flex items-center gap-1.5 text-sm font-medium text-(--color-fg-muted) transition hover:text-(--color-fg)"
           >
             Full skip list

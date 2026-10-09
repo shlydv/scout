@@ -267,7 +267,7 @@ export default function ProfilePage() {
                     .map((n) => (
                       <li key={n.id} className="text-[13px] text-(--color-fg-muted)">
                         <Link
-                          href={`/search?prompt=${encodeURIComponent(n.query)}`}
+                          href={`/search?q=${encodeURIComponent(n.query)}`}
                           className="font-medium text-(--color-fg) hover:text-(--color-accent)"
                         >
                           {n.query}
@@ -414,7 +414,7 @@ export default function ProfilePage() {
                 <div key={s.id} className="group flex items-center gap-3 px-4 py-3">
                   <div className="min-w-0 flex-1">
                     <Link
-                      href={`/search?prompt=${encodeURIComponent(s.query)}`}
+                      href={`/search?q=${encodeURIComponent(s.query)}`}
                       className="block truncate text-[14px] font-medium text-(--color-fg) hover:text-(--color-accent)"
                     >
                       {s.label || s.query}

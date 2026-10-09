@@ -65,7 +65,7 @@ export async function deliverAlertTriggers(triggers: AlertTrigger[]): Promise<vo
           text: [
             `Scout found ${t.new_matches} matches for “${t.query}” (was ${t.previous}).`,
             ``,
-            `Open your saved search: ${site}/search?prompt=${encodeURIComponent(t.query)}`,
+            `Open your saved search: ${site}/search?q=${encodeURIComponent(t.query)}`,
             `Manage alerts: ${site}/profile`,
           ].join("\n"),
         }),

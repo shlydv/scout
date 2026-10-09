@@ -26,10 +26,10 @@ export function SiteFooter() {
             <p className="text-[11px] uppercase tracking-wider text-(--color-fg-dim)">
               Browse
             </p>
-            <Link href="/search?verdict=daily_staple" className="block text-(--color-fg-muted) hover:text-(--color-fg)">
+            <Link href="/catalog?verdict=daily_staple" className="block text-(--color-fg-muted) hover:text-(--color-fg)">
               Daily staples
             </Link>
-            <Link href="/search?verdict=skip" className="block text-(--color-fg-muted) hover:text-(--color-fg)">
+            <Link href="/catalog?verdict=skip" className="block text-(--color-fg-muted) hover:text-(--color-fg)">
               Skip list
             </Link>
             <Link href="/insights" className="block text-(--color-fg-muted) hover:text-(--color-fg)">
