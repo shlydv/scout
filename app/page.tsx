@@ -3,6 +3,8 @@ import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { HomeRailCard } from "@/components/home-rail-card";
 import { HomeCategoryGrid } from "@/components/home-editorial";
 import { ConflictCard } from "@/components/insights/conflict-card";
+import { RingGlyph } from "@/components/ring-motif";
+import { shelfNo } from "@/components/shelf-board";
 import { CountUp, Reveal } from "@/components/reveal";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
@@ -26,6 +28,8 @@ export default async function Home() {
   } catch (err) {
     console.warn("[home] insights skipped:", err);
   }
+  // One proof fact, told big: the share of packs with added sugar.
+  const proof = facts?.ingredientStats.find(st => st.concept === "added_sugar") ?? facts?.ingredientStats[0] ?? null;
   const oneIn = facts?.conflictedProducts ? Math.round(facts.claimers / facts.conflictedProducts) : 0;
 
   // Typewriter starts on a different phrase each day.
@@ -110,36 +114,30 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ── Start from a goal ──────────────────────────────────────────── */}
-      <section className="border-b border-(--color-line)">
-        <Reveal className="mx-auto max-w-7xl px-6 py-14 md:py-20">
-          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-(--color-fg-dim)">Start from a goal</p>
-              <h2 className="font-display mt-3 text-3xl leading-tight md:text-[2.5rem]">Shortlists, checked against the label.</h2>
-            </div>
-            <Link href="/shelves" className="inline-flex items-center gap-1.5 text-sm font-medium text-(--color-fg-muted) transition hover:text-(--color-fg)">
-              All shelves <ArrowUpRight className="h-3.5 w-3.5" />
+      {/* ── One proof, told with confidence: a number inside the score ring ── */}
+      {proof && (
+        <section className="relative overflow-hidden border-b border-(--color-line) bg-(--color-bg-soft)">
+          <RingGlyph className="absolute left-1/2 top-1/2 h-[340px] w-[340px] -translate-x-1/2 -translate-y-[58%] opacity-60 md:h-[440px] md:w-[440px]" />
+          <Reveal className="relative z-10 mx-auto flex max-w-3xl flex-col items-center px-6 py-20 text-center md:py-28">
+            <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-(--color-fg-dim)">What we found</p>
+            <p className="font-display mt-5 text-7xl leading-none text-(--color-accent) md:text-8xl">{proof.pct}%</p>
+            <p className="font-display mt-5 max-w-2xl text-balance text-2xl leading-snug text-(--color-fg) md:text-[1.9rem]">
+              of the packaged foods we&apos;ve read {proof.label}.
+            </p>
+            <Link href="/insights" className="mt-7 inline-flex items-center gap-1.5 text-sm font-medium text-(--color-fg-muted) underline-offset-4 transition hover:text-(--color-fg) hover:underline">
+              What else is in there <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
-          </div>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-            {SHELVES.slice(0, 6).map(s => (
-              <Link key={s.slug} href={`/shelves/${s.slug}`} className="u-lift rounded-2xl border border-(--color-line) bg-(--color-panel) p-4 hover:border-(--color-fg-muted)">
-                <span className="text-2xl" aria-hidden>{s.emoji}</span>
-                <span className="mt-2 block text-[15px] font-medium leading-snug text-(--color-fg)">{s.title}</span>
-              </Link>
-            ))}
-          </div>
-        </Reveal>
-      </section>
+          </Reveal>
+        </section>
+      )}
 
       {/* ── The hook: what the pack says vs what the label says ─────────── */}
       {facts && facts.conflicts.length >= 3 && (
-        <section className="border-b border-(--color-line) bg-(--color-bg-soft)">
+        <section className="border-b border-(--color-line)">
           <Reveal className="mx-auto max-w-7xl px-6 py-16 md:py-24">
             <div className="mb-9 flex flex-wrap items-end justify-between gap-4">
               <div className="max-w-2xl">
-                <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-(--color-fg-dim)">Front of pack vs back of pack</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-(--color-bad)">Scout warning · front of pack vs back</p>
                 <h2 className="font-display mt-3 text-3xl leading-tight md:text-[2.5rem]">
                   {oneIn ? `1 in ${oneIn} “free-from” claims doesn’t survive the ingredient list.` : "Claims that don't survive the ingredient list."}
                 </h2>
@@ -151,12 +149,40 @@ export default async function Home() {
                 See all {facts.conflictedProducts} <ArrowUpRight className="h-3.5 w-3.5" />
               </Link>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {facts.conflicts.slice(0, 6).map(c => <ConflictCard key={`${c.id}-${c.claim}`} c={c} />)}
             </div>
           </Reveal>
         </section>
       )}
+
+      {/* ── Start from a goal ──────────────────────────────────────────── */}
+      <section className="border-b border-(--color-line)">
+        <Reveal className="mx-auto max-w-7xl px-6 py-14 md:py-20">
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-(--color-accent)">Goal shelves</p>
+              <h2 className="font-display mt-3 text-3xl leading-tight md:text-[2.5rem]">Twelve shelves, <span className="italic">kept honest.</span></h2>
+            </div>
+            <Link href="/shelves" className="inline-flex items-center gap-1.5 text-sm font-medium text-(--color-fg-muted) transition hover:text-(--color-fg)">
+              All shelves <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          <ul className="grid grid-cols-1 gap-x-10 sm:grid-cols-2 lg:grid-cols-3">
+            {SHELVES.map((s, i) => (
+              <li key={s.slug} className="border-b border-(--color-line)">
+                <Link href={`/shelves/${s.slug}`} className="group flex items-baseline gap-3 py-3">
+                  <span className="w-12 shrink-0 text-[10px] font-semibold uppercase tracking-[0.14em] text-(--color-fg-dim)">{shelfNo(i)}</span>
+                  <span className="min-w-0">
+                    <span className="font-display block text-[1.25rem] leading-tight text-(--color-fg) group-hover:text-(--color-accent)">{s.title}</span>
+                    <span className="block truncate text-[12px] text-(--color-fg-dim)">{s.blurb}</span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Reveal>
+      </section>
 
       {/* ── The light after the shade: what Scout actually loves ──────────── */}
       <Rail

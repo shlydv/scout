@@ -1,4 +1,6 @@
 import type { MetadataRoute } from "next";
+import { getBrandIndex } from "@/lib/brands/data";
+import { SHELVES } from "@/lib/shelves";
 import { adminClient } from "@/lib/supabase/admin";
 import { requireSupabaseClient } from "@/lib/supabase/client";
 
@@ -24,8 +26,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/search`, changeFrequency: "daily", priority: 0.9 },
     { url: `${base}/insights`, changeFrequency: "daily", priority: 0.8 },
     { url: `${base}/compare`, changeFrequency: "monthly", priority: 0.4 },
-    { url: `${base}/stacks`, changeFrequency: "weekly", priority: 0.5 },
+    { url: `${base}/catalog`, changeFrequency: "daily", priority: 0.8 },
+    { url: `${base}/shelves`, changeFrequency: "daily", priority: 0.8 },
+    { url: `${base}/brands`, changeFrequency: "weekly", priority: 0.7 },
+    ...SHELVES.map(s => ({ url: `${base}/shelves/${s.slug}`, changeFrequency: "daily" as const, priority: 0.7 })),
   ];
+
+  const brands: MetadataRoute.Sitemap = [];
+  try {
+    for (const b of await getBrandIndex()) {
+      if (b.products >= 3) brands.push({ url: `${base}/brands/${b.slug}`, changeFrequency: "weekly", priority: 0.6 });
+    }
+  } catch {
+    // Brand list is optional here, like products below.
+  }
 
   const products: MetadataRoute.Sitemap = [];
   try {
@@ -53,5 +67,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Sitemap should never take the site down — ship the static entries.
   }
 
-  return [...statics, ...products];
+  return [...statics, ...brands, ...products];
 }

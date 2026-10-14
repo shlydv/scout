@@ -4,6 +4,7 @@ import { ConflictCard } from "@/components/insights/conflict-card";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
 import { CONFLICT_KIND_LABELS, getInsights } from "@/lib/insights/data";
+import { PaperBackdrop } from "@/components/paper-backdrop";
 
 export const revalidate = 86400;
 
@@ -17,7 +18,8 @@ export default async function ClaimsPage({ searchParams }: { searchParams: Promi
   const d = await getInsights();
   const list = kind ? d.allConflicts.filter(c => c.kind === kind) : d.allConflicts;
   return (
-    <main className="min-h-screen bg-(--color-bg)">
+    <main className="relative isolate min-h-screen">
+      <PaperBackdrop />
       <SiteNav />
       <div className="mx-auto max-w-6xl px-4 pb-20 pt-10 md:px-6 md:pt-14">
         <Link href="/insights" className="text-sm text-(--color-fg-muted) hover:text-(--color-fg)">← What we found</Link>
@@ -34,7 +36,7 @@ export default async function ClaimsPage({ searchParams }: { searchParams: Promi
             </Link>
           ))}
         </nav>
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {list.map(c => <ConflictCard key={`${c.id}-${c.claim}`} c={c} />)}
         </div>
         {!list.length && <p className="mt-6 text-sm text-(--color-fg-muted)">Nothing in this category.</p>}
