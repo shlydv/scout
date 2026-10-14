@@ -2,14 +2,14 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parseZeptoDetailPayload } from "@/lib/grocery/parse-zepto-detail";
 import { makeThrottledFetch, sleep } from "@/lib/grocery/http";
-import { isZeptoVariantId } from "@/lib/zepto-import/variant-id";
+import { isZeptoVariantId } from "@/lib/zepto/variant-id";
 import {
   appendVariantImageCache,
   loadVariantImageCache,
   type VariantImageCache,
-} from "@/lib/zepto-import/variant-images-cache";
+} from "@/lib/zepto/variant-images-cache";
 
-export type { VariantImageCache } from "@/lib/zepto-import/variant-images-cache";
+export type { VariantImageCache } from "@/lib/zepto/variant-images-cache";
 export { loadVariantImageCache };
 
 const API = (

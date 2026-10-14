@@ -48,7 +48,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const { data, error } = await supabase
         .from("products")
         .select("slug, updated_at")
-        .eq("platform", "zepto")
         .eq("catalog_visible", true)
         .order("slug", { ascending: true })
         .range(page * PAGE, page * PAGE + PAGE - 1);

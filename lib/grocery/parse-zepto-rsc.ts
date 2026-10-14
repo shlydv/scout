@@ -87,7 +87,7 @@ function applySegment(canonical: Record<string, number>, trimmed: string): void 
   if (field) canonical[field] = parsed.value;
 }
 
-/** Parse Zepto RSC / CSV "nutrition information" one-liner. */
+/** Parse a Zepto RSC "nutrition information" one-liner. */
 export function parseZeptoRscNutritionLine(text: string): ProductNutrition | null {
   if (!text?.trim()) return null;
 

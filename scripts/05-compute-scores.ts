@@ -82,7 +82,7 @@ async function main() {
   if (args.labelResolved) {
     query = query.not("ocr_payload", "is", null);
     console.log(
-      "[05-compute-scores] --label-resolved: label ≠ CSV (compare different), client filter.",
+      "[05-compute-scores] --label-resolved: label ≠ listing (compare different), client filter.",
     );
   }
 

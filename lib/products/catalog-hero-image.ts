@@ -130,7 +130,7 @@ export function resolveLabelImageIndex(
 
 /**
  * Pick front-of-pack among frames that are not the OCR label.
- * When label sits in the middle, Zepto CSV order is often [misc, label, front].
+ * When label sits in the middle, listing order is often [misc, label, front].
  */
 export function pickHeroIndex(urls: string[], labelIdx: number | null): number {
   if (urls.length <= 1) return 0;
@@ -158,7 +158,7 @@ export function pickHeroIndex(urls: string[], labelIdx: number | null): number {
   const before = nonLabel.filter((i) => i < labelIdx);
   const after = nonLabel.filter((i) => i > labelIdx);
 
-  // Label in the middle: prefer the frame after the label (common CSV order).
+  // Label in the middle: prefer the frame after the label (common listing order).
   if (labelIdx > 0 && labelIdx < urls.length - 1 && after.length) {
     return after[0]!;
   }

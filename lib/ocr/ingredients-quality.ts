@@ -66,14 +66,14 @@ export function ingredientsFromRawOcr(rawText: string): string | null {
   return extractIngredientsLineFromRaw(rawText);
 }
 
-/** Pick LLM, regex-fallback, or CSV ingredients; null if none are trustworthy. */
+/** Pick LLM, regex-fallback, or listing ingredients; null if none are trustworthy. */
 export function resolveIngredientsText(opts: {
   structuredIngredients: string | null | undefined;
   rawText: string;
-  csvIngredients: string | null;
+  listingIngredients: string | null;
   productName?: string | null;
-}): { text: string | null; source: "llm" | "csv" | "ocr" | "missing" } {
-  const csv = opts.csvIngredients?.trim() || null;
+}): { text: string | null; source: "llm" | "listing" | "ocr" | "missing" } {
+  const listing = opts.listingIngredients?.trim() || null;
   const fromRaw = ingredientsFromRawOcr(opts.rawText);
 
   let llm =
@@ -93,8 +93,8 @@ export function resolveIngredientsText(opts: {
     return { text: fromRaw, source: "ocr" };
   }
 
-  if (csv && !isMarketingIngredientList(csv, opts.productName)) {
-    return { text: csv, source: "csv" };
+  if (listing && !isMarketingIngredientList(listing, opts.productName)) {
+    return { text: listing, source: "listing" };
   }
 
   return { text: null, source: "missing" };

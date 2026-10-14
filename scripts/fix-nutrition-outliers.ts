@@ -1,6 +1,6 @@
 #!/usr/bin/env -S pnpm tsx
 /**
- * Fix products with implausible nutrition (bad OCR, CSV decimal errors) by
+ * Fix products with implausible nutrition (bad OCR, decimal errors) by
  * reconciling with attribute blocks and auto-correcting decimal anomalies.
  */
 import { config as loadEnv } from "dotenv";
@@ -91,7 +91,7 @@ async function main() {
         });
       }
 
-      // Direct sanitize for Zepto CSV rows without attribute fallback.
+      // Direct sanitize for rows without an attribute fallback.
       if (!next || nutritionHasCriticalAnomalies(next, ctx)) {
         next = sanitizeNutrition(prev, ctx);
       }

@@ -25,7 +25,7 @@ export type CatalogFilterState = {
   usecase: string;
   brand: string;
   onlyScored: boolean;
-  /** Products where label read disagreed with Zepto CSV (nutrition or ingredients). */
+  /** Products where label read disagreed with the listing (nutrition or ingredients). */
   onlyLabelResolved: boolean;
   /** Products with a promoted DeepSeek label extraction. */
   onlyDeepseek: boolean;

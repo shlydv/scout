@@ -6,7 +6,6 @@ import {
   isReferenceProduceNutritionComplete,
 } from "@/lib/nutrition/completeness";
 import type { ProductNutrition } from "@/lib/supabase/types";
-import { isZeptoVariantId } from "@/lib/zepto-import/variant-id";
 
 export type CatalogEligibilityRow = {
   platform?: string | null;
@@ -19,15 +18,8 @@ export type CatalogEligibilityRow = {
   nutrition?: ProductNutrition | null;
 };
 
-/** Rows eligible for public catalog (CSV import with real variant UUID). */
-export function isCatalogSourceRow(p: {
-  platform?: string | null;
-  zepto_sku?: string | null;
-}): boolean {
-  return p.platform === "zepto" && isZeptoVariantId(p.zepto_sku);
-}
-
-/** Food SKUs with label-grade nutrition — excludes non-food and Zepto rows pending nutrition. */
+/** Food products with label-grade nutrition — excludes non-food and rows still pending nutrition.
+ *  Where a product came from never matters, so products added later are judged the same way. */
 export function isCatalogVisible(p: CatalogEligibilityRow): boolean {
   if (
     isBlockedTaxonomy({
@@ -40,7 +32,7 @@ export function isCatalogVisible(p: CatalogEligibilityRow): boolean {
     return false;
   }
 
-  // Zepto CSV aisle — show whole produce rows even before reference/OCR fill.
+  // Fruits & vegetables aisle — show whole produce even before reference/OCR fill.
   if (p.category?.trim() === FRUITS_VEGETABLES_AISLE) {
     if (isPackagedProduceLike(p.name, p.subcategory)) return false;
     return true;
@@ -59,5 +51,5 @@ export function isCatalogVisible(p: CatalogEligibilityRow): boolean {
 }
 
 export function computeCatalogVisible(p: CatalogEligibilityRow): boolean {
-  return isCatalogVisible(p) && isCatalogSourceRow(p);
+  return isCatalogVisible(p);
 }

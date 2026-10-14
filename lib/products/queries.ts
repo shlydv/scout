@@ -3,7 +3,6 @@ import { computeGoalFit, goalFitInputs } from "@/lib/goals/fit";
 import type { GoalId } from "@/lib/goals/types";
 import {
   computeCatalogVisible,
-  isCatalogSourceRow,
   isCatalogVisible,
 } from "@/lib/products/catalog-eligibility";
 import {
@@ -29,7 +28,6 @@ import type { CoreScore, Grade, Product, ProductNutrition, ScoreBand } from "@/l
 import { deepseekDisplayFromPayload } from "@/lib/ocr/deepseek-promote";
 import { normalizeProductImageUrls } from "@/lib/products/catalog-hero-image";
 
-export { isCatalogSourceRow } from "@/lib/products/catalog-eligibility";
 
 /** Server-side reads: service role when set, else anon (browser-safe) client. */
 function db() {
@@ -331,6 +329,14 @@ function toGridItem(row: ProductListItem): CatalogGridItem {
   };
 }
 
+/** Internal bookkeeping keys that never leave the server. */
+const PRIVATE_ATTRIBUTES = new Set(["Data Source"]);
+
+function publicAttributes(raw: unknown): Record<string, string> | null {
+  if (!raw || typeof raw !== "object") return null;
+  return Object.fromEntries(Object.entries(raw as Record<string, string>).filter(([k]) => !PRIVATE_ATTRIBUTES.has(k)));
+}
+
 function rowIsCatalogEligible(row: Record<string, unknown>): boolean {
   if (row.catalog_visible === true) return true;
   if (row.catalog_visible === false) return false;
@@ -374,7 +380,7 @@ function mapListRow(row: Record<string, unknown>): ProductListItem {
       (row.l3_category as string | null) ??
       ((row.attributes as Record<string, string> | null)?.["L3 Category"] ?? null),
     net_weight: (row.net_weight as string | null) ?? null,
-    attributes: (row.attributes as Record<string, string> | null) ?? null,
+    attributes: publicAttributes(row.attributes),
     price_inr: row.price_inr != null ? Number(row.price_inr) : null,
     mrp_inr: row.mrp_inr != null ? Number(row.mrp_inr) : null,
     image_urls: normalizeProductImageUrls((row.image_urls as string[]) ?? [], {
@@ -471,7 +477,6 @@ async function getCatalogFiltersFallback(category?: string): Promise<CatalogFilt
     let q = (supabase as any)
       .from("products")
       .select("category, subcategory, brand, attributes, l3_category")
-      .eq("platform", "zepto")
       .not("category", "is", null)
       .range(offset, offset + pageSize - 1);
 
@@ -520,12 +525,11 @@ async function countVisibleCatalogFallback(): Promise<CatalogStatsRpc> {
   const supabase = db();
 
   const [zeptoRes, scoredRes, visibleRes] = await Promise.all([
-    supabase.from("products").select("id", { count: "exact", head: true }).eq("platform", "zepto"),
+    supabase.from("products").select("id", { count: "exact", head: true }),
     supabase.from("core_scores").select("product_id", { count: "exact", head: true }),
     supabase
       .from("products")
       .select("id", { count: "exact", head: true })
-      .eq("platform", "zepto")
       .not("nutrition", "is", null)
       .not("ingredients_raw", "is", null),
   ]);
@@ -591,7 +595,7 @@ function applyCategoryFilter(q: any, state: CatalogFilterState, productsPrefix?:
   if (state.category === FRUITS_VEGETABLES_AISLE) {
     const col = productsPrefix ? `${productsPrefix}.category` : "category";
     const nut = productsPrefix ? `${productsPrefix}.nutrition` : "nutrition";
-    // CSV category_name + reference-seeded produce (legacy rows).
+    // Category name + reference-seeded produce (legacy rows).
     return q.or(
       `${col}.eq.${FRUITS_VEGETABLES_AISLE},${nut}->extra->>reference_id.not.is.null`,
     );
@@ -610,8 +614,7 @@ function buildCatalogDbQuery(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let q = (supabase as any)
     .from("products")
-    .select(`${fields}, core_scores (${LIST_SCORE_FIELDS})`)
-    .eq("platform", "zepto");
+    .select(`${fields}, core_scores (${LIST_SCORE_FIELDS})`);
   if (sqlVisible) q = q.eq("catalog_visible", true);
 
   if (state.onlyLabelResolved) q = applyLabelResolvedDbFilter(q);
@@ -732,7 +735,6 @@ function buildScoreSortedCatalogQuery(
   let q = (supabase as any)
     .from("core_scores")
     .select(`score, absolute_score, category_rank, category_size, category_label, grade, band, verdict, verdict_sublabels, relative_score, cohort_size, products!inner(${GRID_LIST_FIELDS}, catalog_visible)`)
-    .eq("products.platform", "zepto")
     .eq("products.catalog_visible", true);
   q = applyScoreCatalogFilters(q, state);
   return q.order("absolute_score", { ascending, nullsFirst: false });
@@ -746,7 +748,6 @@ async function countScoreSortedCatalogMatches(
   let q = (supabase as any)
     .from("core_scores")
     .select("score, products!inner(id)", { count: "exact", head: true })
-    .eq("products.platform", "zepto")
     .eq("products.catalog_visible", true);
   q = applyScoreCatalogFilters(q, state);
   const { count, error } = await q;
@@ -806,8 +807,7 @@ async function countCatalogMatches(
     .select(scoreJoin ? "id, core_scores!inner(score)" : "id", {
       count: "exact",
       head: true,
-    })
-    .eq("platform", "zepto");
+    });
   if (sqlVisible) q = q.eq("catalog_visible", true);
 
   if (state.onlyLabelResolved) q = applyLabelResolvedDbFilter(q);
@@ -1120,8 +1120,7 @@ export async function getScoredCatalogStats(): Promise<ScoredCatalogStats> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let q = (supabase as any)
     .from("products")
-    .select("id, core_scores!inner(product_id)", { count: "exact", head: true })
-    .eq("platform", "zepto");
+    .select("id, core_scores!inner(product_id)", { count: "exact", head: true });
   if (sqlVisible) q = q.eq("catalog_visible", true);
 
   const { count, error } = await q;
@@ -1142,8 +1141,7 @@ async function countVerdict(verdict: string, sqlVisible: boolean): Promise<numbe
   let q = (supabase as any)
     .from("core_scores")
     .select("product_id, products!inner(id)", { count: "exact", head: true })
-    .eq("verdict", verdict)
-    .eq("products.platform", "zepto");
+    .eq("verdict", verdict);
   if (sqlVisible) q = q.eq("products.catalog_visible", true);
   const { count, error } = await q;
   if (error) throw new Error(error.message);
@@ -1182,7 +1180,6 @@ export async function getScoredProductsForInsights(): Promise<ProductListItem[]>
     let q = (supabase as any)
       .from("products")
       .select(`${INSIGHTS_LIST_FIELDS}, core_scores (${LIST_SCORE_FIELDS})`)
-      .eq("platform", "zepto")
       .not("core_scores", "is", null)
       .order("slug", { ascending: true })
       .range(start, Math.min(start + INSIGHTS_PAGE_SIZE, INSIGHTS_CATALOG_SAMPLE_LIMIT) - 1);
@@ -1213,7 +1210,6 @@ export async function searchProducts(opts: {
   brand?: string;
   limit?: number;
   onlyScored?: boolean;
-  onlyWithDetail?: boolean;
 }): Promise<ProductListItem[]> {
   const supabase = db();
   const limit = opts.limit ?? 120;
@@ -1223,10 +1219,6 @@ export async function searchProducts(opts: {
     .select(`${LIST_FIELDS}, core_scores (${LIST_SCORE_FIELDS})`)
     .order("name", { ascending: true })
     .limit(limit);
-
-  if (opts.onlyWithDetail) {
-    query = query.eq("platform", "zepto");
-  }
 
   if (opts.q?.trim()) {
     query = query.ilike("name", `%${opts.q.trim()}%`);
@@ -1242,17 +1234,7 @@ export async function searchProducts(opts: {
   const { data, error } = await query;
   if (error) throw new Error(error.message);
   const items = (data ?? [])
-    .filter((row) => {
-      const r = row as Record<string, unknown>;
-      const mapped = mapListRow(r);
-      return (
-        isCatalogVisible(mapped) &&
-        isCatalogSourceRow({
-          platform: r.platform as string,
-          zepto_sku: r.zepto_sku as string | null,
-        })
-      );
-    })
+    .filter((row) => isCatalogVisible(mapListRow(row as Record<string, unknown>)))
     .map((row) => mapListRow(row as Record<string, unknown>));
   items.sort((a, b) => (b.core_scores?.score ?? -1) - (a.core_scores?.score ?? -1));
   return items;
@@ -1260,7 +1242,6 @@ export async function searchProducts(opts: {
 
 /** Full catalog for client-side instant filtering (search page). */
 export async function getAllCatalogProducts(opts?: {
-  onlyWithDetail?: boolean;
   onlyScored?: boolean;
   /** Stop after this many rows (faster AI search pool warm). */
   maxRows?: number;
@@ -1278,9 +1259,6 @@ export async function getAllCatalogProducts(opts?: {
       .order("name", { ascending: true })
       .range(offset, offset + pageSize - 1);
 
-    if (opts?.onlyWithDetail ?? true) {
-      query = query.eq("platform", "zepto");
-    }
     // Apply catalog_visible in SQL — reduces rows fetched from 24K to 9.9K
     if (hasVisible) {
       query = query.eq("catalog_visible", true);
@@ -1293,17 +1271,7 @@ export async function getAllCatalogProducts(opts?: {
     if (error) throw new Error(error.message);
     const rows = data ?? [];
     const batch = rows
-      .filter((row) => {
-        const r = row as Record<string, unknown>;
-        const mapped = mapListRow(r);
-        return (
-          isCatalogVisible(mapped) &&
-          isCatalogSourceRow({
-            platform: r.platform as string,
-            zepto_sku: r.zepto_sku as string | null,
-          })
-        );
-      })
+      .filter((row) => isCatalogVisible(mapListRow(row as Record<string, unknown>)))
       .map((row) => mapListRow(row as Record<string, unknown>));
     all.push(...batch);
     if (rows.length < pageSize) break;
@@ -1330,7 +1298,6 @@ export async function getAiSearchProductPool(): Promise<ProductListItem[]> {
   // Include ALL catalog-visible products, not just scored ones.
   // Many commodity products (milk, dal, rice) are never scored but are perfectly valid results.
   const data = await getAllCatalogProducts({
-    onlyWithDetail: true,
     onlyScored: false,
     maxRows: AI_SEARCH_POOL_LIMIT,
   });
@@ -1351,7 +1318,6 @@ export async function getProductsForSwaps(
   let query = supabase
     .from("products")
     .select(`${LIST_FIELDS}, core_scores (${LIST_SCORE_FIELDS})`)
-    .eq("platform", "zepto")
     .not("core_scores", "is", null)
     .neq("id", current.id)
     .limit(limit);
@@ -1438,12 +1404,11 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
     barcode: (row.barcode as string | null) ?? null,
     ingredients_raw: (row.ingredients_raw as string | null) ?? null,
     nutrition: (row.nutrition as ProductNutrition | null) ?? null,
-    attributes: (row.attributes as Record<string, string> | null) ?? null,
+    attributes: publicAttributes(row.attributes),
     raw_payload: (row.raw_payload as Record<string, unknown> | null) ?? null,
     scraped_at: row.scraped_at as string,
     updated_at: row.updated_at as string,
     platform: (row.platform as string | null) ?? null,
-    data_source: row.platform === "zepto" ? "csv" : "scrape",
     ocr_status: (row.ocr_status as string | null) ?? null,
     ocr_payload: (row.ocr_payload as Record<string, unknown> | null) ?? null,
     ocr_image_url: (row.ocr_image_url as string | null) ?? null,
@@ -1453,7 +1418,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
 
 /** Real product for homepage hero — prefer a scored snack with nutrition. */
 export async function getFeaturedSample(): Promise<ProductListItem | null> {
-  const items = await searchProducts({ onlyScored: true, onlyWithDetail: true, limit: 80 });
+  const items = await searchProducts({ onlyScored: true, limit: 80 });
   const pick =
     items.find(
       (p) =>
@@ -1542,7 +1507,6 @@ export async function getHomeShelves(): Promise<HomeShelves> {
     let q = (supabase as any)
       .from("products")
       .select(select)
-      .eq("platform", "zepto")
       .eq("catalog_visible", true)
       .not("image_urls", "is", null);
     if (verdict) q = q.eq("core_scores.verdict", verdict);
@@ -1568,12 +1532,10 @@ export async function getHomeShelves(): Promise<HomeShelves> {
       supabase
         .from("products")
         .select("id", { count: "exact", head: true })
-        .eq("platform", "zepto")
         .eq("catalog_visible", true),
       supabase
         .from("products")
         .select("id, core_scores!inner(product_id)", { count: "exact", head: true })
-        .eq("platform", "zepto")
         .eq("catalog_visible", true),
     ]),
   ]);
@@ -1660,8 +1622,7 @@ export async function countCatalog(): Promise<{
     supabase.from("products").select("id", { count: "exact", head: true }),
     supabase
       .from("products")
-      .select("id", { count: "exact", head: true })
-      .eq("platform", "zepto"),
+      .select("id", { count: "exact", head: true }),
     supabase.from("core_scores").select("product_id", { count: "exact", head: true }),
   ]);
 

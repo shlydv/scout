@@ -405,7 +405,7 @@ function swapProteinCarbs(n: ProductNutrition): ProductNutrition {
   return next;
 }
 
-/** Energy column too low while macros look like per-100g (common CSV / pack-scale bug). */
+/** Energy column too low while macros look like per-100g (common pack-scale bug). */
 function tryFixLowEnergy(
   nutrition: ProductNutrition,
   ctx: NutritionContext,

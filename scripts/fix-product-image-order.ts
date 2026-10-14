@@ -13,8 +13,8 @@ import {
   needsHeroReorder,
   normalizeProductImageUrls,
 } from "@/lib/products/catalog-hero-image";
-import { fetchVariantImagesFromBff, loadVariantImageCache } from "@/lib/zepto-import/fetch-variant-images";
-import { isZeptoVariantId } from "@/lib/zepto-import/variant-id";
+import { fetchVariantImagesFromBff, loadVariantImageCache } from "@/lib/zepto/fetch-variant-images";
+import { isZeptoVariantId } from "@/lib/zepto/variant-id";
 import { makePlaywrightFetch, closePlaywrightFetch } from "@/lib/grocery/http-playwright";
 
 loadEnv({ path: ".env.local" });
