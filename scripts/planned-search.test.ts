@@ -140,6 +140,6 @@ test("a pack claim counts only when the label backs it", () => {
 
 test("health-minded queries weigh the health score", () => {
   assert.equal(healthWeight(plan()), 0.03);
-  assert.equal(healthWeight(plan({ judge: ["not junk food"] })), 0.12);
-  assert.equal(healthWeight(plan({ intent: "goal" })), 0.15);
+  assert.equal(healthWeight(plan({ judge: ["not junk food"] })), 0.4);
+  assert.equal(healthWeight(plan({ intent: "goal" })), 0.4);
 });

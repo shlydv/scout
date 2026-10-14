@@ -316,10 +316,11 @@ export function claimStatus(it: PlannedItem, claim: string): ClaimStatus {
 }
 
 /** Weight of the health score in relevance ranking. */
+// Similarity between candidates of the right type spans only ~0.05, so at 0.4 a
+// 10-point score gap outweighs most relevance noise without overriding product type.
 export function healthWeight(plan: SearchPlan): number {
-  if (plan.intent === "goal") return 0.15;
-  // "chips that aren't junk", "healthy noodles": the shopper is asking about healthiness.
-  if (plan.judge.length || plan.claims_preferred.length) return 0.12;
+  // Goals and "chips that aren't junk" / "healthy noodles": the shopper is asking about healthiness.
+  if (plan.intent === "goal" || plan.judge.length || plan.claims_preferred.length) return 0.4;
   return 0.03;
 }
 
@@ -333,7 +334,7 @@ function rank(items: PlannedItem[], plan: SearchPlan): PlannedItem[] {
     for (const c of it.claims) {
       if (!pref.has(c)) continue;
       const status = claimStatus(it, c);
-      s += status === "holds" ? 0.04 : status === "unverifiable" ? 0.015 : -0.05;
+      s += status === "holds" ? 0.02 : status === "unverifiable" ? 0.005 : -0.05;
     }
     if (it.conflicts.length) s -= 0.05;
     if (it.scout_score != null) s += (it.scout_score / 100) * weight;
