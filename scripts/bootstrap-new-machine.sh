@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 export PATH="${HOME}/.local/node/bin:${HOME}/.local/bin:${PATH}"
 
 if [[ ! -f .env.local ]]; then
-  cp .env.local.example .env.local
+  cp .env.example .env.local
   echo "Created .env.local from example — fill Supabase keys before continuing."
   exit 1
 fi
