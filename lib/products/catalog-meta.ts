@@ -4,12 +4,12 @@ import type { ProductListItem } from "@/lib/products/queries";
 
 export const FRUITS_VEGETABLES_AISLE = "Fruits & Vegetables";
 
-/** L1 aisle from CSV category_name. */
+/** L1 aisle (category). */
 export function productAisle(p: Pick<ProductListItem, "category" | "super_category">): string | null {
   return p.category ?? p.super_category ?? null;
 }
 
-/** L2 type from CSV subcategory_name. */
+/** L2 type (subcategory). */
 export function productShelf(
   p: Pick<ProductListItem, "subcategory" | "attributes">,
 ): string | null {
@@ -17,7 +17,7 @@ export function productShelf(
   return null;
 }
 
-/** L3 use-case from CSV l3_category_name (stored in attributes when column absent). */
+/** L3 use-case (stored in attributes when column absent). */
 export function productUsecase(
   p: Pick<ProductListItem, "l3_category" | "attributes">,
 ): string | null {
@@ -59,7 +59,7 @@ export function productMatchesAisle(
 ): boolean {
   if (!aisle) return true;
   if (aisle === FRUITS_VEGETABLES_AISLE) {
-    // Primary: Zepto CSV category_name is already "Fruits & Vegetables".
+    // Primary: the category is already "Fruits & Vegetables".
     if (isFruitsVegetablesAisle(p)) return true;
     return (
       hasReferenceNutrition(p.nutrition ?? null) ||

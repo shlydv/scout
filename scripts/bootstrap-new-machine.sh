@@ -34,17 +34,7 @@ pnpm db:migrate
 echo "→ Supabase connectivity…"
 pnpm diag:supabase
 
-if [[ -n "${ZEPTO_CSV_PATH:-}" && -f "${ZEPTO_CSV_PATH}" ]]; then
-  read -r -p "Import catalog from ${ZEPTO_CSV_PATH}? [y/N] " ans
-  if [[ "${ans,,}" == "y" ]]; then
-    pnpm catalog:sync
-    pnpm catalog:backfill-visible
-    pnpm seed:produce
-    pnpm score
-  fi
-else
-  echo "Set ZEPTO_CSV_PATH in .env.local to import catalog, or restore a pg_dump."
-fi
+# The catalog lives in Supabase; a fresh machine just points at it.
 
 echo "→ Production build check…"
 pnpm build

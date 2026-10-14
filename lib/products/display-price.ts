@@ -1,4 +1,4 @@
-/** Selling price for UI; falls back to MRP when CSV has no separate price column. */
+/** Selling price for UI; falls back to MRP when there is no separate selling price. */
 export function displayPriceInr(product: {
   price_inr: number | null;
   mrp_inr?: number | null;

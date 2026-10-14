@@ -1,6 +1,6 @@
 import { Agent, fetch as undiciFetch } from "undici";
 import type { AppleRawOcrProduct } from "@/lib/ocr/apple-raw";
-import type { ZeptoCsvRow } from "@/lib/zepto-import/csv-row";
+import type { CatalogRow } from "@/lib/products/catalog-row";
 
 const DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1";
 const DEFAULT_DEEPSEEK_MODEL = "deepseek-v4-flash";
@@ -527,7 +527,7 @@ function normalizeNutrition(value: unknown): ExtractedLabel["nutrition"]["per_10
 
 export function normalizeExtracted(
   raw: Record<string, unknown>,
-  product: ZeptoCsvRow,
+  product: CatalogRow,
   evidenceById: Map<string, OcrEvidenceBlock> = new Map(),
 ): ExtractedLabel {
   const p = raw.product && typeof raw.product === "object" ? raw.product as Record<string, unknown> : {};
@@ -686,7 +686,7 @@ export function validateExtractedLabel(extracted: ExtractedLabel): ValidationRes
 }
 
 export function buildDeepseekUserPrompt(params: {
-  product: ZeptoCsvRow;
+  product: CatalogRow;
   raw: AppleRawOcrProduct;
   maxChars?: number;
 }): string {
@@ -744,7 +744,7 @@ function evidenceBlocks(raw: AppleRawOcrProduct): OcrEvidenceBlock[] {
 }
 
 export function buildDeepseekPromptContext(params: {
-  product: ZeptoCsvRow;
+  product: CatalogRow;
   raw: AppleRawOcrProduct;
   maxChars?: number;
   evidencePrefix?: string;
@@ -842,7 +842,7 @@ async function callDeepseek(
 }
 
 export async function extractLabelWithDeepseek(params: {
-  product: ZeptoCsvRow;
+  product: CatalogRow;
   raw: AppleRawOcrProduct;
   opts?: DeepseekExtractOptions;
   maxInputChars?: number;

@@ -18,7 +18,7 @@ Live: [oasis-phi-one.vercel.app](https://oasis-phi-one.vercel.app)
 
 ## How it works
 
-1. **Catalog**: products, images, ingredients and nutrition are imported from a CSV export (`pnpm catalog:sync`). Missing labels are filled by OCR of pack images (Apple Vision locally, then DeepSeek structuring).
+1. **Catalog**: products, images, ingredients and nutrition live in the Supabase `products` table, the only source of truth. Missing labels are filled by OCR of pack images (Apple Vision locally, then DeepSeek structuring). Products are never deleted (the database refuses); hide one with `catalog_visible = false`.
 2. **Scores**: `lib/scoring` (v9) blends an absolute score (nutrition, ingredients and additives, label claims) with a score relative to the product's cohort, and assigns a verdict: daily staple, good choice, occasional treat or skip. Cards and pages show the absolute score.
 3. **Facts**: `lib/facts` maps each ingredient to plain concepts (added sugar, palm oil, maida, onion/garlic…) as present, may-contain or unknown, keeping the source line as evidence. Audits flag implausible nutrition, incomplete ingredient lists, and pack claims the label contradicts.
 4. **Search**: plan → SQL → verify. Embeddings come from Voyage (voyage-3.5). Plans are cached per query.
@@ -52,10 +52,9 @@ CI (`.github/workflows/checks.yml`) runs the typechecks, search tests and the fr
 
 ## Refreshing data
 
-Run these in order after new catalog data arrives:
+Run these in order after products are added or updated in the database:
 
 ```bash
-pnpm catalog:sync                          # import the CSV (removes products missing from it — use a full export)
 pnpm label:deepseek && pnpm label:deepseek:promote   # structure OCR'd labels
 pnpm score && pnpm score:sync && pnpm score:rank     # scores, verdicts, aisle ranks
 pnpm search:build-index -- --skip-unchanged          # search index + embeddings
@@ -76,7 +75,7 @@ lib/
   products/       catalog queries and caches
   insights/ brands/ shelves.ts   data behind those pages
   ocr/ lm/        label OCR and structuring
-supabase/migrations/   SQL migrations (0001–0048)
+supabase/migrations/   SQL migrations (0001–0049)
 scripts/          pipeline and maintenance scripts (see package.json)
 eval/             search eval cases
 ocr-pipeline/     Apple Vision OCR helper (Python, macOS)

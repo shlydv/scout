@@ -23,7 +23,7 @@ Changing a `NEXT_PUBLIC_*` value needs a redeploy; data changes don't.
 
 ## Database
 
-Apply migrations in order with `pnpm db:apply supabase/migrations/<file>.sql` (currently through `0048`). The free tier caps the database at 500 MB, and Scout uses about 440 MB, so check size before adding large columns or indexes.
+Apply migrations in order with `pnpm db:apply supabase/migrations/<file>.sql` (currently through `0049`). The free tier caps the database at 500 MB, and Scout uses about 440 MB, so check size before adding large columns or indexes.
 
 ## Cron
 

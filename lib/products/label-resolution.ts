@@ -16,7 +16,7 @@ export function labelResolutionFromPayload(
   return lr as LabelResolutionMeta;
 }
 
-/** True when LM pipeline tagged a field (includes filling previously missing CSV). */
+/** True when LM pipeline tagged a field (includes filling previously missing fields). */
 export function productHasLabelLmUpdate(
   ocr_payload: Record<string, unknown> | null | undefined,
 ): boolean {
@@ -25,7 +25,7 @@ export function productHasLabelLmUpdate(
   return lr.nutrition_source === "llm" || lr.ingredients_source === "llm";
 }
 
-/** True when label read materially disagreed with Zepto CSV (what users expect as “changed”). */
+/** True when label read materially disagreed with the listing (what users expect as “changed”). */
 export function productHasLabelValueChange(
   ocr_payload: Record<string, unknown> | null | undefined,
 ): boolean {

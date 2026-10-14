@@ -1,5 +1,5 @@
 import type { ProductNutrition } from "@/lib/supabase/types";
-import { normalizeFormattedPacksize } from "@/lib/zepto-import/parse-formatted-packsize";
+import { normalizeFormattedPacksize } from "@/lib/zepto/parse-formatted-packsize";
 
 /** Parse pack size from net_weight (e.g. "50 g", "2 x 50 g", "1 kg", "1 L") → grams. */
 export function parsePackGrams(netWeight: string | null | undefined): number | null {

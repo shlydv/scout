@@ -10,10 +10,10 @@ export type ScoreBand = "bad" | "poor" | "good" | "excellent";
 
 export interface Product {
   id: string;
-  /** Legacy scrape id; CSV imports use product_key instead. */
+  /** Retailer variant id; rows without one use product_key. */
   zepto_sku: string | null;
   product_key?: string | null;
-  data_source?: "scrape" | "csv" | string | null;
+  data_source?: string | null;
   slug: string;
   name: string;
   brand: string | null;

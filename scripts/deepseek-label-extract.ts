@@ -12,11 +12,9 @@
  *   pnpm label:deepseek -- --limit=100 --max-input-chars=90000
  */
 import { createReadStream, createWriteStream } from "node:fs";
-import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
-import { homedir } from "node:os";
 import { basename, resolve } from "node:path";
 import { config as loadEnv } from "dotenv";
 import {
@@ -33,8 +31,7 @@ import {
   loadAppleRawOcrFromDb,
   safeSkuFileName,
 } from "@/lib/ocr/load-apple-raw-ocr";
-import { csvRecordToRow, dedupeCsvRows, resolveCsvColumns, type ZeptoCsvRow } from "@/lib/zepto-import/csv-row";
-import { readCsvFile } from "@/lib/zepto-import/read-csv";
+import { loadCatalogRows, type CatalogRow } from "@/lib/products/catalog-row";
 import { scriptArgv } from "@/lib/util/script-argv";
 
 loadEnv({ path: ".env.local" });
@@ -61,7 +58,7 @@ type Args = {
 };
 
 type WorkItem = {
-  row: ZeptoCsvRow;
+  row: CatalogRow;
   rawPath: string;
   raw: AppleRawOcrProduct;
   rawSource: "local" | "db";
@@ -119,16 +116,6 @@ function parseArgs(): Args {
   };
 }
 
-function expandPath(path: string): string {
-  return path.startsWith("~/") ? resolve(homedir(), path.slice(2)) : resolve(path);
-}
-
-function csvInputPath(): string {
-  const configured = process.env.ZEPTO_CSV_PATH ? expandPath(process.env.ZEPTO_CSV_PATH) : null;
-  if (configured && existsSync(configured)) return configured;
-  return resolve(homedir(), "Downloads", "data.csv");
-}
-
 async function loadDoneSkus(): Promise<Set<string>> {
   const done = new Set<string>();
   try {
@@ -149,14 +136,6 @@ async function loadDoneSkus(): Promise<Set<string>> {
     // first run
   }
   return done;
-}
-
-async function loadCatalogRows(): Promise<ZeptoCsvRow[]> {
-  const { headers, rows } = await readCsvFile(csvInputPath());
-  const cols = resolveCsvColumns(headers);
-  return dedupeCsvRows(
-    rows.map((row) => csvRecordToRow(row, cols)).filter((row): row is ZeptoCsvRow => row != null),
-  );
 }
 
 function validationScore(item: WorkItem): number {

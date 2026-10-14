@@ -381,7 +381,7 @@ export function matchReferenceFood(
   }
 
   // HARD GUARD: only match raw-food categories. Packaged/branded products must
-  // get nutrition from OCR/OpenFoodFacts/CSV, never from raw reference data.
+  // get nutrition from labels, OCR or Open Food Facts, never from raw reference data.
   if (!isAllowedForReferenceFill(opts?.category, opts?.subcategory)) return null;
 
   const minConfidence = opts?.minConfidence ?? 0.55;
