@@ -6,6 +6,7 @@ import { useState } from "react";
 import { AddToBasketButton } from "@/components/add-to-basket-button";
 import { CompareButton } from "@/components/compare-button";
 import { LineTag } from "@/components/line-tag";
+import { brandSlug } from "@/lib/brands/slug";
 import { catalogTierStyle } from "@/lib/scoring/verdict-display";
 import type { VerdictId } from "@/lib/scoring/verdict";
 import { rankShort } from "@/lib/utils";
@@ -27,7 +28,7 @@ function priceLabel(card: Pick<SearchCard, "price_inr">) {
  * lines saying why it's here and what to watch. `position` turns it into a
  * leaderboard entry (shelves).
  */
-export function SearchResultCard({ card, query, muted = false, position }: { card: SearchCard; query: string; muted?: boolean; position?: number }) {
+export function SearchResultCard({ card, query, muted = false, position, hideBrand = false }: { card: SearchCard; query: string; muted?: boolean; position?: number; hideBrand?: boolean }) {
   const [sizesOpen, setSizesOpen] = useState(false);
   const href = query ? `/product/${card.slug}?q=${encodeURIComponent(query)}` : `/product/${card.slug}`;
   const tier = card.score != null ? catalogTierStyle(card.score, card.verdict).fill : "var(--color-fg-dim)";
@@ -46,7 +47,7 @@ export function SearchResultCard({ card, query, muted = false, position }: { car
           {card.image && <Image src={card.image} alt="" fill sizes="48px" className="object-contain p-1" />}
         </Link>
         <div className="min-w-0 flex-1">
-          {card.brand && <p className="truncate text-[9.5px] uppercase tracking-wide text-(--color-fg-dim)">{card.brand}</p>}
+          {card.brand && !hideBrand && <Link href={`/brands/${brandSlug(card.brand)}`} className="block truncate text-[9.5px] uppercase tracking-wide text-(--color-fg-dim) hover:text-(--color-fg)">{card.brand}</Link>}
           <Link href={href} className="line-clamp-2 text-[13px] font-medium leading-snug text-(--color-fg) group-hover:text-(--color-accent)">
             {card.name}
           </Link>

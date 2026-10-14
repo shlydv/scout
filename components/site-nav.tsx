@@ -41,6 +41,7 @@ const LINKS = [
   { href: "/search", label: "Search" },
   { href: "/shelves", label: "Shelves" },
   { href: "/catalog", label: "Aisles" },
+  { href: "/brands", label: "Brands" },
   { href: "/insights", label: "Insights" },
 ];
 

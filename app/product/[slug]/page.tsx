@@ -28,8 +28,6 @@ import { CatalogBackLink } from "@/components/catalog-back-link";
 import { variantInfo } from "@/lib/products/variants";
 import { VERDICT_LABELS } from "@/lib/scoring/verdict";
 import { Reveal } from "@/components/reveal";
-import { PdpSourceDataPanel } from "@/components/pdp-source-data-panel";
-import { buildProductProvenance } from "@/lib/products/data-provenance";
 import { reconcileDisplayIngredients } from "@/lib/ocr/deepseek-ingredients";
 import {
   deepseekDisplayFromPayload,
@@ -43,6 +41,7 @@ import { displayPriceInr, showMrpStrike } from "@/lib/products/display-price";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { SubScores } from "@/lib/supabase/types";
+import { brandSlug } from "@/lib/brands/slug";
 
 export const revalidate = 300;
 export const maxDuration = 30;
@@ -75,17 +74,6 @@ export async function generateMetadata({
     twitter: { card: "summary_large_image", title, description },
   };
 }
-
-const DETAIL_SKIP = new Set([
-  "Description",
-  "Key Features",
-  "Disclaimer",
-  "Return Policy",
-  "Customer Care Details",
-  "Seller",
-  "Seller FSSAI",
-  "FSSAI License",
-]);
 
 export default async function ProductPage({
   params,
@@ -170,16 +158,6 @@ export default async function ProductPage({
 
   const score = product.core_scores;
   const subscores = score?.subscores as SubScores | undefined;
-  const attrs = product.attributes ?? {};
-  const attrEntries = Object.entries(attrs).filter(([k]) => !DETAIL_SKIP.has(k));
-  const provenance = buildProductProvenance({
-    nutrition: displayNutrition ?? product.nutrition,
-    ingredients_raw: displayIngredients,
-    platform: product.platform,
-    data_source: product.data_source,
-    ocr_status: product.ocr_status,
-    ocr_payload: product.ocr_payload,
-  });
   const deepseekLabel = deepseekLabelFromPayload(product.ocr_payload);
   const deepseekDisplay = deepseekDisplayFromPayload(product.ocr_payload);
   const verdict = score
@@ -256,9 +234,9 @@ export default async function ProductPage({
           {/* Right: the full Scout analysis stack — verdict, macros, goals */}
           <div className="min-w-0">
             {product.brand ? (
-              <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-(--color-fg-dim)">
-                {product.brand}
-              </p>
+              <Link href={`/brands/${brandSlug(product.brand)}`} className="text-[11px] font-medium uppercase tracking-[0.2em] text-(--color-fg-dim) hover:text-(--color-fg)">
+                {product.brand} <span aria-hidden>→</span>
+              </Link>
             ) : null}
             <h1 className="font-display mt-2 text-balance text-3xl leading-[1.05] md:text-[2.5rem]">
               {product.name}
@@ -426,51 +404,6 @@ export default async function ProductPage({
           </Reveal>
         ) : null}
 
-        {attrEntries.length > 0 || provenance || score?.cohort_size ? (
-          <details className="mt-16 border-t border-(--color-line) pt-8 group">
-            <summary className="cursor-pointer text-[11px] font-medium uppercase tracking-[0.2em] text-(--color-fg-dim) hover:text-(--color-fg)">
-              Product details
-            </summary>
-            <div className="mt-6 space-y-10">
-              {provenance || score?.cohort_size ? (
-                <section>
-                  <h3 className="text-sm font-semibold text-(--color-fg)">Source data</h3>
-                  <p className="mt-1 text-[12px] text-(--color-fg-muted)">
-                    Where nutrition, ingredients, and scoring inputs came from.
-                  </p>
-                  <div className="mt-4">
-                    <PdpSourceDataPanel
-                      provenance={provenance}
-                      cohortSize={score?.cohort_size}
-                      relativeScore={score?.relative_score}
-                      roleCohort={score?.role_cohort ?? null}
-                      deepseek={deepseekLabel}
-                    />
-                  </div>
-                </section>
-              ) : null}
-
-              {attrEntries.length > 0 ? (
-                <section>
-                  <h3 className="text-sm font-semibold text-(--color-fg)">Pack details</h3>
-                  <dl className="mt-4 grid gap-2 sm:grid-cols-2">
-                    {attrEntries.map(([key, value]) => (
-                      <div
-                        key={key}
-                        className="rounded-xl bg-(--color-bg-soft) px-4 py-3 ring-1 ring-(--color-line)"
-                      >
-                        <dt className="text-[10px] uppercase tracking-wider text-(--color-fg-dim)">
-                          {key}
-                        </dt>
-                        <dd className="mt-1 text-sm text-(--color-fg)">{value}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                </section>
-              ) : null}
-            </div>
-          </details>
-        ) : null}
       </div>
 
       <SiteFooter />
