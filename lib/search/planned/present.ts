@@ -100,14 +100,20 @@ export function relaxNote(key: string, plan: SearchPlan): string {
   return "Some limits were loosened";
 }
 
+/** Grams as a shopper reads them: 57.79 → 58, 4.73 → 4.7, 0.42 → 0.4. */
+const g = (raw: number | string) => {
+  const v = Number(raw);
+  return v >= 10 ? Math.round(v) : Math.round(v * 10) / 10;
+};
+
 const SORT_REASON: Partial<Record<NumericField, (it: PlannedSearchItem) => string | null>> = {
   price_per_100: it => (it.price_per_100 != null ? `₹${it.price_per_100.toFixed(1)}/100g` : null),
-  protein_g: it => (it.nutrition?.protein_g_100g != null ? `${it.nutrition.protein_g_100g}g protein/100g` : null),
-  protein_per_100kcal: it => (it.nutrition?.protein_g_100g != null ? `${it.nutrition.protein_g_100g}g protein/100g` : null),
-  sugar_g: it => (it.nutrition?.sugar_g_100g != null ? `${it.nutrition.sugar_g_100g}g sugar/100g` : null),
-  energy_kcal: it => (it.nutrition?.energy_kcal_100g != null ? `${it.nutrition.energy_kcal_100g} kcal/100g` : null),
-  fiber_g: it => (it.nutrition?.fiber_g_100g != null ? `${it.nutrition.fiber_g_100g}g fibre/100g` : null),
-  sodium_mg: it => (it.nutrition?.sodium_mg_100g != null ? `${it.nutrition.sodium_mg_100g}mg sodium/100g` : null),
+  protein_g: it => (it.nutrition?.protein_g_100g != null ? `${g(it.nutrition.protein_g_100g)}g protein/100g` : null),
+  protein_per_100kcal: it => (it.nutrition?.protein_g_100g != null ? `${g(it.nutrition.protein_g_100g)}g protein/100g` : null),
+  sugar_g: it => (it.nutrition?.sugar_g_100g != null ? `${g(it.nutrition.sugar_g_100g)}g sugar/100g` : null),
+  energy_kcal: it => (it.nutrition?.energy_kcal_100g != null ? `${Math.round(Number(it.nutrition.energy_kcal_100g))} kcal/100g` : null),
+  fiber_g: it => (it.nutrition?.fiber_g_100g != null ? `${g(it.nutrition.fiber_g_100g)}g fibre/100g` : null),
+  sodium_mg: it => (it.nutrition?.sodium_mg_100g != null ? `${Math.round(Number(it.nutrition.sodium_mg_100g))}mg sodium/100g` : null),
 };
 
 const CLAIM_CHIP: Partial<Record<ClaimId, string>> = {

@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, ChevronDown, Info, Search, X } from "lucide-react";
+import { ChevronDown, Info, X } from "lucide-react";
+import { SearchCats } from "@/components/search-cats";
 import { SearchResultCard } from "@/components/search/search-result-card";
 import { SavedSearchActions } from "@/components/saved-search-actions";
 import { useAuth } from "@/lib/auth/context";
 import { hasSavedPreferences, readAiSearchPreferences, type AiSearchPreferences } from "@/lib/search/preferences";
 import { readRecentSearches, recordRecentSearch } from "@/lib/search/recent-searches";
 import type { SearchCard, SearchResponse } from "@/lib/search/planned/present";
-import { SHELVES } from "@/lib/shelves";
 
 const EXAMPLES = [
   "gluten free biscuits under ₹100",
@@ -38,77 +38,48 @@ function sortCards(cards: SearchCard[], sort: SortId): SearchCard[] {
   return [...cards].sort((a, b) => val(a) - val(b));
 }
 
+const LOADING_STEPS = ["Reading your request…", "Matching products…", "Checking labels against your ask…", "Ranking the shortlist…"];
+
+/** Staged progress line plus one of the Lottie cats, so the wait reads as work happening. */
 function LoadingState({ query }: { query: string }) {
-  const steps = ["Understanding your request", "Searching every product", "Checking labels against what you asked"];
   const [step, setStep] = useState(0);
   useEffect(() => {
     setStep(0);
-    const t1 = setTimeout(() => setStep(1), 1200);
-    const t2 = setTimeout(() => setStep(2), 2600);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    const t = setInterval(() => setStep(s => Math.min(s + 1, LOADING_STEPS.length - 1)), 1400);
+    return () => clearInterval(t);
   }, [query]);
   return (
-    <div aria-live="polite">
-      <p className="mb-5 flex items-center gap-2 text-sm text-(--color-fg-muted)">
-        <span className="h-2 w-2 animate-pulse rounded-full bg-(--color-accent)" />
-        {steps[step]}…
+    <div className="flex min-h-[52vh] flex-col items-center justify-center gap-8 py-6">
+      <p className="flex items-center gap-2.5 text-[15px] text-(--color-fg-muted)">
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-(--color-accent) opacity-60 motion-reduce:animate-none" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-(--color-accent)" />
+        </span>
+        <span aria-live="polite">{LOADING_STEPS[step]}</span>
       </p>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="overflow-hidden rounded-2xl border border-(--color-line) bg-(--color-panel)">
-            <div className="aspect-square animate-pulse bg-(--color-bg-soft)" />
-            <div className="space-y-2 p-3.5">
-              <div className="h-3 w-1/3 animate-pulse rounded bg-(--color-bg-soft)" />
-              <div className="h-3.5 w-5/6 animate-pulse rounded bg-(--color-bg-soft)" />
-              <div className="h-3.5 w-1/4 animate-pulse rounded bg-(--color-bg-soft)" />
-            </div>
-          </div>
-        ))}
-      </div>
+      <SearchCats />
     </div>
   );
 }
 
-function StartState({ onPick }: { onPick: (q: string) => void }) {
+/** Recent searches, then examples — one quiet scrolling row under the box. */
+function ChipRow({ onPick }: { onPick: (q: string) => void }) {
   const [recent, setRecent] = useState<string[]>([]);
-  useEffect(() => setRecent(readRecentSearches().slice(0, 6)), []);
+  useEffect(() => setRecent(readRecentSearches().slice(0, 4)), []);
+  const examples = EXAMPLES.filter(q => !recent.includes(q));
+  const chip = "flex-shrink-0 rounded-full border px-3 py-1 text-[11.5px] transition";
   return (
-    <div className="grid gap-10">
-      {recent.length > 0 && (
-        <section>
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-(--color-fg-dim)">Recent</h2>
-          <div className="flex flex-wrap gap-2">
-            {recent.map(q => (
-              <button key={q} type="button" onClick={() => onPick(q)} className="rounded-full border border-(--color-line) bg-(--color-panel) px-3.5 py-1.5 text-sm text-(--color-fg-muted) hover:border-(--color-line-strong) hover:text-(--color-fg)">{q}</button>
-            ))}
-          </div>
-        </section>
-      )}
-      <section>
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-(--color-fg-dim)">Try asking</h2>
-        <div className="flex flex-wrap gap-2">
-          {EXAMPLES.map(q => (
-            <button key={q} type="button" onClick={() => onPick(q)} className="rounded-full border border-(--color-line) bg-(--color-panel) px-3.5 py-1.5 text-sm text-(--color-fg-muted) hover:border-(--color-line-strong) hover:text-(--color-fg)">{q}</button>
-          ))}
-        </div>
-      </section>
-      <section>
-        <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-(--color-fg-dim)">Or start from a shelf</h2>
-          <Link href="/shelves" className="text-sm text-(--color-accent) hover:underline">All shelves</Link>
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {SHELVES.slice(0, 6).map(s => (
-            <Link key={s.slug} href={`/shelves/${s.slug}`} className="group flex items-start gap-3 rounded-2xl border border-(--color-line) bg-(--color-panel) p-4 hover:border-(--color-line-strong)">
-              <span className="text-2xl" aria-hidden>{s.emoji}</span>
-              <span className="min-w-0">
-                <span className="flex items-center gap-1 font-medium text-(--color-fg)">{s.title}<ArrowRight className="h-3.5 w-3.5 opacity-0 transition group-hover:opacity-100" aria-hidden /></span>
-                <span className="mt-0.5 block text-sm text-(--color-fg-muted)">{s.blurb}</span>
-              </span>
-            </Link>
-          ))}
-        </div>
-      </section>
+    <div className="edge-fade-x -mx-1 overflow-x-auto px-1 pb-0.5 scrollbar-none">
+      <div className="flex items-center gap-1.5 whitespace-nowrap">
+        {recent.length > 0 && <span className="flex-shrink-0 text-[10px] uppercase tracking-wide text-(--color-fg-dim)">Recent</span>}
+        {recent.map(q => (
+          <button key={`r-${q}`} type="button" onClick={() => onPick(q)} className={`${chip} border-(--color-line-strong) bg-(--color-bg-soft) font-medium text-(--color-fg-muted) hover:border-(--color-fg-dim) hover:text-(--color-fg)`}>{q}</button>
+        ))}
+        {recent.length > 0 && <span className="h-4 w-px flex-shrink-0 bg-(--color-line)" aria-hidden />}
+        {examples.map(q => (
+          <button key={q} type="button" onClick={() => onPick(q)} className={`${chip} border-(--color-line) text-(--color-fg-dim) hover:border-(--color-fg-dim) hover:text-(--color-fg)`}>{q}</button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -120,15 +91,15 @@ function Results({ data, prefs }: { data: SearchResponse; prefs: AiSearchPrefere
   const items = useMemo(() => sortCards(data.items, sort), [data.items, sort]);
 
   return (
-    <div className="grid gap-5">
+    <div className="grid grid-cols-1 gap-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div className="min-w-0">
-          <h1 className="font-display text-2xl leading-tight text-(--color-fg) md:text-[1.75rem]">{data.summary}</h1>
+          <h1 className="font-display text-2xl leading-tight text-(--color-fg) md:text-[1.65rem]">{data.summary}</h1>
           {data.chips.length > 0 && (
-            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-              <span className="text-xs text-(--color-fg-dim)">Scout understood</span>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] uppercase tracking-wide text-(--color-fg-dim)">Read as</span>
               {data.chips.map(c => (
-                <span key={c} className="rounded-full border border-(--color-line) bg-(--color-panel) px-2.5 py-0.5 text-xs font-medium text-(--color-fg-muted)">{c}</span>
+                <span key={c} className="rounded-full border border-(--color-line-strong) bg-(--color-bg-soft) px-2.5 py-0.5 text-[11.5px] font-medium text-(--color-fg-muted)">{c}</span>
               ))}
             </div>
           )}
@@ -151,19 +122,19 @@ function Results({ data, prefs }: { data: SearchResponse; prefs: AiSearchPrefere
         </p>
       )}
       {data.notes.length > 0 && (
-        <ul className="grid gap-1 text-sm text-(--color-fg-muted)">
+        <ul className="grid grid-cols-1 gap-1 text-sm text-(--color-fg-muted)">
           {data.notes.map(n => <li key={n} className="flex items-start gap-2"><Info className="mt-0.5 h-4 w-4 shrink-0 text-(--color-fg-dim)" aria-hidden />{n}</li>)}
         </ul>
       )}
 
       {items.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <div key={data.query} className="grid-rise grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {items.map(card => <SearchResultCard key={card.id} card={card} query={data.query} />)}
         </div>
       )}
 
       {data.unconfirmed.length > 0 && (
-        <section className="rounded-2xl border border-dashed border-(--color-line-strong) p-4">
+        <section className="rounded-xl border border-dashed border-(--color-line-strong) p-4">
           <button type="button" onClick={() => setShowUnconfirmed(v => !v)} className="flex w-full items-center justify-between gap-3 text-left" aria-expanded={showUnconfirmed}>
             <span>
               <span className="font-medium text-(--color-fg)">Couldn&apos;t confirm from the label ({data.unconfirmed.length})</span>
@@ -172,7 +143,7 @@ function Results({ data, prefs }: { data: SearchResponse; prefs: AiSearchPrefere
             <ChevronDown className={`h-5 w-5 shrink-0 transition ${showUnconfirmed ? "rotate-180" : ""}`} aria-hidden />
           </button>
           {showUnconfirmed && (
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {data.unconfirmed.map(card => <SearchResultCard key={card.id} card={card} query={data.query} muted />)}
             </div>
           )}
@@ -180,7 +151,7 @@ function Results({ data, prefs }: { data: SearchResponse; prefs: AiSearchPrefere
       )}
 
       {items.length === 0 && data.unconfirmed.length === 0 && (
-        <div className="rounded-2xl border border-(--color-line) bg-(--color-panel) p-6 text-sm text-(--color-fg-muted)">
+        <div className="rounded-xl border border-dashed border-(--color-line-strong) p-5 text-sm text-(--color-fg-muted)">
           {data.intent === "non_food" || data.intent === "unclear"
             ? "Try describing a food or drink — for example “low sugar biscuits” or “paneer under ₹100”."
             : "Try fewer requirements, or describe it differently."}
@@ -197,7 +168,7 @@ function Results({ data, prefs }: { data: SearchResponse; prefs: AiSearchPrefere
   );
 }
 
-export function SearchView({ initialQuery }: { initialQuery: string }) {
+export function SearchView({ initialQuery, landing }: { initialQuery: string; landing?: React.ReactNode }) {
   const router = useRouter();
   const params = useSearchParams();
   const auth = useAuth();
@@ -259,32 +230,37 @@ export function SearchView({ initialQuery }: { initialQuery: string }) {
   };
 
   return (
-    <div className="grid gap-7">
-      <form onSubmit={e => { e.preventDefault(); submit(input); }} role="search" className="relative">
-        <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-(--color-fg-dim)" aria-hidden />
-        <input
-          ref={inputRef}
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          placeholder="Describe what you want — “low sugar biscuits under ₹100”"
-          aria-label="Search Scout"
-          enterKeyHint="search"
-          className="h-14 w-full rounded-2xl border border-(--color-line-strong) bg-(--color-panel) pl-12 pr-28 text-[16px] text-(--color-fg) shadow-[0_2px_12px_-8px_rgba(0,0,0,0.3)] outline-none placeholder:text-(--color-fg-dim) focus:border-(--color-fg-muted)"
-        />
-        {input && (
-          <button type="button" onClick={() => { setInput(""); inputRef.current?.focus(); }} className="absolute right-[92px] top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-(--color-fg-dim) hover:text-(--color-fg)" aria-label="Clear">
-            <X className="h-4 w-4" />
+    <div className="grid grid-cols-1 gap-6">
+      <section>
+        <p className="font-display mb-3 text-2xl leading-tight text-(--color-fg) md:text-3xl">Ask Scout</p>
+        <form onSubmit={e => { e.preventDefault(); submit(input); }} role="search" className="flex items-start gap-2">
+          <div className="relative flex-1">
+            <input
+              ref={inputRef}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              placeholder="e.g. paneer with low fat under ₹150"
+              aria-label="Search Scout"
+              enterKeyHint="search"
+              className="min-h-[48px] w-full rounded-2xl border border-(--color-line-strong) bg-(--color-bg) pl-5 pr-10 text-[15px] text-(--color-fg) outline-none transition placeholder:text-(--color-fg-dim) focus:border-(--color-fg-muted) focus:shadow-md focus:ring-4 focus:ring-(--color-accent)/10"
+            />
+            {input && (
+              <button type="button" onClick={() => { setInput(""); inputRef.current?.focus(); }} className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-(--color-fg-dim) hover:text-(--color-fg)" aria-label="Clear">
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <button type="submit" disabled={status.kind === "loading"} className="min-h-[48px] rounded-2xl bg-(--color-fg) px-6 text-sm font-semibold text-(--color-bg) transition hover:opacity-80 disabled:cursor-wait disabled:opacity-60">
+            {status.kind === "loading" ? "Searching…" : "Search"}
           </button>
-        )}
-        <button type="submit" className="absolute right-2 top-1/2 h-10 -translate-y-1/2 rounded-xl bg-(--color-fg) px-4 text-sm font-medium text-(--color-bg) hover:opacity-90">
-          Search
-        </button>
-      </form>
+        </form>
+        <div className="mt-3"><ChipRow onPick={submit} /></div>
+      </section>
 
-      {status.kind === "idle" && <StartState onPick={submit} />}
+      {status.kind === "idle" && landing}
       {status.kind === "loading" && <LoadingState query={status.query} />}
       {status.kind === "error" && (
-        <div className="rounded-2xl border border-(--color-line) bg-(--color-panel) p-6">
+        <div className="rounded-xl border border-dashed border-(--color-line-strong) p-5">
           <p className="font-medium text-(--color-fg)">{status.message}</p>
           <button type="button" onClick={() => void run(status.query)} className="mt-3 text-sm text-(--color-accent) hover:underline">Try again</button>
         </div>

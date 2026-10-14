@@ -73,9 +73,11 @@
     "facts:sync": "tsx scripts/facts-sync.ts",
     "search:eval": "tsx scripts/planned-eval.ts",
     "search:test": "node --import tsx --test scripts/planned-search.test.ts",
-    "facts:conflicts": "tsx scripts/facts-conflicts.ts"
+    "facts:conflicts": "tsx scripts/facts-conflicts.ts",
+    "cats:sync": "tsx scripts/sync-lottie.ts"
   },
   "dependencies": {
+    "@lottiefiles/dotlottie-react": "^0.19.16",
     "@sentry/nextjs": "^10.57.0",
     "@supabase/supabase-js": "^2.106.1",
     "@vercel/analytics": "^2.0.1",

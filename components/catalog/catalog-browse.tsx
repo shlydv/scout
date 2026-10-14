@@ -102,7 +102,7 @@ export function CatalogBrowse({ initialMeta }: { initialMeta?: CatalogMetaRespon
   const categories = meta?.filters.categories ?? [];
 
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-1 gap-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="font-display text-3xl text-(--color-fg) md:text-4xl">{subcategory || category || "Browse every aisle"}</h1>
@@ -141,14 +141,14 @@ export function CatalogBrowse({ initialMeta }: { initialMeta?: CatalogMetaRespon
       </div>
 
       {items.length > 0 ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {items.map(it => <SearchResultCard key={it.id} card={gridItemToCard(it)} query="" />)}
         </div>
       ) : !loading ? (
-        <p className="rounded-2xl border border-(--color-line) bg-(--color-panel) p-6 text-sm text-(--color-fg-muted)">Nothing here with these filters.</p>
+        <p className="rounded-xl border border-dashed border-(--color-line-strong) p-5 text-sm text-(--color-fg-muted)">Nothing here with these filters.</p>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, i) => <div key={i} className="aspect-[3/4] animate-pulse rounded-2xl bg-(--color-bg-soft)" />)}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 9 }).map((_, i) => <div key={i} className="h-28 animate-pulse rounded-xl bg-(--color-bg-soft)" />)}
         </div>
       )}
 

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { PaperBackdrop } from "@/components/paper-backdrop";
+import { SearchLanding } from "@/components/search/search-landing";
 import { SearchView } from "@/components/search/search-view";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
@@ -20,12 +22,13 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
 export default async function SearchPage({ searchParams }: { searchParams: Promise<Params> }) {
   const params = await searchParams;
   return (
-    <main className="min-h-screen bg-(--color-bg)">
+    <main className="relative isolate min-h-screen">
+      <PaperBackdrop />
       <SiteNav />
-      <div className="mx-auto max-w-7xl px-4 pb-20 pt-6 md:px-6 md:pt-10">
+      <div className="mx-auto max-w-6xl px-4 pb-20 pt-6 md:px-6 md:pt-10">
         <Suspense>
           {/* ?prompt= and catalog params are redirected in next.config.ts */}
-          <SearchView initialQuery={one(params.q) || one(params.prompt)} />
+          <SearchView initialQuery={one(params.q) || one(params.prompt)} landing={<Suspense><SearchLanding /></Suspense>} />
         </Suspense>
       </div>
       <SiteFooter />
