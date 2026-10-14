@@ -7,6 +7,7 @@ import { normalizeProductImageUrls } from "@/lib/products/catalog-hero-image";
 import { resolveProductVerdict } from "@/lib/scoring/verdict-resolve";
 import type { VerdictId } from "@/lib/scoring/verdict";
 import { CLAIMS, CONCEPT_LABELS, NUMERIC_LABELS, type ClaimId, type ConceptId, type NumericField } from "@/lib/facts/vocab";
+import { claimStatus } from "./execute";
 import type { SearchPlan } from "./plan";
 import type { PlannedSearchItem, PlannedSearchResult } from "./search";
 
@@ -131,6 +132,7 @@ function reasons(it: PlannedSearchItem, plan: SearchPlan): string[] {
     }
   }
   for (const c of it.claims as ClaimId[]) {
+    if (claimStatus(it, c) === "contradicted") continue;
     if ((plan.claims_preferred as string[]).includes(c) || (plan.claims_required as string[]).includes(c)) {
       out.push(CLAIM_CHIP[c] ?? CLAIMS[c].split(" / ")[0]!);
     }

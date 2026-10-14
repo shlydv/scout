@@ -4,7 +4,8 @@ import { test } from "node:test";
 import { normalizeFacts, type FactsInput } from "@/lib/facts/extract";
 import { parsePack, pricePer100 } from "@/lib/facts/pack";
 import { CONCEPT_IDS } from "@/lib/facts/vocab";
-import { confirm, scopeSize, widenScope, type PlannedItem } from "@/lib/search/planned/execute";
+import { checkClaim, isLiquidPack, type ClaimEvidence } from "@/lib/facts/claim-check";
+import { confirm, healthWeight, scopeSize, widenScope, type PlannedItem } from "@/lib/search/planned/execute";
 import { validatePlan, type SearchPlan } from "@/lib/search/planned/plan";
 import { degradedPlan, diversify } from "@/lib/search/planned/search";
 import type { CatalogVocabulary } from "@/lib/search/planned/vocabulary";
@@ -81,13 +82,13 @@ test("absence is only derived from complete ingredient lists", () => {
   assert.equal(normalizeFacts(input, raw({ ingredients: [["chicken", ["meat"]]], veg: "veg" })).veg, "non_veg");
 });
 
-function item(over: Partial<PlannedItem & { hasFacts: boolean; nutritionOk: boolean }> = {}): PlannedItem & { hasFacts?: boolean; nutritionOk?: boolean } {
+function item(over: Partial<PlannedItem & { hasFacts: boolean }> = {}): PlannedItem & { hasFacts?: boolean } {
   return {
     product_id: "p", slug: "p", name: "P", brand: "B", category: "c", subcategory: "s", l3: "l", price_inr: 50, net_weight: "100 g",
     scout_score: 50, nutrition: { sugar_g_100g: 3 }, kind: "", ingredients: [], claims: [], present: [], may_contain: [], unknown: [],
     conflicts: [], ingredient_status: "complete", veg: "veg", vegan: null, jain: null, price_per_100: 50, evidence: {}, variant_key: null,
     display: { image_urls: [], mrp_inr: null, ocr_image_url: null, primary_type: null, absolute_score: null, category_rank: null, category_size: null, category_label: null },
-    similarity: 0.5, lexical: 0, confirmation: "confirmed", notes: [], score: 0.5, ...over,
+    similarity: 0.5, nutrition_trusted: true, lexical: 0, confirmation: "confirmed", notes: [], score: 0.5, ...over,
   };
 }
 const plan = (over: Partial<SearchPlan> = {}): SearchPlan => ({ ...degradedPlan("q"), ...over });
@@ -98,7 +99,7 @@ test("unknown or missing evidence never confirms a constraint", () => {
   assert.equal(confirm(item({ hasFacts: false }), plan({ exclude: ["palm_oil"] }), []).confirmation, "unconfirmed");
   assert.equal(confirm(item({ may_contain: ["peanut"] }), plan({ exclude: ["peanut"] }), []).confirmation, "confirmed", "may-contain warns when not strict");
   assert.equal(confirm(item({ nutrition: {} }), plan(), [{ field: "sugar_g", op: "<=", value: 5 }]).confirmation, "unconfirmed");
-  assert.equal(confirm(item({ nutritionOk: false }), plan({ sort: { field: "protein_g", dir: "desc" } }), []).confirmation, "unconfirmed");
+  assert.equal(confirm(item({ nutrition_trusted: false }), plan({ sort: { field: "protein_g", dir: "desc" } }), []).confirmation, "unconfirmed");
   assert.equal(confirm(item({ veg: "unknown" }), plan({ diet: { veg: true } }), []).confirmation, "unconfirmed");
 });
 
@@ -118,4 +119,27 @@ test("near-duplicate variants do not flood the top results", () => {
   const out = diversify([...xs, { brand: "Other", name: "Other Whey" }]);
   assert.deepEqual(out.slice(0, 3).map(x => x.brand), ["Nakpro", "Nakpro", "Other"]);
   assert.equal(out.length, 5);
+});
+
+test("a pack claim counts only when the label backs it", () => {
+  const ev = (over: Partial<ClaimEvidence> = {}): ClaimEvidence => ({ nutrition: {}, nutritionTrusted: true, present: [], unknown: [], liquid: false, ...over });
+  assert.equal(checkClaim("low_fat", ev({ nutrition: { fat_g_100g: 17.77 } })), "contradicted");
+  assert.equal(checkClaim("low_fat", ev({ nutrition: { fat_g_100g: 2.5 } })), "holds");
+  assert.equal(checkClaim("low_fat", ev({ nutrition: { fat_g_100g: 2.5 }, liquid: true })), "contradicted", "liquids use 1.5 g/100 ml");
+  assert.equal(checkClaim("low_fat", ev({ nutrition: { fat_g_100g: 2.5 }, nutritionTrusted: false })), "unverifiable", "a suspect panel proves nothing");
+  assert.equal(checkClaim("sugar_free", ev({ nutrition: { sugar_g_100g: "5.7" } })), "contradicted");
+  assert.equal(checkClaim("high_protein", ev({ nutrition: { protein_g_100g: 22.2, energy_kcal_100g: 431 } })), "holds");
+  assert.equal(checkClaim("high_protein", ev({ nutrition: { protein_g_100g: 4, energy_kcal_100g: 500 } })), "contradicted");
+  assert.equal(checkClaim("no_palm_oil", ev({ present: ["palm_oil"] })), "contradicted");
+  assert.equal(checkClaim("no_palm_oil", ev({ unknown: ["palm_oil"] })), "unverifiable");
+  assert.equal(checkClaim("no_palm_oil", ev()), "holds");
+  assert.equal(checkClaim("baked_not_fried", ev()), "unverifiable");
+  assert.equal(isLiquidPack("200 ml"), true);
+  assert.equal(isLiquidPack("45 g"), false);
+});
+
+test("health-minded queries weigh the health score", () => {
+  assert.equal(healthWeight(plan()), 0.03);
+  assert.equal(healthWeight(plan({ judge: ["not junk food"] })), 0.12);
+  assert.equal(healthWeight(plan({ intent: "goal" })), 0.15);
 });
