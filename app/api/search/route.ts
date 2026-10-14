@@ -17,14 +17,15 @@ export async function POST(req: NextRequest) {
   if (!input.success) return NextResponse.json({ error: "Invalid search request", code: "invalid_request" }, { status: 400, headers: HEADERS });
   const q = (input.data.q ?? input.data.prompt)!;
   const limit = input.data.limit ?? 24;
+  const offset = input.data.offset ?? 0;
   const preferences = input.data.preferences ?? null;
-  const key = resultCacheKey(q, limit, preferences);
+  const key = resultCacheKey(q, limit, preferences, offset);
   const cached = getCachedResult<SearchResponse>(key);
   if (cached) return NextResponse.json(cached, { headers: HEADERS });
 
   // Search is free for guests and signed-in users; identity is only used for history.
   try {
-    const search = await plannedSearch(q, { limit, preferences });
+    const search = await plannedSearch(q, { limit, preferences, offset });
     const result = presentSearch(search);
     if (!result.degraded) setCachedResult(key, result);
     if (process.env.SEARCH_TELEMETRY === "1") {
@@ -32,7 +33,8 @@ export async function POST(req: NextRequest) {
         unconfirmed: result.unconfirmed.length, relaxed: search.relaxed, intent: search.plan.intent }));
     }
     const authHeader = req.headers.get("authorization");
-    if (authHeader) {
+    // History records the search once, not every "Show more".
+    if (authHeader && offset === 0) {
       void (async () => {
         const client = supabaseFromBearer(authHeader);
         if (!client) return;

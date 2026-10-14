@@ -7,6 +7,7 @@ import { normalizeProductImageUrls } from "@/lib/products/catalog-hero-image";
 import { resolveProductVerdict } from "@/lib/scoring/verdict-resolve";
 import type { VerdictId } from "@/lib/scoring/verdict";
 import { CLAIMS, CONCEPT_LABELS, NUMERIC_LABELS, type ClaimId, type ConceptId, type NumericField } from "@/lib/facts/vocab";
+import { claimStatus } from "./execute";
 import type { SearchPlan } from "./plan";
 import type { PlannedSearchItem, PlannedSearchResult } from "./search";
 
@@ -41,6 +42,8 @@ export type SearchResponse = {
   items: SearchCard[];
   unconfirmed: SearchCard[];
   timings: PlannedSearchResult["timings"];
+  /** Pass as `offset` to fetch the next verified page; null when there is none. */
+  next_offset: number | null;
 };
 
 const SORT_CHIP: Partial<Record<NumericField, [string, string]>> = {
@@ -131,6 +134,7 @@ function reasons(it: PlannedSearchItem, plan: SearchPlan): string[] {
     }
   }
   for (const c of it.claims as ClaimId[]) {
+    if (claimStatus(it, c) === "contradicted") continue;
     if ((plan.claims_preferred as string[]).includes(c) || (plan.claims_required as string[]).includes(c)) {
       out.push(CLAIM_CHIP[c] ?? CLAIMS[c].split(" / ")[0]!);
     }
@@ -192,5 +196,6 @@ export function presentSearch(r: PlannedSearchResult): SearchResponse {
     // Strict (allergy) searches never surface unconfirmed products.
     unconfirmed: r.plan.strict ? [] : r.unconfirmed.slice(0, 8).map(it => toCard(it, r.plan)),
     timings: r.timings,
+    next_offset: r.next_offset,
   };
 }

@@ -4,7 +4,9 @@ import { z } from "zod";
 export const searchInputSchema = z.object({
   q: z.string().trim().min(2).max(300).optional(),
   prompt: z.string().trim().min(2).max(300).optional(),
-  limit: z.number().int().min(1).max(36).optional(),
+  limit: z.number().int().min(1).max(50).optional(),
+  /** Start of the next page ("Show more"); pages are verified as they are requested. */
+  offset: z.number().int().min(0).max(150).optional(),
   preferences: z.object({
     diet: z.string().max(100).optional(),
     healthContexts: z.array(z.string().max(100)).max(10).optional(),

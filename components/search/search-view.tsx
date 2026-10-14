@@ -21,6 +21,9 @@ const EXAMPLES = [
   "tiffin snacks for kids",
 ];
 
+/** Results per page; each page is verified in two parallel batches. */
+const PAGE_SIZE = 50;
+
 type SortId = "best" | "price" | "score" | "protein";
 const SORTS: { id: SortId; label: string }[] = [
   { id: "best", label: "Best match" },
@@ -84,10 +87,12 @@ function ChipRow({ onPick }: { onPick: (q: string) => void }) {
   );
 }
 
-function Results({ data, prefs }: { data: SearchResponse; prefs: AiSearchPreferences | null }) {
+function Results({ data, prefs, onMore, loadingMore }: { data: SearchResponse; prefs: AiSearchPreferences | null; onMore: () => void; loadingMore: boolean }) {
   const [sort, setSort] = useState<SortId>("best");
   const [showUnconfirmed, setShowUnconfirmed] = useState(false);
-  useEffect(() => { setSort("best"); setShowUnconfirmed(data.items.length === 0); }, [data]);
+  // Reset per search, not when "Show more" appends a page.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setSort("best"); setShowUnconfirmed(data.items.length === 0); }, [data.query]);
   const items = useMemo(() => sortCards(data.items, sort), [data.items, sort]);
 
   return (
@@ -133,6 +138,12 @@ function Results({ data, prefs }: { data: SearchResponse; prefs: AiSearchPrefere
         </div>
       )}
 
+      {data.next_offset != null && items.length > 0 && (
+        <button type="button" onClick={onMore} disabled={loadingMore} className="u-press mx-auto rounded-full border border-(--color-line-strong) px-5 py-2 text-sm font-medium text-(--color-fg-muted) transition hover:border-(--color-fg-dim) hover:text-(--color-fg) disabled:cursor-wait disabled:opacity-70">
+          {loadingMore ? "Checking the next batch against their labels…" : "Show more"}
+        </button>
+      )}
+
       {data.unconfirmed.length > 0 && (
         <section className="rounded-xl border border-dashed border-(--color-line-strong) p-4">
           <button type="button" onClick={() => setShowUnconfirmed(v => !v)} className="flex w-full items-center justify-between gap-3 text-left" aria-expanded={showUnconfirmed}>
@@ -176,6 +187,7 @@ export function SearchView({ initialQuery, landing }: { initialQuery: string; la
   const [input, setInput] = useState(initialQuery || urlQuery);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [prefs, setPrefs] = useState<AiSearchPreferences | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const abort = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -184,31 +196,54 @@ export function SearchView({ initialQuery, landing }: { initialQuery: string; la
     setPrefs(hasSavedPreferences(p) ? p : null);
   }, []);
 
+  const fetchPage = useCallback(async (q: string, offset: number, signal: AbortSignal): Promise<SearchResponse> => {
+    const res = await fetch("/api/search", {
+      method: "POST",
+      signal,
+      headers: {
+        "content-type": "application/json",
+        ...(auth?.session?.access_token ? { authorization: `Bearer ${auth.session.access_token}` } : {}),
+      },
+      body: JSON.stringify({ q, limit: PAGE_SIZE, offset, preferences: prefs }),
+    });
+    const body = await res.json().catch(() => null);
+    if (!res.ok || !body) throw new Error(body?.error ?? "Search is temporarily unavailable.");
+    return body as SearchResponse;
+  }, [auth?.session?.access_token, prefs]);
+
   const run = useCallback(async (q: string) => {
     abort.current?.abort();
     const ctrl = new AbortController();
     abort.current = ctrl;
+    setLoadingMore(false);
     setStatus({ kind: "loading", query: q });
     try {
-      const res = await fetch("/api/search", {
-        method: "POST",
-        signal: ctrl.signal,
-        headers: {
-          "content-type": "application/json",
-          ...(auth?.session?.access_token ? { authorization: `Bearer ${auth.session.access_token}` } : {}),
-        },
-        body: JSON.stringify({ q, limit: 24, preferences: prefs }),
-      });
-      const body = await res.json().catch(() => null);
+      const data = await fetchPage(q, 0, ctrl.signal);
       if (ctrl.signal.aborted) return;
-      if (!res.ok || !body) throw new Error(body?.error ?? "Search is temporarily unavailable.");
       recordRecentSearch(q);
-      setStatus({ kind: "done", data: body as SearchResponse });
+      setStatus({ kind: "done", data });
     } catch (e) {
       if (ctrl.signal.aborted) return;
       setStatus({ kind: "error", query: q, message: e instanceof Error ? e.message : "Search failed" });
     }
-  }, [auth?.session?.access_token, prefs]);
+  }, [fetchPage]);
+
+  const loadMore = useCallback(async () => {
+    if (status.kind !== "done" || status.data.next_offset == null || loadingMore) return;
+    const current = status.data;
+    const signal = abort.current?.signal ?? new AbortController().signal;
+    setLoadingMore(true);
+    try {
+      const next = await fetchPage(current.query, current.next_offset!, signal);
+      if (signal.aborted) return;
+      const seen = new Set(current.items.map(i => i.id));
+      setStatus({ kind: "done", data: { ...current, items: [...current.items, ...next.items.filter(i => !seen.has(i.id))], next_offset: next.next_offset } });
+    } catch {
+      // Keep what's shown; the button stays so the shopper can retry.
+    } finally {
+      if (!signal.aborted) setLoadingMore(false);
+    }
+  }, [status, loadingMore, fetchPage]);
 
   // The URL is the source of truth: typing never searches by itself, submitting
   // (or back/forward) changes ?q= and that runs the search.
@@ -265,7 +300,7 @@ export function SearchView({ initialQuery, landing }: { initialQuery: string; la
           <button type="button" onClick={() => void run(status.query)} className="mt-3 text-sm text-(--color-accent) hover:underline">Try again</button>
         </div>
       )}
-      {status.kind === "done" && <Results data={status.data} prefs={prefs} />}
+      {status.kind === "done" && <Results data={status.data} prefs={prefs} onMore={() => void loadMore()} loadingMore={loadingMore} />}
     </div>
   );
 }

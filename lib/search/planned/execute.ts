@@ -9,6 +9,7 @@
  *   diet / numeric    missing data -> unconfirmed, never silently passed
  * Confirmed items always rank above unconfirmed ones.
  */
+import { checkClaim, isLiquidPack, type ClaimStatus } from "@/lib/facts/claim-check";
 import type { ConceptId, NumericField } from "@/lib/facts/vocab";
 import type { Sql } from "./db";
 import type { NumericFilter, SearchPlan } from "./plan";
@@ -75,6 +76,8 @@ export type PlannedItem = {
     absolute_score: number | null; category_rank: number | null; category_size: number | null; category_label: string | null;
   };
   similarity: number | null;
+  /** False when the nutrition panel failed plausibility checks (nutrition_suspect or impossible sums). */
+  nutrition_trusted: boolean;
   lexical: number;
   confirmation: Confirmation;
   notes: string[];
@@ -268,15 +271,16 @@ async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limi
     },
     similarity: r.similarity == null ? null : Number(r.similarity),
     lexical: Number(r.lexical ?? 0), confirmation: "confirmed", notes: [], score: Number(r.relevance ?? 0),
-    hasFacts: r.f_id != null, nutritionOk: r.nutrition_ok !== false,
+    nutrition_trusted: r.nutrition_ok !== false,
+    hasFacts: r.f_id != null,
   } as PlannedItem & { hasFacts: boolean }));
 }
 
 /** Mark each item confirmed/unconfirmed and explain why. */
-export function confirm(item: PlannedItem & { hasFacts?: boolean; nutritionOk?: boolean }, plan: SearchPlan, numeric: NumericFilter[]): PlannedItem {
+export function confirm(item: PlannedItem & { hasFacts?: boolean }, plan: SearchPlan, numeric: NumericFilter[]): PlannedItem {
   const notes: string[] = [];
   const usesNutrition = numeric.some(n => NUTRITION_FIELDS.has(n.field)) || NUTRITION_FIELDS.has(plan.sort.field as NumericField);
-  if (usesNutrition && item.nutritionOk === false) notes.push("nutrition label looks inconsistent");
+  if (usesNutrition && !item.nutrition_trusted) notes.push("nutrition label looks inconsistent");
   const hasFacts = item.hasFacts !== false;
   const state = (c: ConceptId) =>
     !hasFacts ? "unknown"
@@ -293,21 +297,48 @@ export function confirm(item: PlannedItem & { hasFacts?: boolean; nutritionOk?: 
   if (plan.diet.vegan && item.vegan !== true) notes.push("vegan status not confirmed");
   if (plan.diet.jain && item.jain !== true) notes.push("jain status not confirmed");
   for (const n of numeric) if (numericValue(item, n.field) == null) notes.push(`${n.field.replace(/_/g, " ")} not on label`);
+  for (const c of plan.claims_required) {
+    if (claimStatus(item, c) === "contradicted") notes.push(`the label contradicts the pack's "${c.replace(/_/g, " ")}" claim`);
+  }
   // may_contain under a non-strict exclusion is a warning, not a failure.
   const blocking = notes.filter(n => !n.startsWith("may contain"));
-  const { hasFacts: _drop, nutritionOk: _ok, ...rest } = item as PlannedItem & { hasFacts?: boolean; nutritionOk?: boolean };
-  void _drop; void _ok;
+  const { hasFacts: _drop, ...rest } = item as PlannedItem & { hasFacts?: boolean };
+  void _drop;
   return { ...rest, notes, confirmation: blocking.length ? "unconfirmed" : "confirmed" };
 }
 
+/** Whether one of the product's pack claims survives its own label. */
+export function claimStatus(it: PlannedItem, claim: string): ClaimStatus {
+  return checkClaim(claim, {
+    nutrition: it.nutrition, nutritionTrusted: it.nutrition_trusted,
+    present: it.present, unknown: it.unknown, liquid: isLiquidPack(it.net_weight),
+  });
+}
+
+/** Weight of the health score in relevance ranking. */
+// Similarity between candidates of the right type spans only ~0.05, so at 0.4 a
+// 10-point score gap outweighs most relevance noise without overriding product type.
+export function healthWeight(plan: SearchPlan): number {
+  // Goals and "chips that aren't junk" / "healthy noodles": the shopper is asking about healthiness.
+  // A wanted claim alone ("gluten free bread") is about the product, not its healthiness.
+  if (plan.intent === "goal" || plan.judge.length) return 0.4;
+  return 0.03;
+}
+
 function rank(items: PlannedItem[], plan: SearchPlan): PlannedItem[] {
-  const pref = new Set(plan.claims_preferred);
+  const pref = new Set<string>(plan.claims_preferred);
+  const weight = healthWeight(plan);
   const scored = items.map(it => {
     let s = it.score;
-    for (const c of it.claims) if (pref.has(c as never)) s += 0.04;
+    // A preferred claim earns full credit only when the label backs it; claims the
+    // label can't speak to (baked, organic) earn a little; contradicted ones cost.
+    for (const c of it.claims) {
+      if (!pref.has(c)) continue;
+      const status = claimStatus(it, c);
+      s += status === "holds" ? 0.02 : status === "unverifiable" ? 0.005 : -0.05;
+    }
     if (it.conflicts.length) s -= 0.05;
-    // Goals care about healthiness as part of fit; plain product queries barely.
-    if (it.scout_score != null) s += (it.scout_score / 100) * (plan.intent === "goal" ? 0.15 : 0.03);
+    if (it.scout_score != null) s += (it.scout_score / 100) * weight;
     return { ...it, score: s };
   });
   // SQL already applied the requested sort; only reorder relevance-sorted results.
