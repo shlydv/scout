@@ -320,7 +320,8 @@ export function claimStatus(it: PlannedItem, claim: string): ClaimStatus {
 // 10-point score gap outweighs most relevance noise without overriding product type.
 export function healthWeight(plan: SearchPlan): number {
   // Goals and "chips that aren't junk" / "healthy noodles": the shopper is asking about healthiness.
-  if (plan.intent === "goal" || plan.judge.length || plan.claims_preferred.length) return 0.4;
+  // A wanted claim alone ("gluten free bread") is about the product, not its healthiness.
+  if (plan.intent === "goal" || plan.judge.length) return 0.4;
   return 0.03;
 }
 

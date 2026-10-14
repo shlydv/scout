@@ -142,4 +142,5 @@ test("health-minded queries weigh the health score", () => {
   assert.equal(healthWeight(plan()), 0.03);
   assert.equal(healthWeight(plan({ judge: ["not junk food"] })), 0.4);
   assert.equal(healthWeight(plan({ intent: "goal" })), 0.4);
+  assert.equal(healthWeight(plan({ claims_preferred: ["gluten_free"] })), 0.03, "a wanted claim is not a health judgement");
 });
