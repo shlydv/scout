@@ -4,14 +4,14 @@ import type { AiSearchPreferences } from "@/lib/search/preferences";
 const TTL_MS = 5 * 60_000;
 const MAX = 128;
 /** Bump when ranking or response shape changes so warm instances drop stale results. */
-const VERSION = "planned-v2";
+const VERSION = "planned-v3";
 const cache = new Map<string, { at: number; value: unknown }>();
 
-export function resultCacheKey(q: string, limit: number, prefs: AiSearchPreferences | null | undefined): string {
+export function resultCacheKey(q: string, limit: number, prefs: AiSearchPreferences | null | undefined, offset = 0): string {
   const p = prefs && Object.keys(prefs).length
     ? JSON.stringify({ diet: prefs.diet ?? null, budget: prefs.budget ?? null, health: [...(prefs.healthContexts ?? [])].sort(), avoid: [...(prefs.avoidIngredients ?? [])].sort() })
     : "";
-  return `${VERSION}|${q.toLowerCase().replace(/\s+/g, " ").trim()}|${limit}|${p}`;
+  return `${VERSION}|${q.toLowerCase().replace(/\s+/g, " ").trim()}|${limit}|${offset}|${p}`;
 }
 
 export function getCachedResult<T>(key: string): T | null {

@@ -74,3 +74,29 @@ export async function verifyItems(query: string, plan: SearchPlan, items: Planne
   }
   return { verdicts, usage, ms: Date.now() - started };
 }
+
+/** Cards per verifier call: output length sets latency, so batches run side by side. */
+export const VERIFY_CHUNK = 25;
+
+/**
+ * Verify any number of items as parallel batches of VERIFY_CHUNK, so 50 items take
+ * about as long as 25. A failed batch leaves its items unjudged rather than failing
+ * the search.
+ */
+export async function verifyInChunks(query: string, plan: SearchPlan, items: PlannedItem[]): Promise<{
+  verdicts: Map<string, { v: Verdict; why: string }>; usages: DeepseekUsage[]; ms: number; failedChunks: number;
+}> {
+  const started = Date.now();
+  const chunks: PlannedItem[][] = [];
+  for (let i = 0; i < items.length; i += VERIFY_CHUNK) chunks.push(items.slice(i, i + VERIFY_CHUNK));
+  const results = await Promise.allSettled(chunks.map(c => verifyItems(query, plan, c, c.length)));
+  const verdicts = new Map<string, { v: Verdict; why: string }>();
+  const usages: DeepseekUsage[] = [];
+  let failedChunks = 0;
+  for (const r of results) {
+    if (r.status === "rejected") { failedChunks++; continue; }
+    for (const [id, v] of r.value.verdicts) verdicts.set(id, v);
+    if (r.value.usage) usages.push(r.value.usage);
+  }
+  return { verdicts, usages, ms: Date.now() - started, failedChunks };
+}

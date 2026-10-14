@@ -8,7 +8,7 @@ import { searchSql, type Sql } from "./db";
 import { executePlan, type PlannedItem } from "./execute";
 import { getCachedPlan, planCacheKey, storePlan } from "./plan-cache";
 import { planQuery, plannerFingerprint, type Preferences, type SearchPlan } from "./plan";
-import { needsVerification, verifyItems, type Verdict } from "./verify";
+import { needsVerification, VERIFY_CHUNK, verifyInChunks, type Verdict } from "./verify";
 import { loadVocabulary } from "./vocabulary";
 
 export type SizeOption = { product_id: string; slug: string; net_weight: string | null; price_inr: number | null; price_per_100: number | null };
@@ -26,6 +26,8 @@ export type PlannedSearchResult = {
   timings: { plan_ms: number; embed_ms: number; execute_ms: number; verify_ms: number; total_ms: number; plan_cached: boolean };
   llm: { calls: number; prompt_tokens: number; completion_tokens: number };
   dropped: string[];
+  /** Offset for the next page of verified results, or null when nothing more matches. */
+  next_offset: number | null;
 };
 
 const EMBED_GRACE_MS = 1200;
@@ -87,11 +89,13 @@ async function attachSizes(sql: Sql, items: PlannedSearchItem[]): Promise<Planne
   });
 }
 
-export async function plannedSearch(query: string, opts: { preferences?: Preferences; limit?: number; verify?: boolean } = {}): Promise<PlannedSearchResult> {
+export async function plannedSearch(query: string, opts: { preferences?: Preferences; limit?: number; verify?: boolean; offset?: number } = {}): Promise<PlannedSearchResult> {
   const started = Date.now();
   const sql = searchSql();
   const prefs = opts.preferences ?? null;
   const limit = opts.limit ?? 24;
+  // Later pages ("Show more") rank the same candidates and verify the next slice.
+  const offset = Math.max(0, opts.offset ?? 0);
   const llm = { calls: 0, prompt_tokens: 0, completion_tokens: 0 };
   const addUsage = (u: unknown) => {
     const x = u as { prompt_tokens?: number; completion_tokens?: number } | null;
@@ -131,7 +135,7 @@ export async function plannedSearch(query: string, opts: { preferences?: Prefere
 
   if (plan.intent === "non_food" || plan.intent === "unclear") {
     return {
-      query, plan, items: [], unconfirmed: [], relaxed: [], counts: [], reference: null, dropped, llm,
+      query, plan, items: [], unconfirmed: [], relaxed: [], counts: [], reference: null, dropped, llm, next_offset: null,
       summary: plan.intent === "non_food"
         ? "Scout covers packaged food and drinks only."
         : "Couldn't understand that as a food search — try describing what you want to eat or drink.",
@@ -144,7 +148,7 @@ export async function plannedSearch(query: string, opts: { preferences?: Prefere
     embedding,
     new Promise<{ e: null; ms: number }>(resolve => setTimeout(() => resolve({ e: null, ms: -1 }), EMBED_GRACE_MS)),
   ]);
-  const exec = await executePlan(sql, plan, vector, { limit, vocab });
+  const exec = await executePlan(sql, plan, vector, { limit: offset + limit, vocab });
 
   let confirmed: PlannedSearchItem[] = collapseVariants(exec.items.filter(i => i.confirmation === "confirmed"));
   const unconfirmed: PlannedSearchItem[] = collapseVariants(exec.items.filter(i => i.confirmation !== "confirmed"));
@@ -152,29 +156,32 @@ export async function plannedSearch(query: string, opts: { preferences?: Prefere
 
   // Results reached by widening the scope always get checked against the request.
   const verify = opts.verify ?? (needsVerification(plan) || exec.relaxed.includes("scope"));
-  if (verify && confirmed.length) {
-    try {
-      // Verify everything that can be shown; never append an unverified tail.
-      const pool = diversify(confirmed).slice(0, Math.min(limit + 4, 28));
-      const v = await verifyItems(query, plan, pool, pool.length);
-      addUsage(v.usage);
-      verifyMs = v.ms;
-      const judged = pool.map(i => ({ ...i, verdict: v.verdicts.get(i.product_id)?.v, why: v.verdicts.get(i.product_id)?.why }));
+  const ranked = diversify(confirmed);
+  const page = ranked.slice(offset, offset + limit);
+  const nextOffset = ranked.length > offset + limit ? offset + limit : null;
+  confirmed = page;
+  if (verify && page.length) {
+    // Verify everything that can be shown, in parallel batches; never append an unverified tail.
+    const v = await verifyInChunks(query, plan, page);
+    v.usages.forEach(addUsage);
+    verifyMs = v.ms;
+    if (v.failedChunks < Math.ceil(page.length / VERIFY_CHUNK)) {
+      const judged = page.map(i => ({ ...i, verdict: v.verdicts.get(i.product_id)?.v, why: v.verdicts.get(i.product_id)?.why }));
       const kept = judged.filter(i => i.verdict !== "no");
-      // Keep the requested numeric order; for relevance, strong fits first.
+      // Keep the requested numeric order; for relevance, strong fits first, unjudged last.
       confirmed = plan.sort.field === "relevance"
-        ? [...kept.filter(i => i.verdict !== "ok"), ...kept.filter(i => i.verdict === "ok")]
+        ? [...kept.filter(i => i.verdict === "good"), ...kept.filter(i => i.verdict === "ok"), ...kept.filter(i => !i.verdict)]
         : kept;
-    } catch {
-      // Verification is a refinement; on failure keep the executor's results.
     }
+    // Every batch failed: verification is a refinement, so keep the executor's order.
   }
 
   const isRelaxed = (i: PlannedSearchItem) => i.notes.some(n => n.startsWith("relaxed "));
   confirmed = [...confirmed.filter(i => !isRelaxed(i)), ...confirmed.filter(isRelaxed).map(i => ({ ...i, relaxed: true }))];
 
   const shown = diversify(confirmed).slice(0, limit);
-  const extra = unconfirmed.slice(0, 12);
+  // Unconfirmed near-misses belong to the first page only.
+  const extra = offset === 0 ? unconfirmed.slice(0, 12) : [];
   const withSizes = await attachSizes(sql, [...shown, ...extra]).catch(() => [...shown, ...extra]);
   const items = withSizes.slice(0, shown.length);
   const summary = items.length
@@ -185,7 +192,7 @@ export async function plannedSearch(query: string, opts: { preferences?: Prefere
 
   return {
     query, plan, items, unconfirmed: withSizes.slice(shown.length), relaxed: exec.relaxed, counts: exec.counts,
-    reference: exec.reference, summary, dropped, llm,
+    reference: exec.reference, summary, dropped, llm, next_offset: nextOffset,
     timings: { plan_ms: planMs, embed_ms: embedMs, execute_ms: exec.ms, verify_ms: verifyMs, total_ms: Date.now() - started, plan_cached: planCached },
   };
 }

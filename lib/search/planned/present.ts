@@ -42,6 +42,8 @@ export type SearchResponse = {
   items: SearchCard[];
   unconfirmed: SearchCard[];
   timings: PlannedSearchResult["timings"];
+  /** Pass as `offset` to fetch the next verified page; null when there is none. */
+  next_offset: number | null;
 };
 
 const SORT_CHIP: Partial<Record<NumericField, [string, string]>> = {
@@ -194,5 +196,6 @@ export function presentSearch(r: PlannedSearchResult): SearchResponse {
     // Strict (allergy) searches never surface unconfirmed products.
     unconfirmed: r.plan.strict ? [] : r.unconfirmed.slice(0, 8).map(it => toCard(it, r.plan)),
     timings: r.timings,
+    next_offset: r.next_offset,
   };
 }
