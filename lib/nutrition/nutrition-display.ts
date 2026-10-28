@@ -1,3 +1,4 @@
+import { parsePack } from "@/lib/facts/pack";
 import { formatPackLabel, parsePackGrams, scaleFromPer100g } from "@/lib/products/pack-nutrition";
 import { perServeFromNutrition } from "@/lib/scoring/per-serve";
 import type { PerServeNutrition } from "@/lib/scoring/serving";
@@ -35,12 +36,15 @@ export type ResolvedNutritionRow = {
   unit: string;
   emphasis: boolean;
   indent: boolean;
+  basisUnit?: "g" | "ml";
   per100: number | undefined;
   perServe: number | undefined;
   perPack: number | undefined;
 };
 
 export type NutritionDisplayContext = {
+  basisUnit: "g" | "ml";
+  serveQuantity: number | null;
   rows: ResolvedNutritionRow[];
   hasServe: boolean;
   serveG: number | null;
@@ -102,6 +106,21 @@ export function resolveNutritionDisplay(
   nutrition: ProductNutrition,
   netWeight?: string | null,
 ): NutritionDisplayContext {
+  if (nutritionBasisUnit(nutrition) === "ml") {
+    const pack = parsePack(netWeight);
+    const ml = nutrition.extra?.serving_size_ml;
+    const serving = typeof ml === "number" && Number.isFinite(ml) && ml > 0 ? ml : null;
+    const packMl = pack?.unit === "ml" ? pack.qty : null;
+    const rows = NUTRITION_ROW_DEFS.flatMap(def => {
+      const value = nutrition[String(def.key).replace(/_100g$/, "_100ml") as keyof ProductNutrition];
+      if (typeof value !== "number" || !Number.isFinite(value)) return [];
+      return [{ id: def.key, label: def.label, unit: def.unit, emphasis: Boolean(def.emphasis), indent: def.parentKey != null,
+        basisUnit: "ml" as const, per100: value, perServe: serving == null ? undefined : value * serving / 100,
+        perPack: packMl == null ? undefined : value * packMl / 100 }];
+    });
+    return { rows, basisUnit: "ml", serveQuantity: serving, hasServe: serving != null, serveG: null,
+      hasPack: packMl != null, packGrams: null, packLabel: netWeight?.trim() || "pack" };
+  }
   const perServe = perServeFromNutrition(nutrition);
   const packGrams = parsePackGrams(netWeight);
   const packLabel = formatPackLabel(netWeight, packGrams);
@@ -125,5 +144,10 @@ export function resolveNutritionDisplay(
     };
   });
 
-  return { rows, hasServe, serveG, hasPack, packGrams, packLabel };
+  return { rows, basisUnit: "g", serveQuantity: serveG, hasServe, serveG, hasPack, packGrams, packLabel };
+}
+
+/** Basis is explicit in field names; volume never silently becomes mass. */
+export function nutritionBasisUnit(nutrition: ProductNutrition | null | undefined): "g" | "ml" {
+  return Object.entries(nutrition ?? {}).some(([key,value]) => key.endsWith("_100ml") && typeof value === "number" && Number.isFinite(value)) ? "ml" : "g";
 }

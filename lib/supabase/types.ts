@@ -58,6 +58,20 @@ export interface ProductNutrition {
   calcium_mg_100g?: number;
   iron_mg_100g?: number;
   caffeine_mg_100g?: number;
+  /** Explicit volume-based label values; never interpreted as grams. */
+  energy_kcal_100ml?: number;
+  protein_g_100ml?: number;
+  fat_g_100ml?: number;
+  saturated_fat_g_100ml?: number;
+  trans_fat_g_100ml?: number;
+  carbs_g_100ml?: number;
+  sugar_g_100ml?: number;
+  added_sugar_g_100ml?: number;
+  fiber_g_100ml?: number;
+  sodium_mg_100ml?: number;
+  calcium_mg_100ml?: number;
+  iron_mg_100ml?: number;
+  caffeine_mg_100ml?: number;
   /** Free-form, e.g. when a value didn't fit the schema. */
   extra?: Record<string, number | string | null>;
   /** Where the values came from.
