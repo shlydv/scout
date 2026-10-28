@@ -47,7 +47,7 @@ export function PdpNutritionGlance({
   subcategory?: string | null;
   roleCohort?: RoleCohort | null;
 }) {
-  const { rows, hasServe, serveG, packLabel } = resolveNutritionDisplay(nutrition, netWeight);
+  const { rows, hasServe, serveQuantity, basisUnit, packLabel } = resolveNutritionDisplay(nutrition, netWeight);
   const review = nutritionReviewStatus(nutrition);
   const underReview = review === "partial" || review === "label_conflict";
   if (!rows.length) {
@@ -69,7 +69,7 @@ export function PdpNutritionGlance({
   const metaParts = [
     packLabel !== "pack" ? packLabel : null,
     priceInr != null && priceInr > 0 ? `₹${priceInr}` : null,
-    hasServe && serveG ? `${serveG}g serve` : null,
+    hasServe && serveQuantity ? `${serveQuantity}${basisUnit} serve` : null,
   ].filter(Boolean);
 
   return (

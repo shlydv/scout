@@ -1,27 +1,18 @@
-/** Parse a serving-size string into grams (or ml treated as ~1g/ml). Returns null if unknown. */
+/** Parse a serving-size string into declared grams; volume needs an explicit mass equivalent. Returns null if unknown. */
 export function parseServingSizeGrams(servingSize: string | null | undefined): number | null {
   if (!servingSize?.trim()) return null;
   const s = servingSize.trim().toLowerCase();
 
   const combined = s.match(
-    /(\d+(?:\.\d+)?)\s*(?:g|gm|gram|grams|ml|l|kg)\b/i,
+    /(\d+(?:\.\d+)?)\s*(?:g|gm|gram|grams|kg)\b/i,
   );
-  if (!combined) {
-    const numOnly = s.match(/^(\d+(?:\.\d+)?)\s*$/);
-    if (numOnly) {
-      const n = Number(numOnly[1]);
-      return Number.isFinite(n) && n > 0 && n <= 2000 ? n : null;
-    }
-    return null;
-  }
+  if (!combined) return null;
 
   const n = Number(combined[1]);
   if (!Number.isFinite(n) || n <= 0) return null;
 
   const unit = combined[0].replace(combined[1], "").trim().toLowerCase();
   if (unit.includes("kg")) return n * 1000 <= 5000 ? n * 1000 : null;
-  if (unit === "l" || unit.startsWith("l ")) return n * 1000 <= 5000 ? n * 1000 : null;
-  if (unit.includes("ml")) return n <= 2000 ? n : null;
   if (unit.includes("g")) return n <= 2000 ? n : null;
 
   return n <= 2000 ? n : null;

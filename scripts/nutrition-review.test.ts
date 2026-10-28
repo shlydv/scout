@@ -130,3 +130,26 @@ test("swap rankings and impact never assign derived scores to reviewed incomplet
   assert.equal(impact.sugarNowG, null);
   assert.equal(impact.scoreAfter, 70);
 });
+
+test('volume labels preserve their basis, servings and packs without gram-based scoring or thresholds', async () => {
+  const { resolveNutritionDisplay } = await import('../lib/nutrition/nutrition-display');
+  const { judgeNutrientRow } = await import('../lib/nutrition/nutrient-judgment');
+  const { parsePackGrams } = await import('../lib/products/pack-nutrition');
+  const { parseServingSizeGrams } = await import('../lib/ocr/serving-size-grams');
+  const { hasScoreableNutrition } = await import('../lib/scoring/persist-core');
+  const n=reviewed({ energy_kcal_100ml: 80, protein_g_100ml: 2, carbs_g_100ml: 18 });
+  n.extra!.serving_size_ml=65;
+  const display=resolveNutritionDisplay(n,'5 x 65 ml');
+  assert.equal(display.basisUnit,'ml'); assert.equal(display.serveG,null);
+  assert.equal(display.serveQuantity,65); assert.equal(display.packGrams,null);
+  const energy=display.rows.find(r=>r.id==='energy_kcal_100g')!;
+  assert.equal(energy.perServe,52); assert.equal(energy.perPack,260);
+  assert.equal(judgeNutrientRow(energy),null); assert.equal(hasScoreableNutrition(n),false);
+  assert.equal(parsePackGrams('1 L'),null); assert.equal(parsePackGrams('2 x 50 ml'),null);
+  assert.equal(parsePackGrams('2 x 50 g'),100);
+  assert.equal(parseServingSizeGrams('65 ml'),null); assert.equal(parseServingSizeGrams('65 ml (70 g)'),70);
+  const html=renderToStaticMarkup(createElement(NutritionFactsTable,{nutrition:n,netWeight:'5 x 65 ml'}));
+  assert.match(html,/Per 100ml/); assert.match(html,/65ml/); assert.doesNotMatch(html,/Per 100g|65g/);
+  assert.equal(resolveNutritionDisplay(n,'200 g').hasPack,false);
+  const changed={...n,protein_g_100ml:3};assert.equal(nutritionReviewStatus(changed),null);
+});
