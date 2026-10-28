@@ -3,7 +3,7 @@ import type { VerdictId } from "@/lib/scoring/verdict";
 import { ScoreRing } from "@/components/verdict-chips";
 import { buildAutoSentence } from "@/lib/scoring/auto-sentence";
 import { VERDICT_COLORS, verdictTitle } from "@/lib/scoring/verdict-display";
-import { takeLines, bucketTake, actionableWatchLine } from "@/components/product-take-panel";
+import { takeLines, bucketTake } from "@/components/product-take-panel";
 import { rankPhrase } from "@/lib/utils";
 
 /** One deterministic Scout verdict, supported by label facts and category rank. */
@@ -15,8 +15,6 @@ export function VerdictTakeCard({
   categorySize,
   categoryLabel,
   sublabelIds,
-  deepseekChips,
-  deepseekWhy,
   explanation,
   className,
 }: {
@@ -27,8 +25,6 @@ export function VerdictTakeCard({
   categorySize?: number | null;
   categoryLabel?: string | null;
   sublabelIds?: string[] | null;
-  deepseekChips?: string[] | null;
-  deepseekWhy?: string | null;
   explanation?: ScoreExplanation | null;
   className?: string;
 }) {
@@ -36,12 +32,12 @@ export function VerdictTakeCard({
   const tc = VERDICT_COLORS[verdict].fg;
   const rank = rankPhrase(categoryRank ?? null, categorySize ?? null, categoryLabel ?? null);
 
-  const autoSentence = buildAutoSentence(verdict, sublabelIds, deepseekChips);
-  const lines = takeLines(explanation, deepseekWhy);
+  const autoSentence = buildAutoSentence(verdict, sublabelIds);
+  const lines = takeLines(explanation);
   const { good, watch } = bucketTake(lines);
   const items = [
     ...good.map((line) => ({ line, tone: "good" as const })),
-    ...watch.map((line) => ({ line: actionableWatchLine(line), tone: "watch" as const })),
+    ...watch.map((line) => ({ line, tone: "watch" as const })),
   ].slice(0, 4);
 
   if (!autoSentence && !items.length) return null;
