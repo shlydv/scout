@@ -1,6 +1,7 @@
 "use client";
 
 import { productHref } from "@/lib/shopping/links";
+import { canScoreReviewedNutrition } from "@/lib/nutrition/review";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeftRight, ChevronDown, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
@@ -220,6 +221,7 @@ export function BasketView() {
       </div>
 
       {contextsKey !== "[]" && <p className="text-sm text-(--color-fg-muted)">Swaps keep your saved search requirements. If they cannot be confirmed, no swaps are shown.</p>}
+      {lines.some(({ product }) => !canScoreReviewedNutrition(product)) && <p className="text-sm text-(--color-fg-muted)">Items under nutrition review are excluded from scores and nutrition averages.</p>}
 
       <BasketHealthReport analysis={analysis} impact={swapImpact} swapsLoading={swapsLoading} />
 
@@ -236,7 +238,7 @@ export function BasketView() {
             product={product}
             qty={qty}
             fit={
-              goal === "balanced"
+              goal === "balanced" || !canScoreReviewedNutrition(product)
                 ? null
                 : computeGoalFit(goal, goalFitInputs(product))
             }

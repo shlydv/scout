@@ -1,3 +1,4 @@
+import { canScoreReviewedNutrition } from "@/lib/nutrition/review";
 import type { DietMode } from "@/lib/diet/types";
 import { computeGoalFit, goalFitInputs } from "@/lib/goals/fit";
 import type { GoalId } from "@/lib/goals/types";
@@ -961,6 +962,7 @@ async function paginateGoalCatalog(opts: {
   }
 
   const ranked = pool
+    .filter(canScoreReviewedNutrition)
     .map((p) => ({ p, fit: computeGoalFit(goal, goalFitInputs(p)).fit }))
     .sort((a, b) => {
       const fitDiff = b.fit - a.fit;

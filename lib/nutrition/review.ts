@@ -25,3 +25,15 @@ export function nutritionReviewStatus(nutrition: ProductNutrition | null | undef
   } catch { return null; }
   return status;
 }
+
+/** Reviewed panels must not acquire derived scores from missing-value defaults. */
+export function canScoreReviewedNutrition(product: {
+  nutrition: ProductNutrition | null;
+  core_scores?: { score?: number | null } | null;
+}): boolean {
+  const status = nutritionReviewStatus(product.nutrition);
+  if (!status) return true;
+  if (status !== "verified" || typeof product.core_scores?.score !== "number" || !Number.isFinite(product.core_scores.score)) return false;
+  return (["energy_kcal_100g", "protein_g_100g", "carbs_g_100g", "fat_g_100g", "sugar_g_100g", "sodium_mg_100g"] as const)
+    .every(key => typeof product.nutrition?.[key] === "number" && Number.isFinite(product.nutrition[key]));
+}

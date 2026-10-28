@@ -1,4 +1,5 @@
 import { computeGoalFit, goalFitInputs } from "@/lib/goals/fit";
+import { canScoreReviewedNutrition } from "@/lib/nutrition/review";
 import { GOAL_PROFILES, type GoalId } from "./types";
 
 export type GoalFitRow = {
@@ -38,6 +39,7 @@ export function buildProductGoalRows(
     | "attributes"
   >,
 ): GoalFitRow[] {
+  if (!canScoreReviewedNutrition(product)) return [];
   const inputs = goalFitInputs(product);
   return PDP_GOAL_ORDER.map((id) => {
     const profile = GOAL_PROFILES.find((g) => g.id === id)!;
@@ -56,6 +58,7 @@ export function buildProductGoalRows(
 export function buildOverallGoalSummary(
   product: Pick<ProductListItem, "core_scores" | "nutrition" | "ingredients_raw">,
 ): { fit: number; grade: Grade; reasons: string[] } | null {
+  if (!canScoreReviewedNutrition(product)) return null;
   const score = product.core_scores?.score;
   if (score == null) return null;
   const reasons: string[] = [];
