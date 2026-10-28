@@ -59,6 +59,7 @@ export type NutritionDisplayContext = {
 export function formatNutrientValue(v: number | null | undefined): string {
   if (v == null) return "—";
   if (v === 0) return "0";
+  if (v > 0 && v < 0.01) return v.toLocaleString("en-IN", { maximumSignificantDigits: 2 });
   if (v < 0.1) return v.toFixed(2).replace(/\.?0+$/, "");
   if (v < 10) return v.toFixed(1).replace(/\.0$/, "");
   return Math.round(v).toString();
