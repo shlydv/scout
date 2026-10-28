@@ -153,3 +153,10 @@ test('volume labels preserve their basis, servings and packs without gram-based 
   assert.equal(resolveNutritionDisplay(n,'200 g').hasPack,false);
   const changed={...n,protein_g_100ml:3};assert.equal(nutritionReviewStatus(changed),null);
 });
+
+test("small declared nonzero quantities never render as exact zero", async () => {
+  const {formatNutrientValue}=await import("../lib/nutrition/nutrition-display");
+  assert.equal(formatNutrientValue(0),"0");
+  assert.equal(formatNutrientValue(0.003),"0.003");
+  assert.equal(formatNutrientValue(0.00015),"0.00015");
+});
