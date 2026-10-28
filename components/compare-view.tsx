@@ -1,5 +1,6 @@
 "use client";
 
+import { rankPhrase } from "@/lib/utils";
 import { productHref } from "@/lib/shopping/links";
 import Image from "next/image";
 import Link from "next/link";
@@ -140,6 +141,7 @@ export function CompareView() {
           <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}>
             {products.map((p) => {
               const core = p.core_scores;
+              const rank = rankPhrase(core?.category_rank ?? null, core?.category_size ?? null, core?.category_label ?? null);
               const verdict = core
                 ? resolveProductVerdict({
                     verdict: core.verdict,
@@ -157,9 +159,9 @@ export function CompareView() {
                         <ScoreRing score={core.score} color={tierAccentForVerdict(verdict)} />
                         <VerdictBadge verdict={verdict} />
                       </div>
-                      {core.relative_score != null && (core.cohort_size ?? 0) >= 8 ? (
+                      {rank ? (
                         <p className="text-[11px] leading-snug text-(--color-fg-muted)">
-                          Better than {core.relative_score}% of {core.cohort_size} similar products
+                          {rank}
                         </p>
                       ) : null}
                     </>
