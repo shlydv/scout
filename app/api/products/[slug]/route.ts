@@ -25,7 +25,7 @@ function mapSwap(s: {
     name: string;
     brand: string | null;
     image_urls: string[];
-    core_scores: { score: number; grade: string } | null;
+    core_scores: { score: number; absolute_score?: number | null; verdict?: string | null; grade: string } | null;
     price_inr: number | null;
   };
   goalFit: number;
@@ -36,7 +36,8 @@ function mapSwap(s: {
     name: s.product.name,
     brand: s.product.brand,
     image: s.product.image_urls[0] ?? null,
-    score: s.product.core_scores?.score ?? null,
+    score: s.product.core_scores?.absolute_score ?? s.product.core_scores?.score ?? null,
+    verdict: resolveProductVerdict({ verdict: s.product.core_scores?.verdict, score: s.product.core_scores?.absolute_score ?? s.product.core_scores?.score, name: s.product.name }),
     grade: s.product.core_scores?.grade ?? null,
     price_inr: displayPriceInr(s.product) ?? s.product.price_inr,
     goal_fit: s.goalFit,
