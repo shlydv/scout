@@ -1,3 +1,4 @@
+import { nutritionReviewStatus } from "@/lib/nutrition/review";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { countNutritionFields } from "@/lib/nutrition/completeness";
 import { nutritionHasCriticalAnomalies } from "@/lib/nutrition/anomaly";
@@ -80,6 +81,13 @@ export function hasScoreableNutrition(
   nutrition: ProductNutrition | Record<string, unknown> | null,
 ): boolean {
   if (!nutrition || typeof nutrition !== "object") return false;
+  // A manually reviewed incomplete panel must not regain a score in a later batch.
+  const reviewed = nutritionReviewStatus(nutrition as ProductNutrition);
+  if (reviewed) {
+    if (reviewed !== "verified") return false;
+    const required = ["energy_kcal_100g", "protein_g_100g", "carbs_g_100g", "fat_g_100g", "sugar_g_100g", "sodium_mg_100g"] as const;
+    if (required.some(key => typeof nutrition[key] !== "number" || !Number.isFinite(nutrition[key]))) return false;
+  }
   // Single stray field (e.g. only bogus protein) must not drive a score.
   if (countNutritionFields(nutrition) < 2) return false;
   return true;

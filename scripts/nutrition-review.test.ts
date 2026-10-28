@@ -43,3 +43,16 @@ test("missing evidence and stale booleans do not authorize bypass", () => {
   assert.equal(nutritionReviewStatus({ ...jerky, extra: { manual_review_status: "verified" } }), null);
   assert.equal(nutritionReviewStatus({ ...jerky, extra: { ...jerky.extra, manual_review_sources: "[]" } }), null);
 });
+
+
+test("reviewed panels missing sugar or sodium cannot regain a score", async () => {
+  const { hasScoreableNutrition } = await import("../lib/scoring/persist-core");
+  assert.equal(hasScoreableNutrition(jerky), false);
+  assert.equal(hasScoreableNutrition(reviewed({ protein_g_100g: 1, carbs_g_100g: 2 }, "partial")), false);
+  assert.equal(hasScoreableNutrition(reviewed({ energy_kcal_100g: 350, protein_g_100g: 10, carbs_g_100g: 50, fat_g_100g: 10, sugar_g_100g: 5, sodium_mg_100g: 100 })), true);
+});
+test("explicit mass-based serving wins over stale computed default", async () => {
+  const { resolveServingGrams } = await import("../lib/scoring/serving");
+  assert.deepEqual(resolveServingGrams({ nutrition: { extra: { serving_size_g: 25, serving_size_unit: "g", serving_size_value: 3.2 } } }), { serving_g: 3.2, source: "label_extra" });
+  assert.notEqual(resolveServingGrams({ nutrition: { extra: { serving_size_unit: "ml", serving_size_value: 65 } }, name: "Ice Cream" }).serving_g, 65);
+});
