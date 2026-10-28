@@ -1,5 +1,6 @@
 "use client";
 
+import { productHref } from "@/lib/shopping/links";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeftRight, ChevronDown, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
@@ -31,6 +32,7 @@ export function BasketView() {
   const [entries, setEntries] = useState<ReturnType<typeof readBasket>>([]);
   const [catalog, setCatalog] = useState<ProductListItem[]>([]);
   const [swapsBySlug, setSwapsBySlug] = useState<Record<string, SwapSuggestion[]>>({});
+  const [checkedShoppingContext, setCheckedShoppingContext] = useState<string | undefined>();
   const [swapsLoading, setSwapsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [fetchFailed, setFetchFailed] = useState(false);
@@ -102,6 +104,8 @@ export function BasketView() {
     [entries],
   );
 
+  const contextsKey = JSON.stringify([...new Set(entries.flatMap(e => e.shoppingContexts ?? []))].sort());
+
   useEffect(() => {
     if (!slugsKey) {
       setSwapsBySlug({});
@@ -109,11 +113,12 @@ export function BasketView() {
     }
     let cancelled = false;
     setSwapsLoading(true);
-    const dietQ = diet !== "any" ? `&diet=${diet}` : "";
-    fetch(`/api/swaps?slugs=${encodeURIComponent(slugsKey)}&goal=${goal}${dietQ}`)
+    setCheckedShoppingContext(undefined);
+    setSwapsBySlug({});
+    fetch("/api/swaps", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slugs: slugsKey.split(","), goal, diet, contexts: JSON.parse(contextsKey) }) })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((data: { swaps: Record<string, SwapSuggestion[]> }) => {
-        if (!cancelled) setSwapsBySlug(data.swaps ?? {});
+      .then((data: { swaps: Record<string, SwapSuggestion[]>; shoppingContext?: string }) => {
+        if (!cancelled) { setSwapsBySlug(data.swaps ?? {}); setCheckedShoppingContext(data.shoppingContext); }
       })
       .catch(() => {
         if (!cancelled) setSwapsBySlug({});
@@ -124,7 +129,7 @@ export function BasketView() {
     return () => {
       cancelled = true;
     };
-  }, [slugsKey, goal, diet]);
+  }, [slugsKey, contextsKey, goal, diet]);
 
   const lines = useMemo(() => {
     const bySlug = new Map(catalog.map((p) => [p.slug, p]));
@@ -212,6 +217,8 @@ export function BasketView() {
         </p>
       </div>
 
+      {contextsKey !== "[]" && <p className="text-sm text-(--color-fg-muted)">Swaps keep your saved search requirements. If they cannot be confirmed, no swaps are shown.</p>}
+
       <BasketHealthReport analysis={analysis} impact={swapImpact} swapsLoading={swapsLoading} />
 
       <div className="space-y-2">
@@ -222,6 +229,7 @@ export function BasketView() {
       <ul className="divide-y divide-(--color-line) rounded-2xl border border-(--color-line) bg-(--color-panel)">
         {lines.map(({ product, qty }) => (
           <CartLine
+              shoppingContext={contextsKey !== "[]" ? checkedShoppingContext ?? "unavailable" : undefined}
             key={product.id}
             product={product}
             qty={qty}
@@ -295,7 +303,9 @@ function CartLine({
   qty,
   fit,
   swaps,
+  shoppingContext,
 }: {
+  shoppingContext?: string;
   product: ProductListItem;
   qty: number;
   fit: ReturnType<typeof computeGoalFit> | null;
@@ -309,7 +319,7 @@ function CartLine({
     <li className="p-4">
       <div className="flex gap-3 sm:gap-4">
         <Link
-          href={`/product/${product.slug}`}
+          href={productHref(product.slug, shoppingContext)}
           className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-(--color-line) bg-(--color-bg-soft) sm:h-[4.5rem] sm:w-[4.5rem]"
         >
           {product.image_urls[0] ? (
@@ -330,7 +340,7 @@ function CartLine({
           ) : null}
           <div className="flex items-start justify-between gap-2">
             <Link
-              href={`/product/${product.slug}`}
+              href={productHref(product.slug, shoppingContext)}
               className="line-clamp-2 text-[14px] font-medium leading-snug text-(--color-fg) hover:text-(--color-accent)"
             >
               {product.name}
@@ -408,7 +418,7 @@ function CartLine({
                 className="u-lift flex items-center gap-3 rounded-xl border border-(--color-line) bg-(--color-bg-soft) p-2.5"
               >
                 <Link
-                  href={`/product/${alt.slug}`}
+                  href={productHref(alt.slug, shoppingContext)}
                   className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-(--color-panel)"
                 >
                   {alt.image_urls[0] ? (
@@ -423,7 +433,7 @@ function CartLine({
                 </Link>
                 <div className="min-w-0 flex-1">
                   <Link
-                    href={`/product/${alt.slug}`}
+                    href={productHref(alt.slug, shoppingContext)}
                     className="line-clamp-1 text-[13px] font-medium text-(--color-fg) hover:text-(--color-accent)"
                   >
                     {alt.name}

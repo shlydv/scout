@@ -19,7 +19,7 @@ const cachedShelf = unstable_cache(
     if (data.degraded || data.items.length === 0) throw new Error("shelf came back empty");
     return data;
   },
-  ["goal-shelf-v2"],
+  ["goal-shelf-v3-constraints"],
   { revalidate: 86400 },
 );
 

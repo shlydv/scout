@@ -1,5 +1,6 @@
 "use client";
 
+import { productHref } from "@/lib/shopping/links";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -40,12 +41,17 @@ const NUTRIENT_ROWS: NutrientRow[] = [
 ];
 
 export function CompareView() {
+  const [contexts, setContexts] = useState<Record<string, string>>({});
   const [slugs, setSlugs] = useState<string[]>([]);
   const [products, setProducts] = useState<ProductListItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const sync = () => setSlugs(readCompare().map((e) => e.slug));
+    const sync = () => {
+      const entries = readCompare();
+      setSlugs(entries.map(e => e.slug));
+      setContexts(Object.fromEntries(entries.filter(e => e.shoppingContext).map(e => [e.slug, e.shoppingContext!])));
+    };
     sync();
     window.addEventListener(COMPARE_EVENT, sync);
     return () => window.removeEventListener(COMPARE_EVENT, sync);
@@ -124,7 +130,7 @@ export function CompareView() {
           style={{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}
         >
           {products.map((p) => (
-            <ProductHeader key={p.id} product={p} />
+            <ProductHeader key={p.id} product={p} shoppingContext={contexts[p.slug]} />
           ))}
         </div>
 
@@ -296,7 +302,7 @@ export function CompareView() {
   );
 }
 
-function ProductHeader({ product }: { product: ProductListItem }) {
+function ProductHeader({ product, shoppingContext }: { product: ProductListItem; shoppingContext?: string }) {
   const thumb = product.image_urls?.[0] ?? null;
   return (
     <div className="relative">
@@ -308,7 +314,7 @@ function ProductHeader({ product }: { product: ProductListItem }) {
       >
         <X className="h-3.5 w-3.5" />
       </button>
-      <Link href={`/product/${product.slug}`} className="group block">
+      <Link href={productHref(product.slug, shoppingContext)} className="group block">
         <div className="relative aspect-square overflow-hidden rounded-2xl photo-frame shadow-[0_1px_2px_rgba(60,40,20,0.05)] transition duration-200 ease-out group-hover:-translate-y-0.5 group-hover:shadow-[0_16px_34px_-20px_rgba(60,40,20,0.34)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4)] dark:group-hover:shadow-[0_16px_34px_-18px_rgba(0,0,0,0.6)]">
           {thumb ? (
             <Image
