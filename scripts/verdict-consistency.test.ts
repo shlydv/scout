@@ -57,3 +57,10 @@ test('explanation cannot recommend a regular buy for a stored skip verdict', asy
   assert.deepEqual(result.tradeoffs,[VERDICT_LABELS.skip.description]);
   assert.doesNotMatch(result.tradeoffs.join(' '),/regular buy|fine once|occasional treat/i);
 });
+
+test('hero facts do not append a competing frequency recommendation', () => {
+  const html=renderToStaticMarkup(createElement(VerdictTakeCard,{verdict:'daily_staple',score:82,explanation:{reasons:['Moderate fat'],tradeoffs:[]}}));
+  assert.ok(html.includes('Daily staple'));
+  assert.ok(html.includes('Moderate fat'));
+  assert.doesNotMatch(html,/fine occasionally, not daily/);
+});
