@@ -1,6 +1,8 @@
+import { nutritionReviewStatus } from "@/lib/nutrition/review";
 import type { ProductNutrition } from "@/lib/supabase/types";
 
 export type NutritionAnomalyCode =
+  | "manual_review_incomplete"
   | "macro_mass_exceeds_100g"
   | "kcal_mismatch"
   | "category_protein_high"
@@ -110,7 +112,11 @@ export function detectNutritionAnomalies(
   nutrition: ProductNutrition,
   ctx: NutritionContext,
 ): NutritionAnomaly[] {
+  const reviewStatus = nutritionReviewStatus(nutrition);
   const out: NutritionAnomaly[] = [];
+  if (reviewStatus === "partial" || reviewStatus === "label_conflict") {
+    out.push({ code: "manual_review_incomplete", severity: "critical", message: "Label review found unresolved or contradictory nutrition; do not infer missing values or score this product." });
+  }
   const sum = macroSum(nutrition);
 
   if (sum > 100) {
@@ -344,7 +350,14 @@ export function detectNutritionAnomalies(
     }
   }
 
-  return out;
+  // A source-verified label can legitimately exceed generic category expectations.
+  // Physical inconsistencies remain visible even on a reviewed record.
+  const categoryGuesses = new Set<NutritionAnomalyCode>([
+    "category_protein_high", "category_protein_critical", "category_oil_macros",
+    "protein_carbs_swap", "kcal_protein_swap", "decimal_anomaly",
+    "energy_high_low_protein", "energy_per_serve_misread", "per_pack_not_per_100g",
+  ]);
+  return reviewStatus === "verified" ? out.filter(a => !categoryGuesses.has(a.code)) : out;
 }
 
 export function nutritionHasCriticalAnomalies(
@@ -498,6 +511,7 @@ export function tryCorrectNutrition(
   nutrition: ProductNutrition,
   ctx: NutritionContext,
 ): ProductNutrition | null {
+  if (nutritionReviewStatus(nutrition)) return nutrition;
   if (!nutritionHasCriticalAnomalies(nutrition, ctx)) return nutrition;
 
   const lowEnergyFixed = tryFixLowEnergy(nutrition, ctx);
@@ -578,6 +592,7 @@ export function sanitizeNutrition(
   ctx: NutritionContext,
 ): ProductNutrition | null {
   if (!nutrition) return null;
+  if (nutritionReviewStatus(nutrition)) return nutrition;
 
   const corrected = tryCorrectNutrition(nutrition, ctx) ?? nutrition;
   const criticalAnomalies = detectNutritionAnomalies(corrected, ctx).filter(
@@ -621,6 +636,7 @@ export async function sanitizeNutritionWithLlm(
   cacheKey?: string,
 ): Promise<ProductNutrition | null> {
   if (!nutrition) return null;
+  if (nutritionReviewStatus(nutrition)) return nutrition;
 
   const corrected = tryCorrectNutrition(nutrition, ctx) ?? nutrition;
   const criticalAnomalies = detectNutritionAnomalies(corrected, ctx).filter(
