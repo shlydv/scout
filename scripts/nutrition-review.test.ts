@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { NutritionFactsTable } from "../components/nutrition-facts-table";
+import { PdpNutritionGlance } from "../components/pdp-nutrition-glance";
 import { nutritionReviewSnapshot, nutritionReviewStatus } from "../lib/nutrition/review";
 import { detectNutritionAnomalies, sanitizeNutrition, sanitizeNutritionWithLlm, tryCorrectNutrition } from "../lib/nutrition/anomaly";
 import { reconcileNutrition, reconcileNutritionWithLlm } from "../lib/nutrition/sanity";
@@ -60,6 +61,11 @@ test("partial and conflicting panels explain why values and scores are withheld"
   const emptyPartial = renderToStaticMarkup(createElement(NutritionFactsTable, { nutrition: reviewed({}, "partial") }));
   assert.match(emptyPartial, /Label verification is incomplete/);
   assert.doesNotMatch(emptyPartial, /No nutrition values on file yet/);
+  const emptyPdp = renderToStaticMarkup(createElement(PdpNutritionGlance, { nutrition: reviewed({}, "label_conflict"), name: "Conflicting labels" }));
+  assert.match(emptyPdp, /Available labels disagree/);
+  const partialPdp = renderToStaticMarkup(createElement(PdpNutritionGlance, { nutrition: reviewed({ protein_g_100g: 27.27 }, "partial"), name: "Partially verified label" }));
+  assert.match(partialPdp, /Nutrition is under review/);
+  assert.doesNotMatch(partialPdp, /do not infer/);
 });
 test("missing evidence and stale booleans do not authorize bypass", () => {
   assert.equal(nutritionReviewStatus({ ...jerky, extra: { manual_review_status: "verified" } }), null);
