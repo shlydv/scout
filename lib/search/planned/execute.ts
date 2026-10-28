@@ -102,6 +102,7 @@ const NUTRI: Record<string, string> = {
 /** Label physics: macros cannot exceed 100 g and energy must roughly equal 4p + 4c + 9f. */
 const NUTRITION_PLAUSIBLE = `(
   not coalesce(f.nutrition_suspect, false)
+  and coalesce(p.nutrition->'extra'->>'manual_review_status', '') not in ('partial', 'label_conflict')
   and coalesce((p.nutrition->>'protein_g_100g')::numeric, 0) + coalesce((p.nutrition->>'fat_g_100g')::numeric, 0)
     + coalesce((p.nutrition->>'carbs_g_100g')::numeric, 0) <= 105
   and (p.nutrition->>'energy_kcal_100g' is null or p.nutrition->>'protein_g_100g' is null

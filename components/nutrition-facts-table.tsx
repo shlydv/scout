@@ -146,6 +146,7 @@ export function NutritionFactsTable({
         </p>
       ) : null}
       {basisUnit === "ml" && <p className="border-b border-(--color-line) px-3 py-2 text-xs text-(--color-fg-muted)">The label is declared by volume. No gram conversion or Scout score is inferred.</p>}
+      {typeof nutrition.extra?.label_basis_note === "string" && <p className="border-b border-(--color-line) px-3 py-2 text-xs text-(--color-fg-muted)">{nutrition.extra.label_basis_note}</p>}
       <table className="w-full text-[12px]">
         <thead>
           <tr className="border-b border-(--color-line) bg-(--color-bg-soft) text-[10px] uppercase tracking-[0.12em] text-(--color-fg-dim)">

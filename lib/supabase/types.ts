@@ -58,6 +58,8 @@ export interface ProductNutrition {
   calcium_mg_100g?: number;
   iron_mg_100g?: number;
   caffeine_mg_100g?: number;
+  potassium_mg_100g?: number;
+  cholesterol_mg_100g?: number;
   /** Explicit volume-based label values; never interpreted as grams. */
   energy_kcal_100ml?: number;
   protein_g_100ml?: number;
@@ -72,6 +74,8 @@ export interface ProductNutrition {
   calcium_mg_100ml?: number;
   iron_mg_100ml?: number;
   caffeine_mg_100ml?: number;
+  potassium_mg_100ml?: number;
+  cholesterol_mg_100ml?: number;
   /** Free-form, e.g. when a value didn't fit the schema. */
   extra?: Record<string, number | string | null>;
   /** Where the values came from.
