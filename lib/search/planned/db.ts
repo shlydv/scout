@@ -13,7 +13,9 @@ export function searchSql(): Sql {
   const url = process.env.SUPABASE_DB_URL?.trim() || process.env.SCOUT_RO_DB_URL?.trim();
   if (!url) throw new Error("SUPABASE_DB_URL is not configured");
   pool = postgres(url, {
-    max: 6, idle_timeout: 30, connect_timeout: 10, prepare: false,
+    // Each serverless instance owns a pool; keep idle sessions from exhausting
+    // the shared database limit across previews and concurrent page renders.
+    max: 2, idle_timeout: 5, connect_timeout: 10, prepare: false,
     ssl: { rejectUnauthorized: false },
     connection: { statement_timeout: 8000 },
     onnotice: () => {},
