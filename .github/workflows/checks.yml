@@ -17,4 +17,5 @@ jobs:
       - run: pnpm exec tsc --noEmit
       - run: pnpm exec tsc --noEmit -p tsconfig.scripts.json
       - run: pnpm search:test
+      - run: node --import tsx --test scripts/nutrition-review.test.ts
       - run: node --import tsx scripts/free-access-regression.ts
