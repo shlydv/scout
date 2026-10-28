@@ -1,4 +1,5 @@
 #!/usr/bin/env -S pnpm tsx
+import { refiningConflictIsSupported } from "@/lib/facts/label-conflict";
 /**
  * Verify claim-vs-ingredient conflicts noted by the facts pass and store only the
  * clear, defensible ones in label_conflicts (shown on home and insights).
@@ -21,6 +22,7 @@ const SYSTEM = `You verify claimed contradictions between an Indian packaged foo
 First rule: the claim must literally appear in the name or pack_text. If you cannot quote it from there, drop the case (e.g. "Veg"/"100% veg"/a green dot is NOT a vegan claim; "vegetarian" is not "vegan").
 Keep a case only when it is a clear, defensible contradiction a fair reader would agree with:
 - "Sugar free"/"zero sugar"/"no added sugar" with sugar, jaggery, glucose, syrups, honey or dextrose listed: keep. Dates, fruit or milk as the only sweetener: drop (debatable).
+- "No refined sugar" is not the same as "no added sugar". Jaggery, honey, dates or mishri alone do not establish a refining-process contradiction; drop unless the ingredient list explicitly names refined or white sugar.
 - "Gluten free" with wheat, maida, semolina, barley, rye or malt listed: keep. Oats alone: drop (often certified gluten-free).
 - "No palm oil" with palm/palmolein listed: keep. "No preservatives" with a listed preservative (benzoate, sorbate, sulphite, nitrite, propionate): keep; antioxidants alone: drop.
 - "No artificial colours" with synthetic colours (tartrazine, sunset yellow, allura red, brilliant blue, INS 102/110/122/124/129/133): keep; caramel or natural colours: drop.
@@ -81,7 +83,7 @@ async function main() {
         tokensIn += usage?.prompt_tokens ?? 0; tokensOut += usage?.completion_tokens ?? 0;
         for (const v of schema.parse(extractJsonObject(content)).r) {
           const r = batch[v.i];
-          if (r && v.keep && v.claim && v.reality && publishable(v.kind, v.claim, r.name, r.pack_text)) kept.push({ id: r.id, claim: v.claim.slice(0, 60), reality: v.reality.slice(0, 120), kind: v.kind, severity: v.severity, source_hash: r.source_hash });
+          if (r && v.keep && v.claim && v.reality && publishable(v.kind, v.claim, r.name, r.pack_text) && refiningConflictIsSupported(v.claim, v.reality)) kept.push({ id: r.id, claim: v.claim.slice(0, 60), reality: v.reality.slice(0, 120), kind: v.kind, severity: v.severity, source_hash: r.source_hash });
         }
         break;
       } catch (e) {
