@@ -9,7 +9,7 @@ import { buildOverallGoalSummary, buildProductGoalRows } from "../lib/goals/buil
 import { analyzeBasket, computeSwapImpact } from "../lib/products/basket-analysis";
 import { findAlternatives, findSimilarProducts } from "../lib/products/alternatives";
 import type { ProductListItem } from "../lib/products/queries";
-import { detectNutritionAnomalies, sanitizeNutrition, sanitizeNutritionWithLlm, tryCorrectNutrition } from "../lib/nutrition/anomaly";
+import { detectNutritionAnomalies, kcalMismatchRatio, sanitizeNutrition, sanitizeNutritionWithLlm, tryCorrectNutrition } from "../lib/nutrition/anomaly";
 import { reconcileNutrition, reconcileNutritionWithLlm } from "../lib/nutrition/sanity";
 import type { ProductNutrition } from "../lib/supabase/types";
 
@@ -54,6 +54,53 @@ test("two-decimal normalization may total 100.01g but a 101g panel is still reje
   assert.deepEqual(tryCorrectNutrition(manna, product), manna);
   const impossible = reviewed({ protein_g_100g: 7, carbs_g_100g: 87, fat_g_100g: 7, energy_kcal_100g: 439 });
   assert.ok(detectNutritionAnomalies(impossible, product).some(a => a.code === "macro_mass_exceeds_100g" && a.severity === "critical"));
+});
+
+const fiberLabelSource = "https://cdn.zeptonow.com/cms/product_variant/15a1425d-317b-4d0c-95f7-d5079d1e2b511dxMTd9UVpQcKSht1TTgm5rCVtK_xHzLA.jpeg";
+const highFiberPanel: ProductNutrition = { energy_kcal_100g: 256.7, protein_g_100g: 6.8, carbs_g_100g: 40.6, fat_g_100g: 22.5, fiber_g_100g: 33.9 };
+function reviewedFiberPanel(n: ProductNutrition = highFiberPanel): ProductNutrition {
+  const panel = reviewed(n);
+  return { ...panel, extra: { ...panel.extra, manual_review_sources: JSON.stringify([fiberLabelSource]), manual_review_carb_basis: "total_includes_fiber", manual_review_carb_basis_snapshot: nutritionReviewSnapshot(panel), manual_review_carb_basis_source: fiberLabelSource } };
+}
+const cookieContext = { name: "Ditch classic cookies", category: "Biscuits" };
+test("explicit reviewed total carbohydrate evidence accounts for fibre energy without changing the panel", () => {
+  const panel = reviewedFiberPanel();
+  assert.ok(Math.abs(kcalMismatchRatio(panel)! - (324.3 - 256.7) / 256.7) < 1e-10);
+  assert.equal(detectNutritionAnomalies(panel, cookieContext).some(a => a.code === "kcal_mismatch"), false);
+  assert.deepEqual(tryCorrectNutrition(panel, cookieContext), panel);
+  assert.equal(panel.energy_kcal_100g, 256.7);
+  assert.equal(panel.carbs_g_100g, 40.6);
+});
+test("high fibre without explicit evidence retains the existing energy check", () => {
+  const panel = reviewed(highFiberPanel);
+  assert.ok(kcalMismatchRatio(panel)! > 0.5);
+  assert.ok(detectNutritionAnomalies(panel, cookieContext).some(a => a.code === "kcal_mismatch" && a.severity === "critical"));
+});
+test("stale nutrient or basis snapshots and unrelated sources cannot enable the fibre model", () => {
+  const panel = reviewedFiberPanel();
+  for (const invalid of [
+    { ...panel, energy_kcal_100g: 250 },
+    { ...panel, extra: { ...panel.extra, manual_review_carb_basis_snapshot: "stale" } },
+    { ...panel, extra: { ...panel.extra, manual_review_carb_basis_source: "https://example.com/unreviewed-label" } },
+    { ...panel, extra: { ...panel.extra, manual_review_status: "partial" } },
+  ]) assert.ok(kcalMismatchRatio(invalid)! > 0.5);
+});
+test("fibre accounting requires finite complete macros and fibre within total carbohydrate", () => {
+  for (const fiber of [-1, 41, Number.NaN, Number.POSITIVE_INFINITY]) {
+    assert.ok(kcalMismatchRatio(reviewedFiberPanel({ ...highFiberPanel, fiber_g_100g: fiber }))! > 0.5);
+  }
+  const missingProtein = reviewedFiberPanel({ ...highFiberPanel, protein_g_100g: undefined });
+  assert.equal(kcalMismatchRatio(missingProtein), kcalMismatchRatio(reviewed({ ...highFiberPanel, protein_g_100g: undefined })));
+});
+test("verified fibre evidence never reduces the physical macro mass", () => {
+  const impossible = reviewedFiberPanel({ energy_kcal_100g: 440, protein_g_100g: 20, carbs_g_100g: 70, fat_g_100g: 20, fiber_g_100g: 50 });
+  assert.ok(detectNutritionAnomalies(impossible, cookieContext).some(a => a.code === "macro_mass_exceeds_100g" && a.severity === "critical"));
+});
+test("energy far outside the fibre-adjusted model remains critical", () => {
+  for (const energy of [90, 900]) {
+    const panel = reviewedFiberPanel({ ...highFiberPanel, energy_kcal_100g: energy });
+    assert.ok(detectNutritionAnomalies(panel, cookieContext).some(a => a.code === "kcal_mismatch" && a.severity === "critical"));
+  }
 });
 test("partial and conflicting panels explain why values and scores are withheld", () => {
   const partial = renderToStaticMarkup(createElement(NutritionFactsTable, { nutrition: reviewed({ protein_g_100g: 27.27 }, "partial") }));

@@ -1,4 +1,4 @@
-import { nutritionReviewStatus } from "@/lib/nutrition/review";
+import { nutritionReviewSnapshot, nutritionReviewStatus } from "@/lib/nutrition/review";
 import type { ProductNutrition } from "@/lib/supabase/types";
 
 export type NutritionAnomalyCode =
@@ -68,12 +68,8 @@ function isHighProteinCategory(ctx: NutritionContext): boolean {
 }
 
 function macroSum(n: ProductNutrition): number {
-  // On Indian nutrition labels, dietary fiber is often listed as a sub-row of
-  // total carbohydrates. When both carbs_g_100g and fiber_g_100g are present,
-  // fiber is already included in carbs — subtracting it avoids false positives
-  // when checking the available-carbohydrate macro sum.
-  const carbs = (n.carbs_g_100g ?? 0) - (n.fiber_g_100g ?? 0);
-  return (n.protein_g_100g ?? 0) + Math.max(0, carbs) + (n.fat_g_100g ?? 0);
+  // Fibre included in total carbohydrate still contributes physical mass.
+  return (n.protein_g_100g ?? 0) + (n.carbs_g_100g ?? 0) + (n.fat_g_100g ?? 0);
 }
 
 function impliedKcal(n: ProductNutrition): number | null {
@@ -81,6 +77,25 @@ function impliedKcal(n: ProductNutrition): number | null {
   const c = n.carbs_g_100g;
   const f = n.fat_g_100g;
   if (p == null && c == null && f == null) return null;
+  const fiber = n.fiber_g_100g;
+  const extra = n.extra;
+  if (nutritionReviewStatus(n) === "verified"
+    && extra?.manual_review_carb_basis === "total_includes_fiber"
+    && extra.manual_review_carb_basis_snapshot === nutritionReviewSnapshot(n)
+    && typeof extra.manual_review_carb_basis_source === "string"
+    && typeof p === "number" && Number.isFinite(p) && p >= 0
+    && typeof c === "number" && Number.isFinite(c) && c >= 0
+    && typeof f === "number" && Number.isFinite(f) && f >= 0
+    && typeof fiber === "number" && Number.isFinite(fiber) && fiber >= 0 && fiber <= c) {
+    // The verified review already validates the JSON source list. Require the
+    // explicit carbohydrate-basis evidence to belong to that same review.
+    const sources: string[] = JSON.parse(extra.manual_review_sources as string);
+    if (sources.includes(extra.manual_review_carb_basis_source)) {
+      // Plausibility only: digestible carbohydrate 4 kcal/g, fibre 2 kcal/g.
+      // Keep the declared energy and nutrient values unchanged.
+      return 4 * p + 4 * (c - fiber) + 9 * f + 2 * fiber;
+    }
+  }
   return 4 * (p ?? 0) + 4 * (c ?? 0) + 9 * (f ?? 0);
 }
 
