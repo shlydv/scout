@@ -34,13 +34,18 @@ export async function resolveShoppingContext(token?: string | null, query?: stri
         judge: valid.flatMap(v => v.plan.judge),
         relax: [],
       };
-      const query = valid.map(v => v.query).join("; also required: ");
-      const signed = createShoppingContext(query, combined);
+      const combinedQuery = valid.map(v => v.query).join("; also required: ");
+      if (query != null && query.trim() !== combinedQuery) return { active: true, token: "unavailable", blocked: true };
+      const signed = createShoppingContext(combinedQuery, combined);
       return { active: true, token: signed, value: readShoppingContext(signed)! };
     } catch { return { active: true, blocked: true }; }
   }
   if (token != null) {
     const value = readShoppingContext(token);
+    const normalize = (text: string) => text.trim().toLowerCase().replace(/\s+/g, " ");
+    if (value && query != null && normalize(query) !== normalize(value.query)) {
+      return { active: true, token: "unavailable", blocked: true };
+    }
     return value ? { active: true, token, value } : { active: true, token, blocked: true };
   }
   if (!query?.trim()) return { active: false };
