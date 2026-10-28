@@ -1,5 +1,6 @@
 "use client";
 
+import { productHref } from "@/lib/shopping/links";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -30,7 +31,7 @@ function priceLabel(card: Pick<SearchCard, "price_inr">) {
  */
 export function SearchResultCard({ card, query, muted = false, position, hideBrand = false }: { card: SearchCard; query: string; muted?: boolean; position?: number; hideBrand?: boolean }) {
   const [sizesOpen, setSizesOpen] = useState(false);
-  const href = query ? `/product/${card.slug}?q=${encodeURIComponent(query)}` : `/product/${card.slug}`;
+  const href = productHref(card.slug, card.shoppingContext, query);
   const tier = card.score != null ? catalogTierStyle(card.score, card.verdict).fill : "var(--color-fg-dim)";
   // Only a genuinely good rank is worth saying ("#56 in …" reads as noise).
   const rankRaw = card.rank ? rankShort(card.rank.rank, card.rank.size) : null;
@@ -93,8 +94,8 @@ export function SearchResultCard({ card, query, muted = false, position, hideBra
           ) : null}
         </p>
         <div className="flex shrink-0 items-center gap-1">
-          <CompareButton slug={card.slug} name={card.name} image={card.image} />
-          <AddToBasketButton slug={card.slug} name={card.name} productId={card.id} size="icon" />
+          <CompareButton shoppingContext={card.shoppingContext} slug={card.slug} name={card.name} image={card.image} />
+          <AddToBasketButton shoppingContext={card.shoppingContext} slug={card.slug} name={card.name} productId={card.id} size="icon" />
         </div>
       </div>
 
@@ -102,7 +103,7 @@ export function SearchResultCard({ card, query, muted = false, position, hideBra
         <ul className="mt-2 grid grid-cols-1 gap-0.5 border-t border-dashed border-(--color-line-strong) pt-2 text-[12px]">
           {card.sizes.map(s => (
             <li key={s.slug}>
-              <Link href={`/product/${s.slug}`} className="flex justify-between gap-2 rounded px-1 py-0.5 hover:bg-(--color-bg-soft)">
+              <Link href={productHref(s.slug, card.shoppingContext, query)} className="flex justify-between gap-2 rounded px-1 py-0.5 hover:bg-(--color-bg-soft)">
                 <span className="text-(--color-fg-muted)">{s.net_weight ?? "—"}</span>
                 <span className="tabular-nums text-(--color-fg)">{priceLabel(s)}</span>
               </Link>

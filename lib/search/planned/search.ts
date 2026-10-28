@@ -8,8 +8,9 @@ import { searchSql, type Sql } from "./db";
 import { executePlan, type PlannedItem } from "./execute";
 import { getCachedPlan, planCacheKey, storePlan } from "./plan-cache";
 import { planQuery, plannerFingerprint, type Preferences, type SearchPlan } from "./plan";
-import { needsVerification, VERIFY_CHUNK, verifyInChunks, type Verdict } from "./verify";
+import { needsVerification, verifyInChunks, type Verdict } from "./verify";
 import { loadVocabulary } from "./vocabulary";
+import { lockRequirements, preserveRequirements, sensitiveRequest } from "@/lib/shopping/policy";
 
 export type SizeOption = { product_id: string; slug: string; net_weight: string | null; price_inr: number | null; price_per_100: number | null };
 export type PlannedSearchItem = PlannedItem & { verdict?: Verdict; why?: string; relaxed?: boolean; sizes?: SizeOption[] };
@@ -125,13 +126,16 @@ export async function plannedSearch(query: string, opts: { preferences?: Prefere
       planMs = r.ms;
       storePlan(sql, key, plan, dropped);
     } catch (error) {
-      // Planner unavailable: closest matches only, no filters, clearly labelled.
+      // Never fall back to unfiltered results when planning is unavailable.
       console.error("[planned-search] planner failed", error instanceof Error ? error.message : error);
-      plan = degradedPlan(query);
-      dropped = ["planner:degraded"];
-      planMs = Date.now() - started;
+      // No unconstrained fallback: the unavailable planner may have missed an allergy.
+      throw new Error("Search requirements could not be checked. Please try again.");
     }
   }
+
+  if (dropped.includes("planner:degraded") || dropped.some(x => /^(concept|claim|numeric):/.test(x))) throw new Error("Some search requirements could not be checked. Please try again.");
+  plan = lockRequirements(preserveRequirements(plan, query, prefs), query);
+  const sensitive = sensitiveRequest(plan, query);
 
   if (plan.intent === "non_food" || plan.intent === "unclear") {
     return {
@@ -155,7 +159,7 @@ export async function plannedSearch(query: string, opts: { preferences?: Prefere
   let verifyMs = 0;
 
   // Results reached by widening the scope always get checked against the request.
-  const verify = opts.verify ?? (needsVerification(plan) || exec.relaxed.includes("scope"));
+  const verify = sensitive || (opts.verify ?? (needsVerification(plan) || exec.relaxed.includes("scope")));
   const ranked = diversify(confirmed);
   const page = ranked.slice(offset, offset + limit);
   const nextOffset = ranked.length > offset + limit ? offset + limit : null;
@@ -165,15 +169,13 @@ export async function plannedSearch(query: string, opts: { preferences?: Prefere
     const v = await verifyInChunks(query, plan, page);
     v.usages.forEach(addUsage);
     verifyMs = v.ms;
-    if (v.failedChunks < Math.ceil(page.length / VERIFY_CHUNK)) {
-      const judged = page.map(i => ({ ...i, verdict: v.verdicts.get(i.product_id)?.v, why: v.verdicts.get(i.product_id)?.why }));
-      const kept = judged.filter(i => i.verdict !== "no");
-      // Keep the requested numeric order; for relevance, strong fits first, unjudged last.
-      confirmed = plan.sort.field === "relevance"
-        ? [...kept.filter(i => i.verdict === "good"), ...kept.filter(i => i.verdict === "ok"), ...kept.filter(i => !i.verdict)]
-        : kept;
-    }
-    // Every batch failed: verification is a refinement, so keep the executor's order.
+    const judged = page.map(i => ({ ...i, verdict: v.verdicts.get(i.product_id)?.v, why: v.verdicts.get(i.product_id)?.why }));
+    // Sensitive results require an explicit verdict. Timeouts, invalid JSON and
+    // omitted cards never turn into a claim of suitability.
+    const kept = judged.filter(i => i.verdict !== "no" && (!sensitive || i.verdict === "good" || i.verdict === "ok"));
+    confirmed = plan.sort.field === "relevance"
+      ? [...kept.filter(i => i.verdict === "good"), ...kept.filter(i => i.verdict === "ok"), ...kept.filter(i => !i.verdict)]
+      : kept;
   }
 
   const isRelaxed = (i: PlannedSearchItem) => i.notes.some(n => n.startsWith("relaxed "));
@@ -181,14 +183,14 @@ export async function plannedSearch(query: string, opts: { preferences?: Prefere
 
   const shown = diversify(confirmed).slice(0, limit);
   // Unconfirmed near-misses belong to the first page only.
-  const extra = offset === 0 ? unconfirmed.slice(0, 12) : [];
-  const withSizes = await attachSizes(sql, [...shown, ...extra]).catch(() => [...shown, ...extra]);
+  const extra = !sensitive && offset === 0 ? unconfirmed.slice(0, 12) : [];
+  const withSizes = sensitive ? [...shown, ...extra] : await attachSizes(sql, [...shown, ...extra]).catch(() => [...shown, ...extra]);
   const items = withSizes.slice(0, shown.length);
   const summary = items.length
     ? plan.summary || `${items.length} matches`
     : extra.length
       ? "No product's label fully confirms your request. Closest options are listed as unconfirmed."
-      : "No products match this request.";
+      : sensitive ? "No products could be confirmed for all your requirements. Please try again or check the package label." : "No products match this request.";
 
   return {
     query, plan, items, unconfirmed: withSizes.slice(shown.length), relaxed: exec.relaxed, counts: exec.counts,

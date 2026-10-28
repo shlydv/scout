@@ -1,3 +1,5 @@
+import { productHref } from "@/lib/shopping/links";
+import { resolveShoppingContext, filterShoppingCandidates } from "@/lib/shopping/recommendations";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { IngredientPanel } from "@/components/ingredient-panel";
@@ -44,7 +46,7 @@ import type { SubScores } from "@/lib/supabase/types";
 import { brandSlug } from "@/lib/brands/slug";
 
 export const revalidate = 300;
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 /** Share cards carry the verdict — the score IS the story. */
 export async function generateMetadata({
@@ -85,6 +87,7 @@ export default async function ProductPage({
     goal?: string;
     diet?: string;
     q?: string;
+    context?: string;
     category?: string;
     subcategory?: string;
     usecase?: string;
@@ -147,8 +150,12 @@ export default async function ProductPage({
   });
   const otherSizes = (variants.get(product.id)?.sizes ?? []).filter((s) => s.slug !== product.slug);
 
-  const swaps = findAlternatives(product, distinctPool, goal, 8, { diet });
-  const similarProducts = findSimilarProducts(product, distinctPool, goal, 8, {
+  const shopping = await resolveShoppingContext(sp.context, sp.q);
+  const checkedPool = await filterShoppingCandidates([product, ...distinctPool], shopping);
+  const currentConfirmed = !shopping.active || checkedPool.some(p => p.id === product.id);
+  const safePool = checkedPool.filter(p => p.id !== product.id);
+  const swaps = findAlternatives(product, safePool, goal, 8, { diet });
+  const similarProducts = findSimilarProducts(product, safePool, goal, 8, {
     diet,
     excludeIds: new Set(swaps.map((s) => s.product.id)),
   });
@@ -248,11 +255,11 @@ export default async function ProductPage({
               {product.net_weight ? ` · ${product.net_weight}` : ""}
             </p>
             <DietBadgeRow badge={dietBadge} selected={diet} />
-            {otherSizes.length > 0 ? (
+            {!shopping.active && otherSizes.length > 0 ? (
               <p className="mt-3 flex flex-wrap items-center gap-1.5 text-[13px] text-(--color-fg-muted)">
                 <span>Also in</span>
                 {otherSizes.map((s) => (
-                  <Link key={s.slug} href={`/product/${s.slug}`} className="rounded-full border border-(--color-line) px-2.5 py-0.5 hover:border-(--color-fg-muted) hover:text-(--color-fg)">
+                  <Link key={s.slug} href={productHref(s.slug, shopping.token ?? (shopping.active ? "unavailable" : undefined), sp.q)} className="rounded-full border border-(--color-line) px-2.5 py-0.5 hover:border-(--color-fg-muted) hover:text-(--color-fg)">
                     {s.net_weight ?? "other size"}{s.price_inr != null ? ` · ₹${s.price_inr}` : ""}
                   </Link>
                 ))}
@@ -268,7 +275,9 @@ export default async function ProductPage({
                 ) : null}
               </p>
             ) : null}
+            {shopping.active && <p role="status" className="mt-4 text-sm text-(--color-fg-muted)">{currentConfirmed ? "Checked against your search requirements." : "This product could not be confirmed for your search requirements. Check the label before choosing it."}</p>}
             <ProductGoalToolbar
+              shoppingContext={shopping.token ?? (shopping.active ? "unavailable" : undefined)}
               slug={product.slug}
               name={product.name}
               image={product.image_urls?.[0] ?? null}
@@ -372,11 +381,18 @@ export default async function ProductPage({
           </aside>
         </Reveal>
 
+        {shopping.active && (shopping.blocked || (!swaps.length && !similarProducts.length)) ? (
+          <p role="status" className="mt-8 text-sm text-(--color-fg-muted)">No alternatives could be confirmed for your search requirements. Search again to refresh these checks.</p>
+        ) : shopping.active ? (
+          <p className="mt-8 text-sm text-(--color-fg-muted)">Alternatives checked against your search requirements.</p>
+        ) : null}
+
         {/* Better alternatives — full-width, below the deep-dive, above discovery.
             Action ("swap to something stronger") outranks browse, so it leads. */}
         {swaps.length > 0 ? (
           <Reveal className="mt-12">
             <SwapPanel
+              shoppingContext={shopping.token}
               current={product}
               suggestions={swaps}
               compact
@@ -392,6 +408,7 @@ export default async function ProductPage({
         {similarProducts.length > 0 ? (
           <Reveal className="mt-12">
             <SwapPanel
+              shoppingContext={shopping.token}
               current={product}
               suggestions={similarProducts}
               compact

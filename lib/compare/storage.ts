@@ -1,4 +1,5 @@
 export type CompareEntry = {
+  shoppingContext?: string;
   slug: string;
   name: string;
   image: string | null;

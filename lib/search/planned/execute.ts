@@ -149,6 +149,7 @@ type Attempt = {
   useNameTerms: boolean;
   useClaimsRequired: boolean;
   numeric: NumericFilter[];
+  productIds?: string[];
 };
 
 function nameTermPattern(term: string): string {
@@ -163,6 +164,8 @@ async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limi
   const conds: string[] = ["p.catalog_visible"];
   const params: unknown[] = [];
   const param = (v: unknown, cast = "") => { params.push(v); return `$${params.length}${cast}`; };
+
+  if (a.productIds) conds.push(`p.id = any(${param(a.productIds, "::uuid[]")})`);
 
   if (a.useScope && (plan.l3.length || plan.subcategories.length || plan.categories.length)) {
     const ors: string[] = [];
@@ -282,6 +285,7 @@ export function confirm(item: PlannedItem & { hasFacts?: boolean }, plan: Search
   const usesNutrition = numeric.some(n => NUTRITION_FIELDS.has(n.field)) || NUTRITION_FIELDS.has(plan.sort.field as NumericField);
   if (usesNutrition && !item.nutrition_trusted) notes.push("nutrition label looks inconsistent");
   const hasFacts = item.hasFacts !== false;
+  if (plan.exclude.length && item.ingredient_status !== "complete") notes.push("ingredient label is incomplete");
   const state = (c: ConceptId) =>
     !hasFacts ? "unknown"
       : item.present.includes(c) ? "present"
@@ -289,6 +293,7 @@ export function confirm(item: PlannedItem & { hasFacts?: boolean }, plan: Search
           : item.unknown.includes(c) ? "unknown" : "absent";
   for (const c of plan.exclude) {
     const s = state(c);
+    if (s === "present" || (plan.strict && s === "may_contain")) notes.push(`contains excluded ${c.replace(/_/g, " ")}`);
     if (s === "unknown") notes.push(`label doesn't confirm no ${c.replace(/_/g, " ")}${item.evidence[c] ? ` (${item.evidence[c]})` : ""}`);
     if (s === "may_contain") notes.push(`may contain ${c.replace(/_/g, " ")}`);
   }
@@ -296,8 +301,13 @@ export function confirm(item: PlannedItem & { hasFacts?: boolean }, plan: Search
   if (plan.diet.veg && (!hasFacts || item.veg !== "veg")) notes.push("veg status not confirmed");
   if (plan.diet.vegan && item.vegan !== true) notes.push("vegan status not confirmed");
   if (plan.diet.jain && item.jain !== true) notes.push("jain status not confirmed");
-  for (const n of numeric) if (numericValue(item, n.field) == null) notes.push(`${n.field.replace(/_/g, " ")} not on label`);
+  for (const n of numeric) {
+    const value = numericValue(item, n.field);
+    if (value == null || !Number.isFinite(value)) notes.push(`${n.field.replace(/_/g, " ")} not on label`);
+    else if (!(n.op === "<=" ? value <= n.value : n.op === "<" ? value < n.value : n.op === ">=" ? value >= n.value : value > n.value)) notes.push(`${n.field.replace(/_/g, " ")} outside required limit`);
+  }
   for (const c of plan.claims_required) {
+    if (!item.claims.includes(c)) notes.push(`required ${c.replace(/_/g, " ")} claim not on label`);
     if (claimStatus(item, c) === "contradicted") notes.push(`the label contradicts the pack's "${c.replace(/_/g, " ")}" claim`);
   }
   // may_contain under a non-strict exclusion is a warning, not a failure.
@@ -371,7 +381,7 @@ async function resolveReference(sql: Sql, plan: SearchPlan, embedding: number[] 
   return { query: reference, value: median, products: rows.map(r => r.name as string) };
 }
 
-export async function executePlan(sql: Sql, plan: SearchPlan, embedding: number[] | null, opts: { limit?: number; minConfirmed?: number; vocab?: CatalogVocabulary | null } = {}): Promise<ExecuteResult> {
+export async function executePlan(sql: Sql, plan: SearchPlan, embedding: number[] | null, opts: { limit?: number; minConfirmed?: number; vocab?: CatalogVocabulary | null; productIds?: string[]; noRelax?: boolean } = {}): Promise<ExecuteResult> {
   const vocab = opts.vocab ?? null;
   const started = Date.now();
   const limit = opts.limit ?? 24;
@@ -381,7 +391,7 @@ export async function executePlan(sql: Sql, plan: SearchPlan, embedding: number[
   if (plan.comparison && reference) {
     baseNumeric.push({ field: plan.comparison.field, op: plan.comparison.dir === "higher" ? ">" : "<", value: reference.value });
   }
-  let attempt: Attempt = { plan, scopeSize: scopeSize(plan, vocab, true), useScope: true, useBrands: true, useNameTerms: true, useClaimsRequired: true, numeric: baseNumeric };
+  let attempt: Attempt = { plan, scopeSize: scopeSize(plan, vocab, true), useScope: true, useBrands: true, useNameTerms: true, useClaimsRequired: true, numeric: baseNumeric, productIds: opts.productIds };
   const relaxed: string[] = [];
   const counts: ExecuteResult["counts"] = [];
   const pool = Math.max(limit * 4, 60);
@@ -397,7 +407,7 @@ export async function executePlan(sql: Sql, plan: SearchPlan, embedding: number[
   // Widening scope one level is always available as the last resort.
   // Up to two widening steps: l3 -> subcategory -> category.
   const relaxOrder = [...plan.relax.filter(k => k !== "scope"), "scope", "scope"];
-  for (const key of relaxOrder) {
+  for (const key of opts.noRelax ? [] : relaxOrder) {
     // Count distinct products, not pack sizes of the same one.
     if (new Set(items.filter(i => i.confirmation === "confirmed").map(i => i.variant_key ?? i.product_id)).size >= minConfirmed) break;
     const next = { ...attempt };

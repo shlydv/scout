@@ -1,3 +1,4 @@
+import { productHref } from "@/lib/shopping/links";
 import Image from "next/image";
 import Link from "next/link";
 import { GoalFitBadge, ScoreBadge } from "@/components/score-display";
@@ -8,6 +9,7 @@ import type { ProductListItem } from "@/lib/products/queries";
 
 export function SwapPanel({
   current,
+  shoppingContext,
   suggestions,
   compact,
   goal = "balanced",
@@ -17,6 +19,7 @@ export function SwapPanel({
   gridColumns = 3,
 }: {
   current: ProductListItem;
+  shoppingContext?: string;
   suggestions: SwapSuggestion[];
   compact?: boolean;
   goal?: GoalId;
@@ -89,7 +92,7 @@ export function SwapPanel({
           return (
             <li key={product.id}>
               <Link
-                href={`/product/${product.slug}`}
+                href={productHref(product.slug, shoppingContext)}
                 className={cn(
                   "u-lift flex gap-2 rounded-lg border border-(--color-line) bg-(--color-panel) hover:border-(--color-accent)",
                   grid

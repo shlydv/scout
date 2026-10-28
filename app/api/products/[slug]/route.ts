@@ -1,3 +1,4 @@
+import { resolveShoppingContext, filterShoppingCandidates } from "@/lib/shopping/recommendations";
 import { NextRequest, NextResponse } from "next/server";
 import { parseIngredientsForDisplayWithIntelligence } from "@/lib/ingredients/display-from-intelligence";
 import { loadIngredientIntelligenceForDisplay } from "@/lib/ingredients/load-intelligence";
@@ -15,7 +16,8 @@ import { goalFromParam } from "@/lib/goals/types";
 import { resolveProductVerdict } from "@/lib/scoring/verdict-resolve";
 import type { SubScores } from "@/lib/supabase/types";
 
-export const revalidate = 120;
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 function mapSwap(s: {
   product: {
@@ -149,7 +151,8 @@ export async function GET(
   let swaps: ReturnType<typeof mapSwap>[] = [];
   let similar: ReturnType<typeof mapSwap>[] = [];
   try {
-    const swapPool = await getProductsForSwaps(product, 180);
+    const shopping = await resolveShoppingContext(request.nextUrl.searchParams.get("context"), request.nextUrl.searchParams.get("q"));
+    const swapPool = await filterShoppingCandidates(await getProductsForSwaps(product, 180), shopping);
     swaps = findAlternatives(product, swapPool, goal, 3, {}).map(mapSwap);
     similar = findSimilarProducts(product, swapPool, goal, 8, {
       excludeIds: new Set(swaps.map((s) => s.slug)),
@@ -178,7 +181,7 @@ export async function GET(
     },
     {
       headers: {
-        "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
+        "Cache-Control": "private, no-store",
       },
     },
   );
