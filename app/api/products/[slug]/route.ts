@@ -107,7 +107,7 @@ export async function GET(
   const scoreWhy = score
     ? explainScore({
         score: score.score,
-        band: score.band,
+        verdict,
         subscores,
         concerns: score.concerns,
         breakdown: score.breakdown,

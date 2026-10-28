@@ -5,13 +5,8 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// ────────────────────────────────────────────────────────────
-// Score banding
-//   We surface BOTH a Yuka-style 4-tier band (Bad/Poor/Good/Excellent)
-//   for the dominant color, and an A–F letter grade for the small
-//   chip-style label, since both communicate different things.
-// ────────────────────────────────────────────────────────────
-
+/** Legacy grade/band fields are retained for stored-score compatibility only.
+ * Product UI uses lib/scoring/verdict, never these independent thresholds. */
 export type Grade = "A" | "B" | "C" | "D" | "F";
 export type ScoreBand = "bad" | "poor" | "good" | "excellent";
 
@@ -28,75 +23,6 @@ export function bandFromScore(score: number): ScoreBand {
   if (score >= 51) return "good";
   if (score >= 26) return "poor";
   return "bad";
-}
-
-const BAND_COLORS: Record<ScoreBand, string> = {
-  excellent: "var(--score-excellent)",
-  good: "var(--score-good)",
-  poor: "var(--score-poor)",
-  bad: "var(--score-bad)",
-};
-
-const BAND_LABELS: Record<ScoreBand, string> = {
-  excellent: "Excellent",
-  good: "Good",
-  poor: "Poor",
-  bad: "Bad",
-};
-
-export function colorForScore(score: number): string {
-  return BAND_COLORS[bandFromScore(score)];
-}
-
-export function colorForGrade(grade: Grade): string {
-  switch (grade) {
-    case "A":
-      return BAND_COLORS.excellent;
-    case "B":
-      return BAND_COLORS.good;
-    case "C":
-      return BAND_COLORS.poor;
-    case "D":
-      return BAND_COLORS.poor;
-    case "F":
-      return BAND_COLORS.bad;
-  }
-}
-
-export function labelForBand(band: ScoreBand): string {
-  return BAND_LABELS[band];
-}
-
-// ────────────────────────────────────────────────────────────
-// Unified health tier (Part B) — ONE label system, replacing the
-// grade (A–F) + band (4) + verdict (4) trio. Derived from the ABSOLUTE
-// health score (consistent + category-baselined), NOT the v9 blend, so
-// same-nutrition products always read the same tier. Cutoffs are set from
-// the absolute distribution (p25≈26, p50≈41, p75≈58, p90≈68).
-// ────────────────────────────────────────────────────────────
-
-export type ScoreTier = "excellent" | "good" | "fair" | "poor";
-
-export function tierFromScore(absolute: number): ScoreTier {
-  if (absolute >= 65) return "excellent";
-  if (absolute >= 50) return "good";
-  if (absolute >= 32) return "fair";
-  return "poor";
-}
-
-const TIER_META: Record<ScoreTier, { label: string; color: string }> = {
-  excellent: { label: "Excellent", color: "var(--score-excellent)" },
-  good: { label: "Good", color: "var(--score-good)" },
-  fair: { label: "Fair", color: "var(--score-poor)" },
-  poor: { label: "Poor", color: "var(--score-bad)" },
-};
-
-export function tierLabel(tier: ScoreTier): string {
-  return TIER_META[tier].label;
-}
-
-export function tierColor(tier: ScoreTier): string {
-  return TIER_META[tier].color;
 }
 
 /** "Best of 22 soya chunks" / "Top 9% of 22 soya chunks" / "#15 of 22 soya chunks" —

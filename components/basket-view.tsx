@@ -16,7 +16,8 @@ import type { DietMode } from "@/lib/diet/types";
 import { analyzeBasket, computeSwapImpact } from "@/lib/products/basket-analysis";
 import { BasketHealthReport } from "@/components/basket-health-report";
 import type { SwapSuggestion } from "@/lib/products/alternatives";
-import { scoreTileSurface } from "@/lib/score/surfaces";
+import { resolveProductVerdict } from "@/lib/scoring/verdict-resolve";
+import { VERDICT_COLORS, verdictTitle } from "@/lib/scoring/verdict-display";
 import {
   addToBasket,
   clearBasket,
@@ -316,8 +317,10 @@ function CartLine({
   swaps: SwapSuggestion[];
 }) {
   const [replacing, setReplacing] = useState<string | null>(null);
-  const score = fit?.fit ?? product.core_scores?.score;
-  const surface = score != null ? scoreTileSurface(score) : null;
+  const core = product.core_scores;
+  const score = core?.absolute_score ?? core?.score;
+  const verdict = resolveProductVerdict({ verdict: core?.verdict, score, name: product.name, category: product.category, subcategory: product.subcategory });
+  const surface = verdict ? VERDICT_COLORS[verdict] : null;
 
   return (
     <li className="p-4">
@@ -353,16 +356,18 @@ function CartLine({
               <span
                 className="flex h-8 min-w-[2rem] shrink-0 items-center justify-center rounded-lg border font-display text-base tabular-nums leading-none"
                 style={{
-                  backgroundColor: surface.backgroundColor,
-                  borderColor: surface.borderColor,
-                  color: surface.accentColor,
+                  backgroundColor: surface.bg,
+                  borderColor: surface.border,
+                  color: surface.fg,
                 }}
               >
-                {Math.round(score)}
+                <span title={verdict ? verdictTitle(verdict) : "Scout score"}>{Math.round(score)}</span>
               </span>
             ) : null}
           </div>
 
+          {verdict && <p className="mt-1 text-[11px]" style={{ color: surface?.fg }}>{verdictTitle(verdict)}</p>}
+          {fit && <p className="mt-1 text-[11px] text-(--color-fg-muted)">Goal fit: {Math.round(fit.fit)}/100</p>}
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             {product.price_inr != null ? (
               <span className="font-semibold tabular-nums text-(--color-fg)">

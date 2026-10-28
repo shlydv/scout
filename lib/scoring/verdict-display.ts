@@ -1,6 +1,6 @@
 import { VERDICT_LABELS, type VerdictId } from "@/lib/scoring/verdict";
 import { SUBLABEL_DISPLAY, type SublabelId } from "@/lib/scoring/sublabels";
-import { bandFromScore, labelForBand } from "@/lib/utils";
+
 
 /**
  * Verdict colors — use `color-mix` so they adapt to both light cream and dark
@@ -61,21 +61,13 @@ const VERDICT_TIER: Record<VerdictId, { accent: string }> = {
   skip: { accent: "var(--score-bad)" },
 };
 
-const BAND_TIER: Record<string, { accent: string }> = {
-  excellent: { accent: "var(--score-excellent)" },
-  good: { accent: "var(--score-good)" },
-  poor: { accent: "var(--score-poor)" },
-  bad: { accent: "var(--score-bad)" },
-};
-
 /** Catalog score badge — full tier fill color (score only on card). */
 export function catalogTierStyle(
   score: number,
   verdict: VerdictId | null | undefined,
 ): { fill: string } {
   if (verdict) return { fill: VERDICT_TIER[verdict].accent };
-  const band = bandFromScore(score);
-  return { fill: BAND_TIER[band]?.accent ?? "var(--color-fg-dim)" };
+  return { fill: "var(--color-fg-dim)" };
 }
 
 /** @deprecated Use catalogTierStyle for cards; kept for title tooltips elsewhere. */
@@ -86,7 +78,7 @@ export function catalogScorePresentation(
   const tier = catalogTierStyle(score, verdict);
   const label = verdict
     ? verdictTitle(verdict)
-    : labelForBand(bandFromScore(score));
+    : "Score pending";
   return { accent: tier.fill, label };
 }
 

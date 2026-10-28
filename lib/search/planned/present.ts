@@ -173,7 +173,7 @@ export function toCard(it: PlannedSearchItem, plan: SearchPlan): SearchCard {
     id: it.product_id, slug: it.slug, name: it.name, brand: it.brand, image: images[0] ?? null,
     price_inr: it.price_inr, mrp_inr: it.display.mrp_inr, net_weight: it.net_weight, price_per_100: it.price_per_100,
     score: it.scout_score,
-    verdict: it.scout_score == null ? null : resolveProductVerdict({ score: it.scout_score, name: it.name, category: it.category, subcategory: it.subcategory }),
+    verdict: it.scout_score == null ? null : resolveProductVerdict({ verdict: it.scout_verdict, score: it.scout_score, name: it.name, category: it.category, subcategory: it.subcategory }),
     rank: it.display.category_rank && it.display.category_size
       ? { rank: it.display.category_rank, size: it.display.category_size, label: it.display.category_label }
       : null,

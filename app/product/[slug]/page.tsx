@@ -11,7 +11,6 @@ import { reconcileNutrition } from "@/lib/nutrition/sanity";
 import { ProductGallery } from "@/components/product-gallery";
 import { ProductGoalFitList } from "@/components/product-goal-fit-list";
 import { ProductGoalToolbar } from "@/components/product-goal-toolbar";
-import { ScoutVerdictCard } from "@/components/scout-verdict-card";
 import { VerdictTakeCard } from "@/components/verdict-take-card";
 import { SwapPanel } from "@/components/swap-panel";
 import { buildOverallGoalSummary, buildProductGoalRows } from "@/lib/goals/build-goal-rows";
@@ -63,7 +62,6 @@ export async function generateMetadata({
     ? `${product.name} — ${score.score}/100 · Scout`
     : `${product.name} · Scout`;
   const description =
-    score?.opinion?.headline ??
     (score
       ? `Scout health score ${score.score}/100. We read the back label so you don't have to.`
       : "We read the back label so you don't have to.");
@@ -183,7 +181,7 @@ export default async function ProductPage({
   const scoreWhy = score
     ? explainScore({
         score: score.score,
-        band: score.band,
+        verdict,
         subscores,
         concerns: score.concerns,
         breakdown: score.breakdown,
@@ -284,23 +282,12 @@ export default async function ProductPage({
               zeptoBuyUrl={zeptoBuyUrl}
               shareText={
                 score?.score != null
-                  ? `Is ${product.name} actually healthy? Scout scores it ${score.absolute_score ?? score.score}/100${verdict ? ` (${VERDICT_LABELS[verdict].title.toLowerCase()})` : ""}${score.opinion?.headline ? ` — ${score.opinion.headline}` : ""}.`
+                  ? `Is ${product.name} actually healthy? Scout scores it ${score.absolute_score ?? score.score}/100${verdict ? ` (${VERDICT_LABELS[verdict].title.toLowerCase()})` : ""}.`
                   : `${product.name} — read by Scout`
               }
             />
 
-            {verdict && score?.opinion ? (
-              <div className="mt-5">
-                <ScoutVerdictCard
-                  score={score?.score}
-                  absoluteScore={score?.absolute_score}
-                  categoryRank={score?.category_rank}
-                  categorySize={score?.category_size}
-                  categoryLabel={score?.category_label}
-                  opinion={score.opinion}
-                />
-              </div>
-            ) : verdict ? (
+            {verdict ? (
               <div className="mt-5">
                 <VerdictTakeCard
                   verdict={verdict}
@@ -310,8 +297,6 @@ export default async function ProductPage({
                   categorySize={score?.category_size}
                   categoryLabel={score?.category_label}
                   sublabelIds={pdpSublabels}
-                  deepseekChips={deepseekDisplay?.chips}
-                  deepseekWhy={deepseekDisplay?.why}
                   explanation={scoreWhy}
                 />
               </div>

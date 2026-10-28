@@ -56,6 +56,7 @@ export type PlannedItem = {
   price_inr: number | null;
   net_weight: string | null;
   scout_score: number | null;
+  scout_verdict?: string | null;
   nutrition: Record<string, number | string | null> | null;
   kind: string | null;
   ingredients: string[];
@@ -115,7 +116,7 @@ function fieldExpr(field: NumericField): string {
   if (field === "price_inr") return "nullif(p.price_inr, 0)";
   if (field === "price_per_100") return "f.price_per_100";
   if (field === "pack_qty") return "f.pack_qty";
-  if (field === "scout_score") return "coalesce(si.absolute_score, si.scout_score)";
+  if (field === "scout_score") return "coalesce(cs.absolute_score, cs.score)";
   if (field === "protein_per_100kcal") {
     return "((p.nutrition->>'protein_g_100g')::numeric * 100 / nullif((p.nutrition->>'energy_kcal_100g')::numeric, 0))";
   }
@@ -228,14 +229,15 @@ async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limi
       select p.id, ${sortExpr ?? "null::numeric"} as sort_value
       from products p
       join product_search_index si on si.product_id = p.id
+      left join core_scores cs on cs.product_id = p.id
       left join product_facts f on f.product_id = p.id
       where ${conds.join("\n        and ")}
       order by ${stage1Order}
       limit ${stage1Limit}
     ), cand as (
       select p.id, p.slug, p.name, p.brand, p.category, p.subcategory, p.l3_category, p.price_inr,
-             p.net_weight, p.nutrition, coalesce(si.absolute_score, si.scout_score) scout_score, p.image_urls, p.mrp_inr, p.ocr_image_url,
-             si.primary_type, si.absolute_score, si.category_rank, si.category_size, si.category_label,
+             p.net_weight, p.nutrition, coalesce(cs.absolute_score, cs.score) scout_score, cs.verdict as scout_verdict, p.image_urls, p.mrp_inr, p.ocr_image_url,
+             si.primary_type, cs.absolute_score, cs.category_rank, cs.category_size, cs.category_label,
              f.product_id as f_id, f.kind, f.ingredients, f.claims, f.present, f.may_contain, f.unknown,
              f.conflicts, f.ingredient_status, f.veg, f.vegan, f.jain, f.price_per_100, f.evidence, f.variant_key,
              ids.sort_value, ${NUTRITION_PLAUSIBLE} as nutrition_ok,
@@ -245,6 +247,7 @@ async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limi
       from ids
       join products p on p.id = ids.id
       join product_search_index si on si.product_id = p.id
+      left join core_scores cs on cs.product_id = p.id
       left join product_facts f on f.product_id = p.id
     )
     select *, coalesce(similarity, 0) * 1.0 + least(lexical, 1) * 0.15 as relevance
@@ -258,6 +261,7 @@ async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limi
     subcategory: r.subcategory, l3: r.l3_category,
     price_inr: r.price_inr == null ? null : Number(r.price_inr),
     net_weight: r.net_weight, scout_score: r.scout_score == null ? null : Number(r.scout_score),
+    scout_verdict: r.scout_verdict ?? null,
     nutrition: r.nutrition, kind: r.kind, ingredients: r.ingredients ?? [], claims: r.claims ?? [],
     present: r.present ?? [], may_contain: r.may_contain ?? [], unknown: r.unknown ?? [],
     conflicts: r.conflicts ?? [], ingredient_status: r.ingredient_status, veg: r.veg, vegan: r.vegan,
@@ -370,6 +374,7 @@ async function resolveReference(sql: Sql, plan: SearchPlan, embedding: number[] 
   const rows = await sql.unsafe(`
     select p.name, ${expr} as v from products p
     join product_search_index si on si.product_id = p.id
+      left join core_scores cs on cs.product_id = p.id
     left join product_facts f on f.product_id = p.id
     where p.catalog_visible and ${expr} is not null
       and (${conds.map(c => `(${c})::int`).join(" + ")}) >= ${need}
