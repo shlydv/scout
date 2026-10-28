@@ -34,12 +34,17 @@ export function resolveServingGrams(opts: {
   subcategory?: string | null;
 }): ServingResolution {
   const extra = opts.nutrition?.extra ?? {};
-  const fromExtra =
+  // Structured mass-based label servings outrank older computed defaults.
+  // Never treat a volume serving as grams without an explicit mass conversion.
+  const labelMass = extra.serving_size_unit === "g" && typeof extra.serving_size_value === "number"
+    && Number.isFinite(extra.serving_size_value) && extra.serving_size_value > 0
+    ? extra.serving_size_value : null;
+  const fromExtra = labelMass ?? (
     typeof extra.serving_size_g === "number"
       ? extra.serving_size_g
       : parseServingSizeGrams(
           typeof extra.serving_size === "string" ? extra.serving_size : null,
-        );
+        ));
   if (fromExtra != null && fromExtra > 0) {
     return { serving_g: fromExtra, source: "label_extra" };
   }
