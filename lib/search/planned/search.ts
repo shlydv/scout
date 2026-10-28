@@ -24,7 +24,22 @@ export type PlannedSearchResult = {
   counts: { step: string; matched: number; confirmed: number }[];
   reference: { query: string; value: number; products: string[] } | null;
   summary: string;
-  timings: { plan_ms: number; embed_ms: number; execute_ms: number; verify_ms: number; total_ms: number; plan_cached: boolean };
+  timings: {
+    /** Planner call only; zero when a cached plan is used. */
+    plan_ms: number;
+    /** Provider duration, which can overlap vocabulary loading and planning. */
+    embed_ms: number;
+    execute_ms: number;
+    verify_ms: number;
+    total_ms: number;
+    plan_cached: boolean;
+    /** Includes the first DB connection when the pool is cold. */
+    vocab_ms?: number;
+    plan_cache_ms?: number;
+    /** Time actually blocking on the embedding after the plan is ready. */
+    embedding_wait_ms?: number;
+    attach_sizes_ms?: number;
+  };
   llm: { calls: number; prompt_tokens: number; completion_tokens: number };
   dropped: string[];
   /** Offset for the next page of verified results, or null when nothing more matches. */
@@ -110,14 +125,17 @@ export async function plannedSearch(query: string, opts: { preferences?: Prefere
     ? embedText(query, "query").then(e => ({ e, ms: Date.now() - embedStarted })).catch(() => ({ e: null, ms: Date.now() - embedStarted }))
     : Promise.resolve({ e: null as number[] | null, ms: 0 });
 
+  const vocabStarted = Date.now();
   const vocab = await loadVocabulary(sql);
+  const vocabMs = Date.now() - vocabStarted;
   const key = planCacheKey(query, prefs, plannerFingerprint(vocab));
   let plan: SearchPlan, dropped: string[], planMs = 0, planCached = false;
+  const planCacheStarted = Date.now();
   const cached = await getCachedPlan(sql, key);
+  const planCacheMs = Date.now() - planCacheStarted;
   if (cached) {
     ({ plan, dropped } = cached);
     planCached = true;
-    planMs = Date.now() - started;
   } else {
     try {
       const r = await planQuery(query, vocab, prefs);
@@ -143,15 +161,21 @@ export async function plannedSearch(query: string, opts: { preferences?: Prefere
       summary: plan.intent === "non_food"
         ? "Scout covers packaged food and drinks only."
         : "Couldn't understand that as a food search — try describing what you want to eat or drink.",
-      timings: { plan_ms: planMs, embed_ms: 0, execute_ms: 0, verify_ms: 0, total_ms: Date.now() - started, plan_cached: planCached },
+      timings: {
+        plan_ms: planMs, embed_ms: 0, execute_ms: 0, verify_ms: 0,
+        total_ms: Date.now() - started, plan_cached: planCached,
+        vocab_ms: vocabMs, plan_cache_ms: planCacheMs, embedding_wait_ms: 0, attach_sizes_ms: 0,
+      },
     };
   }
 
   // The embedding overlaps planning; never let a slow provider stall the search.
+  const embeddingWaitStarted = Date.now();
   const { e: vector, ms: embedMs } = await Promise.race([
     embedding,
     new Promise<{ e: null; ms: number }>(resolve => setTimeout(() => resolve({ e: null, ms: -1 }), EMBED_GRACE_MS)),
   ]);
+  const embeddingWaitMs = Date.now() - embeddingWaitStarted;
   const exec = await executePlan(sql, plan, vector, { limit: offset + limit, vocab });
 
   let confirmed: PlannedSearchItem[] = collapseVariants(exec.items.filter(i => i.confirmation === "confirmed"));
@@ -184,7 +208,9 @@ export async function plannedSearch(query: string, opts: { preferences?: Prefere
   const shown = diversify(confirmed).slice(0, limit);
   // Unconfirmed near-misses belong to the first page only.
   const extra = !sensitive && offset === 0 ? unconfirmed.slice(0, 12) : [];
+  const attachSizesStarted = Date.now();
   const withSizes = sensitive ? [...shown, ...extra] : await attachSizes(sql, [...shown, ...extra]).catch(() => [...shown, ...extra]);
+  const attachSizesMs = Date.now() - attachSizesStarted;
   const items = withSizes.slice(0, shown.length);
   const summary = items.length
     ? plan.summary || `${items.length} matches`
@@ -195,6 +221,11 @@ export async function plannedSearch(query: string, opts: { preferences?: Prefere
   return {
     query, plan, items, unconfirmed: withSizes.slice(shown.length), relaxed: exec.relaxed, counts: exec.counts,
     reference: exec.reference, summary, dropped, llm, next_offset: nextOffset,
-    timings: { plan_ms: planMs, embed_ms: embedMs, execute_ms: exec.ms, verify_ms: verifyMs, total_ms: Date.now() - started, plan_cached: planCached },
+    timings: {
+      plan_ms: planMs, embed_ms: embedMs, execute_ms: exec.ms, verify_ms: verifyMs,
+      total_ms: Date.now() - started, plan_cached: planCached,
+      vocab_ms: vocabMs, plan_cache_ms: planCacheMs,
+      embedding_wait_ms: embeddingWaitMs, attach_sizes_ms: attachSizesMs,
+    },
   };
 }
