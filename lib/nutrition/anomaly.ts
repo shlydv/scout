@@ -31,6 +31,9 @@ export type NutritionContext = {
 };
 
 const MACRO_KEYS = ["protein_g_100g", "carbs_g_100g", "fat_g_100g"] as const;
+// Three independently rounded two-decimal values can total 100.01g.
+// Allow only that normalization noise, not a material excess of mass.
+const MAX_MACRO_MASS_G = 100.02;
 
 function ctxText(ctx: NutritionContext): string {
   return [ctx.name, ctx.category, ctx.subcategory].filter(Boolean).join(" ");
@@ -68,8 +71,7 @@ function macroSum(n: ProductNutrition): number {
   // On Indian nutrition labels, dietary fiber is often listed as a sub-row of
   // total carbohydrates. When both carbs_g_100g and fiber_g_100g are present,
   // fiber is already included in carbs — subtracting it avoids false positives
-  // (e.g. peanut butter with 29g carbs including 6g fiber + 41g fat + 30g protein
-  // = 100.6g which is NOT anomalous, just rounding). Allow a small tolerance (2g).
+  // when checking the available-carbohydrate macro sum.
   const carbs = (n.carbs_g_100g ?? 0) - (n.fiber_g_100g ?? 0);
   return (n.protein_g_100g ?? 0) + Math.max(0, carbs) + (n.fat_g_100g ?? 0);
 }
@@ -102,7 +104,7 @@ function looksLikeDecimalError(value: number, n: ProductNutrition, ctx: Nutritio
     const after = kcalMismatchRatio(trial);
     if (after != null && (before == null || after < before * 0.5)) {
       if (isTeaOrCoffee(ctx) && scaled <= 25) return true;
-      if (macroSum(trial) <= 100 && scaled <= 90) return true;
+      if (macroSum(trial) <= MAX_MACRO_MASS_G && scaled <= 90) return true;
     }
   }
   return false;
@@ -119,7 +121,7 @@ export function detectNutritionAnomalies(
   }
   const sum = macroSum(nutrition);
 
-  if (sum > 100) {
+  if (sum > MAX_MACRO_MASS_G) {
     out.push({
       code: "macro_mass_exceeds_100g",
       severity: "critical",
@@ -537,7 +539,7 @@ export function tryCorrectNutrition(
   type Candidate = { n: ProductNutrition; mismatch: number; critical: boolean };
   const candidates: Candidate[] = [];
 
-  if (macroSum(nutrition) > 100) {
+  if (macroSum(nutrition) > MAX_MACRO_MASS_G) {
     for (const factor of [0.1, 0.01] as const) {
       let trial = nutrition;
       for (const key of MACRO_KEYS) trial = scaleMacro(trial, key, factor);

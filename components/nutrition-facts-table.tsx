@@ -1,3 +1,4 @@
+import { nutritionReviewStatus } from "@/lib/nutrition/review";
 import {
   formatNutrientValue,
   resolveNutritionDisplay,
@@ -117,6 +118,7 @@ export function NutritionFactsTable({
   netWeight?: string | null;
   className?: string;
 }) {
+  const review = nutritionReviewStatus(nutrition);
   const { rows, hasServe, serveG, hasPack, packLabel } = resolveNutritionDisplay(
     nutrition,
     netWeight,
@@ -124,12 +126,25 @@ export function NutritionFactsTable({
 
   if (!rows.length) {
     return (
-      <p className="text-sm text-(--color-fg-muted)">No nutrition values on file yet.</p>
+      <p className="text-sm text-(--color-fg-muted)">
+        {review === "label_conflict"
+          ? "Available labels disagree. Nutrition values and a score are withheld until they can be verified."
+          : review === "partial"
+            ? "Label verification is incomplete. Nutrition values and a score are withheld until they can be verified."
+            : "No nutrition values on file yet."}
+      </p>
     );
   }
 
   return (
     <div className={cn("overflow-hidden rounded-xl border border-(--color-line)", className)}>
+      {review === "partial" || review === "label_conflict" ? (
+        <p className="border-b border-(--color-line) px-3 py-3 text-xs text-(--color-fg-muted)">
+          {review === "partial"
+            ? "Only verified values are shown. Conflicting label values are omitted, and no score is available."
+            : "The available labels conflict. Nutrition is under review and no score is available."}
+        </p>
+      ) : null}
       <table className="w-full text-[12px]">
         <thead>
           <tr className="border-b border-(--color-line) bg-(--color-bg-soft) text-[10px] uppercase tracking-[0.12em] text-(--color-fg-dim)">

@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { NutritionFactsTable } from "../components/nutrition-facts-table";
 import { nutritionReviewSnapshot, nutritionReviewStatus } from "../lib/nutrition/review";
 import { detectNutritionAnomalies, sanitizeNutrition, sanitizeNutritionWithLlm, tryCorrectNutrition } from "../lib/nutrition/anomaly";
 import { reconcileNutrition, reconcileNutritionWithLlm } from "../lib/nutrition/sanity";
@@ -38,6 +41,25 @@ test("partial reviews retain missing values and cannot receive scores", async ()
 test("verified metadata never hides physical impossibilities", () => {
   const bad = reviewed({ protein_g_100g: 120, carbs_g_100g: 30, fat_g_100g: 20 });
   assert.ok(detectNutritionAnomalies(bad, ctx).some(a => a.severity === "critical"));
+});
+test("two-decimal normalization may total 100.01g but a 101g panel is still rejected", () => {
+  const manna = { protein_g_100g: 6.67, carbs_g_100g: 86.67, fat_g_100g: 6.67, energy_kcal_100g: 433.39 };
+  const product = { name: "Manna rice mix", category: "Breakfast" };
+  assert.equal(detectNutritionAnomalies(manna, product).some(a => a.code === "macro_mass_exceeds_100g"), false);
+  assert.deepEqual(tryCorrectNutrition(manna, product), manna);
+  const impossible = reviewed({ protein_g_100g: 7, carbs_g_100g: 87, fat_g_100g: 7, energy_kcal_100g: 439 });
+  assert.ok(detectNutritionAnomalies(impossible, product).some(a => a.code === "macro_mass_exceeds_100g" && a.severity === "critical"));
+});
+test("partial and conflicting panels explain why values and scores are withheld", () => {
+  const partial = renderToStaticMarkup(createElement(NutritionFactsTable, { nutrition: reviewed({ protein_g_100g: 27.27 }, "partial") }));
+  assert.match(partial, /Only verified values are shown/);
+  assert.match(partial, /no score is available/);
+  const conflict = renderToStaticMarkup(createElement(NutritionFactsTable, { nutrition: reviewed({}, "label_conflict") }));
+  assert.match(conflict, /Available labels disagree/);
+  assert.match(conflict, /Nutrition values and a score are withheld/);
+  const emptyPartial = renderToStaticMarkup(createElement(NutritionFactsTable, { nutrition: reviewed({}, "partial") }));
+  assert.match(emptyPartial, /Label verification is incomplete/);
+  assert.doesNotMatch(emptyPartial, /No nutrition values on file yet/);
 });
 test("missing evidence and stale booleans do not authorize bypass", () => {
   assert.equal(nutritionReviewStatus({ ...jerky, extra: { manual_review_status: "verified" } }), null);
