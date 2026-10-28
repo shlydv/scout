@@ -28,6 +28,9 @@ export const NUTRITION_ROW_DEFS: NutritionRowDef[] = [
   { key: "sodium_mg_100g", perServeField: "sodium_mg", label: "Sodium", unit: "mg", emphasis: true },
   { key: "calcium_mg_100g", perServeField: "calcium_mg", label: "Calcium", unit: "mg" },
   { key: "iron_mg_100g", perServeField: null, label: "Iron", unit: "mg" },
+  { key: "potassium_mg_100g", perServeField: null, label: "Potassium", unit: "mg" },
+  { key: "cholesterol_mg_100g", perServeField: null, label: "Cholesterol", unit: "mg" },
+  { key: "caffeine_mg_100g", perServeField: null, label: "Caffeine", unit: "mg" },
 ];
 
 export type ResolvedNutritionRow = {
