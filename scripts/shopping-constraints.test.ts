@@ -189,3 +189,23 @@ test("malformed duplicate verifier indices cannot accidentally approve a sensiti
   const result = await api.verifyItems("celiac", plan({ strict: true }), [item("one")]);
   assert.equal(result.verdicts.size, 0);
 });
+
+
+test("saved nuts avoidance excludes peanuts and tree nuts", () => {
+  for (const spelling of ["nuts", "nut"]) {
+    const p = preserveRequirements(plan(), "cookies", { avoidIngredients: [spelling] });
+    assert.ok(p.exclude.includes("peanut"));
+    assert.ok(p.exclude.includes("tree_nut"));
+  }
+});
+
+test("changed URL query cannot add requirements while reusing an earlier signed context", async () => {
+  const h = recommendationsHarness();
+  const token = createShoppingContext("gluten free cookies", plan({ exclude: ["gluten_source"] }));
+  const context = await h.api.resolveShoppingContext(token, "gluten free cookies for peanut allergy");
+  assert.equal(context.blocked, true);
+  assert.equal(context.token, "unavailable", "do not propagate the older valid context past the mismatch");
+  assert.equal((await h.api.filterShoppingCandidates(pool, context)).length, 0);
+  assert.equal(h.executes(), 0);
+  assert.ok((await h.api.resolveShoppingContext(token, "  GLUTEN free cookies ")).value);
+});

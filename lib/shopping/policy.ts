@@ -12,7 +12,7 @@ export function preserveRequirements(plan: SearchPlan, query: string, preference
   }
   if (/gluten[ -]?free|celiac|coeliac/.test(text)) exclude.add("gluten_source");
   if (/peanut[ -]?(free|allerg)|allerg\w*\s+to\s+peanuts?/.test(text)) exclude.add("peanut");
-  if (/\bnut[ -]?free\b|\bnut allergy\b/.test(text)) { exclude.add("peanut"); exclude.add("tree_nut"); }
+  if (/\bnuts?[ -]?free\b|\bnuts? allerg/.test(text)) { exclude.add("peanut"); exclude.add("tree_nut"); }
   if (/(dairy|lactose)[ -]?free/.test(text)) exclude.add("dairy");
   if (/egg[ -]?free|eggless/.test(text)) exclude.add("egg");
   for (const ingredient of preferences?.avoidIngredients ?? []) {
@@ -20,6 +20,7 @@ export function preserveRequirements(plan: SearchPlan, query: string, preference
     const aliases: Record<string, ConceptId> = { milk: "dairy", gluten: "gluten_source", nuts: "tree_nut", maida: "refined_flour", sugar: "added_sugar", "palm oil": "palm_oil" };
     const concept = aliases[normalized] ?? (Object.entries(CONCEPT_LABELS).find(([id, label]) => id.replace(/_/g, " ") === normalized || label === normalized)?.[0] as ConceptId | undefined);
     if (concept) exclude.add(concept);
+    if (normalized === "nuts" || normalized === "nut") { exclude.add("peanut"); exclude.add("tree_nut"); }
   }
   const diet = { ...plan.diet };
   if (/\bvegan\b/.test(text)) diet.vegan = true;

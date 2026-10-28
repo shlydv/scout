@@ -32,7 +32,7 @@ export function BasketView() {
   const [entries, setEntries] = useState<ReturnType<typeof readBasket>>([]);
   const [catalog, setCatalog] = useState<ProductListItem[]>([]);
   const [swapsBySlug, setSwapsBySlug] = useState<Record<string, SwapSuggestion[]>>({});
-  const [checkedShoppingContext, setCheckedShoppingContext] = useState<string | undefined>();
+  const [checkedRequest, setCheckedRequest] = useState<{ key: string; context?: string }>({ key: "" });
   const [swapsLoading, setSwapsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [fetchFailed, setFetchFailed] = useState(false);
@@ -105,6 +105,8 @@ export function BasketView() {
   );
 
   const contextsKey = JSON.stringify([...new Set(entries.flatMap(e => e.shoppingContexts ?? []))].sort());
+  const swapRequestKey = JSON.stringify([slugsKey, contextsKey, goal, diet]);
+  const activeSwaps = useMemo(() => checkedRequest.key === swapRequestKey ? swapsBySlug : {}, [checkedRequest.key, swapRequestKey, swapsBySlug]);
 
   useEffect(() => {
     if (!slugsKey) {
@@ -113,12 +115,12 @@ export function BasketView() {
     }
     let cancelled = false;
     setSwapsLoading(true);
-    setCheckedShoppingContext(undefined);
+    setCheckedRequest({ key: "" });
     setSwapsBySlug({});
     fetch("/api/swaps", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slugs: slugsKey.split(","), goal, diet, contexts: JSON.parse(contextsKey) }) })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((data: { swaps: Record<string, SwapSuggestion[]>; shoppingContext?: string }) => {
-        if (!cancelled) { setSwapsBySlug(data.swaps ?? {}); setCheckedShoppingContext(data.shoppingContext); }
+        if (!cancelled) { setSwapsBySlug(data.swaps ?? {}); setCheckedRequest({ key: swapRequestKey, context: data.shoppingContext }); }
       })
       .catch(() => {
         if (!cancelled) setSwapsBySlug({});
@@ -129,7 +131,7 @@ export function BasketView() {
     return () => {
       cancelled = true;
     };
-  }, [slugsKey, contextsKey, goal, diet]);
+  }, [slugsKey, contextsKey, goal, diet, swapRequestKey]);
 
   const lines = useMemo(() => {
     const bySlug = new Map(catalog.map((p) => [p.slug, p]));
@@ -147,8 +149,8 @@ export function BasketView() {
   }, [entries, catalog]);
 
   const analysis = useMemo(() => analyzeBasket(lines, goal), [lines, goal]);
-  const swapImpact = useMemo(() => computeSwapImpact(lines, swapsBySlug), [lines, swapsBySlug]);
-  const swapCount = Object.values(swapsBySlug).reduce((n, s) => n + s.length, 0);
+  const swapImpact = useMemo(() => computeSwapImpact(lines, activeSwaps), [lines, activeSwaps]);
+  const swapCount = Object.values(activeSwaps).reduce((n, s) => n + s.length, 0);
 
   if (loading && entries.length > 0) {
     return (
@@ -229,7 +231,7 @@ export function BasketView() {
       <ul className="divide-y divide-(--color-line) rounded-2xl border border-(--color-line) bg-(--color-panel)">
         {lines.map(({ product, qty }) => (
           <CartLine
-              shoppingContext={contextsKey !== "[]" ? checkedShoppingContext ?? "unavailable" : undefined}
+              shoppingContext={contextsKey !== "[]" ? (checkedRequest.key === swapRequestKey ? checkedRequest.context : undefined) ?? "unavailable" : undefined}
             key={product.id}
             product={product}
             qty={qty}
@@ -238,7 +240,7 @@ export function BasketView() {
                 ? null
                 : computeGoalFit(goal, goalFitInputs(product))
             }
-            swaps={swapsBySlug[product.slug] ?? []}
+            swaps={activeSwaps[product.slug] ?? []}
           />
         ))}
       </ul>
