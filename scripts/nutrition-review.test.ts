@@ -4,7 +4,11 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { NutritionFactsTable } from "../components/nutrition-facts-table";
 import { PdpNutritionGlance } from "../components/pdp-nutrition-glance";
-import { nutritionReviewSnapshot, nutritionReviewStatus } from "../lib/nutrition/review";
+import { canScoreReviewedNutrition, nutritionReviewSnapshot, nutritionReviewStatus } from "../lib/nutrition/review";
+import { buildOverallGoalSummary, buildProductGoalRows } from "../lib/goals/build-goal-rows";
+import { analyzeBasket, computeSwapImpact } from "../lib/products/basket-analysis";
+import { findAlternatives, findSimilarProducts } from "../lib/products/alternatives";
+import type { ProductListItem } from "../lib/products/queries";
 import { detectNutritionAnomalies, sanitizeNutrition, sanitizeNutritionWithLlm, tryCorrectNutrition } from "../lib/nutrition/anomaly";
 import { reconcileNutrition, reconcileNutritionWithLlm } from "../lib/nutrition/sanity";
 import type { ProductNutrition } from "../lib/supabase/types";
@@ -83,4 +87,46 @@ test("explicit mass-based serving wins over stale computed default", async () =>
   const { resolveServingGrams } = await import("../lib/scoring/serving");
   assert.deepEqual(resolveServingGrams({ nutrition: { extra: { serving_size_g: 25, serving_size_unit: "g", serving_size_value: 3.2 } } }), { serving_g: 3.2, source: "label_extra" });
   assert.notEqual(resolveServingGrams({ nutrition: { extra: { serving_size_unit: "ml", serving_size_value: 65 } }, name: "Ice Cream" }).serving_g, 65);
+});
+
+function product(nutrition: ProductNutrition, score: number | null, id = "cookie"): ProductListItem {
+  return { id, slug: id, name: "Rice cookies " + id, brand: id, category: "Biscuits", subcategory: "Cookies", l3: "Cookies", nutrition, core_scores: score == null ? null : { score, verdict: "buy" }, ingredients_raw: "Rice", attributes: null, price_inr: 50, net_weight: "100 g", image_urls: [] } as unknown as ProductListItem;
+}
+const complete = { energy_kcal_100g: 350, protein_g_100g: 10, carbs_g_100g: 50, fat_g_100g: 10, sugar_g_100g: 5, sodium_mg_100g: 100 };
+test("reviewed incomplete or unscored panels cannot regain PDP goal scores", () => {
+  for (const p of [product(reviewed(complete, "partial"), 80), product(reviewed(complete, "label_conflict"), 80), product(reviewed(complete), null), product(jerky, 80)]) {
+    assert.equal(canScoreReviewedNutrition(p), false);
+    assert.deepEqual(buildProductGoalRows(p), []);
+    assert.equal(buildOverallGoalSummary(p), null);
+  }
+  assert.equal(canScoreReviewedNutrition(product(reviewed(complete), 70)), true);
+  assert.ok(buildProductGoalRows(product(reviewed(complete), 70)).length > 0);
+  assert.equal(canScoreReviewedNutrition(product({}, null)), true, "existing unreviewed behavior remains unchanged");
+});
+test("basket aggregates exclude reviewed incomplete panels without treating missing macros as zero", () => {
+  const good = product(reviewed(complete), 70, "good");
+  const held = product(reviewed({ protein_g_100g: 90, sugar_g_100g: 90 }, "partial"), 99, "held");
+  const control = analyzeBasket([{ product: good, qty: 1 }], "gym");
+  const mixed = analyzeBasket([{ product: good, qty: 1 }, { product: held, qty: 2 }], "gym");
+  assert.equal(mixed.itemCount, 3);
+  assert.equal(mixed.totalInr, 150);
+  for (const key of ["avgCoreScore", "avgGoalFit", "proteinPct", "avgSugarG", "avgFiberG", "snackHeavyPct"] as const) assert.equal(mixed[key], control[key], key);
+  assert.match(mixed.summary.join(" "), /excluded/);
+  const onlyHeld = analyzeBasket([{ product: held, qty: 1 }], "gym");
+  assert.equal(onlyHeld.avgGoalFit, null);
+  assert.equal(onlyHeld.avgCoreScore, null);
+  assert.equal(onlyHeld.proteinPct, null);
+  assert.equal(onlyHeld.avgSugarG, null);
+});
+test("swap rankings and impact never assign derived scores to reviewed incomplete candidates", () => {
+  const good = product(reviewed(complete), 70, "good");
+  const held = product(reviewed(complete, "partial"), 99, "held");
+  assert.deepEqual(findAlternatives(good, [held], "gym"), []);
+  assert.deepEqual(findAlternatives(held, [good], "gym"), []);
+  assert.deepEqual(findSimilarProducts(good, [held], "gym"), []);
+  const swaps = { held: [{ product: good }] } as unknown as Parameters<typeof computeSwapImpact>[1];
+  const impact = computeSwapImpact([{ product: held, qty: 1 }], swaps)!;
+  assert.equal(impact.scoreNow, null);
+  assert.equal(impact.sugarNowG, null);
+  assert.equal(impact.scoreAfter, 70);
 });
