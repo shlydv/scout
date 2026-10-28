@@ -2,16 +2,11 @@ import type { ScoreExplanation } from "@/lib/products/score-explain";
 import type { VerdictId } from "@/lib/scoring/verdict";
 import { ScoreRing } from "@/components/verdict-chips";
 import { buildAutoSentence } from "@/lib/scoring/auto-sentence";
-import { VERDICT_COLORS } from "@/lib/scoring/verdict-display";
+import { VERDICT_COLORS, verdictTitle } from "@/lib/scoring/verdict-display";
 import { takeLines, bucketTake, actionableWatchLine } from "@/components/product-take-panel";
-import { tierFromScore, tierLabel, tierColor, rankPhrase } from "@/lib/utils";
+import { rankPhrase } from "@/lib/utils";
 
-/**
- * PDP score hero (common path — no LLM opinion). New paradigm (Part B): one health
- * TIER (from the consistent absolute score) + the category-relative RANK on the clean
- * taxonomy + the concrete good/watch reasons. Replaces the verdict pill + bare ring +
- * the noisy "Better than X%" relative percentile.
- */
+/** One deterministic Scout verdict, supported by label facts and category rank. */
 export function VerdictTakeCard({
   verdict,
   score,
@@ -38,8 +33,7 @@ export function VerdictTakeCard({
   className?: string;
 }) {
   const abs = absoluteScore ?? score ?? null;
-  const tier = abs != null ? tierFromScore(abs) : null;
-  const tc = tier ? tierColor(tier) : VERDICT_COLORS[verdict].fg;
+  const tc = VERDICT_COLORS[verdict].fg;
   const rank = rankPhrase(categoryRank ?? null, categorySize ?? null, categoryLabel ?? null);
 
   const autoSentence = buildAutoSentence(verdict, sublabelIds, deepseekChips);
@@ -64,12 +58,12 @@ export function VerdictTakeCard({
         {abs != null ? <ScoreRing score={abs} color={tc} /> : null}
         <div className="min-w-0 flex-1 pt-0.5">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            {tier ? (
+            {verdict ? (
               <span
                 className="stamp-in rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-tight"
                 style={{ backgroundColor: `color-mix(in srgb, ${tc} 16%, transparent)`, color: tc }}
               >
-                {tierLabel(tier)}
+                {verdictTitle(verdict)}
               </span>
             ) : null}
             {rank ? (

@@ -8,17 +8,9 @@ import { AddToBasketButton } from "@/components/add-to-basket-button";
 import { CompareButton } from "@/components/compare-button";
 import { LineTag } from "@/components/line-tag";
 import { brandSlug } from "@/lib/brands/slug";
-import { catalogTierStyle } from "@/lib/scoring/verdict-display";
-import type { VerdictId } from "@/lib/scoring/verdict";
+import { catalogTierStyle, verdictTitle } from "@/lib/scoring/verdict-display";
 import { rankShort } from "@/lib/utils";
 import type { SearchCard } from "@/lib/search/planned/present";
-
-const VERDICT_SHORT: Record<VerdictId, string> = {
-  daily_staple: "Staple",
-  good_choice: "Good",
-  occasional_treat: "Treat",
-  skip: "Skip",
-};
 
 function priceLabel(card: Pick<SearchCard, "price_inr">) {
   return card.price_inr != null ? `₹${Math.round(card.price_inr * 100) / 100}` : "—";
@@ -56,7 +48,7 @@ export function SearchResultCard({ card, query, muted = false, position, hideBra
         {card.score != null && (
           <div className="shrink-0 text-right leading-none">
             <span className="text-lg font-bold tabular-nums" style={{ color: tier }}>{card.score}</span>
-            {card.verdict && <span className="mt-1 block text-[9px] font-semibold uppercase tracking-wide" style={{ color: tier }}>{VERDICT_SHORT[card.verdict]}</span>}
+            {card.verdict && <span className="mt-1 block text-[9px] font-semibold uppercase tracking-wide" style={{ color: tier }}>{verdictTitle(card.verdict)}</span>}
           </div>
         )}
       </div>
