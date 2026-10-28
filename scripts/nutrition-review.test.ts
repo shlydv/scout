@@ -160,3 +160,10 @@ test("small declared nonzero quantities never render as exact zero", async () =>
   assert.equal(formatNutrientValue(0.003),"0.003");
   assert.equal(formatNutrientValue(0.00015),"0.00015");
 });
+
+test("refining claims are not disproved merely by other sweeteners", async () => {
+  const {refiningConflictIsSupported}=await import("../lib/facts/label-conflict");
+  assert.equal(refiningConflictIsSupported("NO REFINED SUGAR","contains jaggery and honey"),false);
+  assert.equal(refiningConflictIsSupported("No refined sugar","lists refined sugar"),true);
+  assert.equal(refiningConflictIsSupported("No added sugar","contains jaggery and honey"),true);
+});
