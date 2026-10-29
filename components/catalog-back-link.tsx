@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import { useRouter } from "next/navigation";
 
 /** PDP back link: returns to the search results the product was opened from, else history. */

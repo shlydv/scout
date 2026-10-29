@@ -1,3 +1,4 @@
+import { nutritionReviewStatus } from "@/lib/nutrition/review";
 import { mergeNutrition, parseServingNutritionBlock, fillMissingNutritionFields } from "@/lib/grocery/parse-nutrition-block";
 import { nutritionHasCriticalAnomalies, sanitizeNutrition, sanitizeNutritionWithLlm } from "@/lib/nutrition/anomaly";
 import { nutritionIsSparse } from "@/lib/nutrition/completeness";
@@ -142,6 +143,7 @@ export function reconcileNutrition(opts: {
   subcategory?: string | null;
   net_weight?: string | null;
 }): ProductNutrition | null {
+  if (nutritionReviewStatus(opts.nutrition)) return opts.nutrition;
   const fromAttrs = nutritionFromAttributes(opts.attributes);
   const ctx = { name: opts.name, category: opts.category, subcategory: opts.subcategory };
 
@@ -206,6 +208,7 @@ export async function reconcileNutritionWithLlm(
   opts: Parameters<typeof reconcileNutrition>[0],
   cacheKey?: string,
 ): Promise<ReturnType<typeof reconcileNutrition>> {
+  if (nutritionReviewStatus(opts.nutrition)) return opts.nutrition;
   const fromAttrs = nutritionFromAttributes(opts.attributes);
   const ctx = { name: opts.name, category: opts.category, subcategory: opts.subcategory };
 

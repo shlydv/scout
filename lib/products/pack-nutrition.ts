@@ -29,10 +29,10 @@ export function parsePackGrams(netWeight: string | null | undefined): number | n
   return null;
 }
 
-function toGrams(value: number, unit: string): number {
+function toGrams(value: number, unit: string): number | null {
   if (unit.startsWith("kg") || unit.startsWith("kilo")) return value * 1000;
-  if (unit === "l" || unit.startsWith("ltr") || unit.startsWith("lit")) return value * 1000;
-  if (unit === "ml") return value;
+  if (unit === "l" || unit.startsWith("ltr") || unit.startsWith("lit")) return null;
+  if (unit === "ml") return null;
   return value;
 }
 

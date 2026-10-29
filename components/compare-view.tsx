@@ -1,7 +1,9 @@
 "use client";
 
+import { rankPhrase } from "@/lib/utils";
+import { productHref } from "@/lib/shopping/links";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeftRight, X } from "lucide-react";
 import { ScoreRing, VerdictBadge } from "@/components/verdict-chips";
@@ -13,7 +15,8 @@ import {
 } from "@/lib/compare/storage";
 import { resolveProductVerdict } from "@/lib/scoring/verdict-resolve";
 import { tierAccentForVerdict, sublabelChipLabels } from "@/lib/scoring/verdict-display";
-import { parsePackGrams } from "@/lib/products/pack-nutrition";
+import { parsePack } from "@/lib/facts/pack";
+import { nutritionBasisUnit } from "@/lib/nutrition/nutrition-display";
 import { catalogCardDisplayName } from "@/lib/products/card-display-name";
 import { displayPriceInr } from "@/lib/products/display-price";
 import type { ProductListItem } from "@/lib/products/queries";
@@ -24,28 +27,33 @@ type NutrientRow = {
   unit: string;
   /** "low" = lower is better, "high" = higher is better, "none" = no judgement */
   better: "low" | "high" | "none";
-  value: (p: ProductListItem) => number | null | undefined;
+  field: keyof NonNullable<ProductListItem["nutrition"]>;
 };
 
 const NUTRIENT_ROWS: NutrientRow[] = [
-  { key: "energy", label: "Energy", unit: "kcal", better: "low", value: (p) => p.nutrition?.energy_kcal_100g },
-  { key: "protein", label: "Protein", unit: "g", better: "high", value: (p) => p.nutrition?.protein_g_100g },
-  { key: "carbs", label: "Carbs", unit: "g", better: "none", value: (p) => p.nutrition?.carbs_g_100g },
-  { key: "sugar", label: "Total sugar", unit: "g", better: "low", value: (p) => p.nutrition?.sugar_g_100g },
-  { key: "added_sugar", label: "Added sugar", unit: "g", better: "low", value: (p) => p.nutrition?.added_sugar_g_100g },
-  { key: "fiber", label: "Fibre", unit: "g", better: "high", value: (p) => p.nutrition?.fiber_g_100g },
-  { key: "fat", label: "Total fat", unit: "g", better: "none", value: (p) => p.nutrition?.fat_g_100g },
-  { key: "sat_fat", label: "Saturated fat", unit: "g", better: "low", value: (p) => p.nutrition?.saturated_fat_g_100g },
-  { key: "sodium", label: "Sodium", unit: "mg", better: "low", value: (p) => p.nutrition?.sodium_mg_100g },
+  { key: "energy", label: "Energy", unit: "kcal", better: "low", field: "energy_kcal_100g" },
+  { key: "protein", label: "Protein", unit: "g", better: "high", field: "protein_g_100g" },
+  { key: "carbs", label: "Carbs", unit: "g", better: "none", field: "carbs_g_100g" },
+  { key: "sugar", label: "Total sugar", unit: "g", better: "low", field: "sugar_g_100g" },
+  { key: "added_sugar", label: "Added sugar", unit: "g", better: "low", field: "added_sugar_g_100g" },
+  { key: "fiber", label: "Fibre", unit: "g", better: "high", field: "fiber_g_100g" },
+  { key: "fat", label: "Total fat", unit: "g", better: "none", field: "fat_g_100g" },
+  { key: "sat_fat", label: "Saturated fat", unit: "g", better: "low", field: "saturated_fat_g_100g" },
+  { key: "sodium", label: "Sodium", unit: "mg", better: "low", field: "sodium_mg_100g" },
 ];
 
 export function CompareView() {
+  const [contexts, setContexts] = useState<Record<string, string>>({});
   const [slugs, setSlugs] = useState<string[]>([]);
   const [products, setProducts] = useState<ProductListItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const sync = () => setSlugs(readCompare().map((e) => e.slug));
+    const sync = () => {
+      const entries = readCompare();
+      setSlugs(entries.map(e => e.slug));
+      setContexts(Object.fromEntries(entries.filter(e => e.shoppingContext).map(e => [e.slug, e.shoppingContext!])));
+    };
     sync();
     window.addEventListener(COMPARE_EVENT, sync);
     return () => window.removeEventListener(COMPARE_EVENT, sync);
@@ -124,7 +132,7 @@ export function CompareView() {
           style={{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}
         >
           {products.map((p) => (
-            <ProductHeader key={p.id} product={p} />
+            <ProductHeader key={p.id} product={p} shoppingContext={contexts[p.slug]} />
           ))}
         </div>
 
@@ -133,6 +141,7 @@ export function CompareView() {
           <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}>
             {products.map((p) => {
               const core = p.core_scores;
+              const rank = rankPhrase(core?.category_rank ?? null, core?.category_size ?? null, core?.category_label ?? null);
               const verdict = core
                 ? resolveProductVerdict({
                     verdict: core.verdict,
@@ -150,9 +159,9 @@ export function CompareView() {
                         <ScoreRing score={core.score} color={tierAccentForVerdict(verdict)} />
                         <VerdictBadge verdict={verdict} />
                       </div>
-                      {core.relative_score != null && (core.cohort_size ?? 0) >= 8 ? (
+                      {rank ? (
                         <p className="text-[11px] leading-snug text-(--color-fg-muted)">
-                          Better than {core.relative_score}% of {core.cohort_size} similar products
+                          {rank}
                         </p>
                       ) : null}
                     </>
@@ -170,7 +179,8 @@ export function CompareView() {
           <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}>
             {products.map((p) => {
               const price = displayPriceInr(p);
-              const grams = parsePackGrams(p.net_weight);
+              const pack = parsePack(p.net_weight);
+              const grams = pack && pack.unit !== "pcs" ? pack.qty : null;
               const per100 =
                 price != null && grams != null && grams > 0
                   ? Math.round((price / grams) * 100)
@@ -182,7 +192,7 @@ export function CompareView() {
                   </p>
                   <p className="mt-0.5 text-[11px] text-(--color-fg-dim)">
                     {p.net_weight ?? ""}
-                    {per100 != null ? ` · ₹${per100}/100g` : ""}
+                    {per100 != null ? ` · ₹${per100}/100${pack?.unit}` : ""}
                   </p>
                 </div>
               );
@@ -191,23 +201,26 @@ export function CompareView() {
         </CompareSection>
 
         {/* Nutrients per 100g with best/worst highlighting */}
-        <CompareSection title="Nutrition · per 100 g">
+        <CompareSection title="Nutrition · declared basis">
           <div className="overflow-hidden rounded-xl border border-(--color-line) bg-(--color-panel)">
             {NUTRIENT_ROWS.map((row, idx) => {
-              const values = products.map((p) => {
-                const v = row.value(p);
+              const bases = products.map(p => nutritionBasisUnit(p.nutrition));
+              const sameBasis = new Set(bases).size === 1;
+              const values = products.map((p, i) => {
+                const key = bases[i] === "ml" ? String(row.field).replace(/_100g$/, "_100ml") : row.field;
+                const v = p.nutrition?.[key as keyof NonNullable<ProductListItem["nutrition"]>];
                 return typeof v === "number" && Number.isFinite(v) ? v : null;
               });
               const present = values.filter((v): v is number => v != null);
               const distinct = new Set(present).size > 1;
               const best =
-                row.better !== "none" && present.length >= 2 && distinct
+                sameBasis && row.better !== "none" && present.length >= 2 && distinct
                   ? row.better === "low"
                     ? Math.min(...present)
                     : Math.max(...present)
                   : null;
               const worst =
-                row.better !== "none" && present.length >= 2 && distinct
+                sameBasis && row.better !== "none" && present.length >= 2 && distinct
                   ? row.better === "low"
                     ? Math.max(...present)
                     : Math.min(...present)
@@ -239,7 +252,7 @@ export function CompareView() {
                               : "transparent",
                         }}
                       >
-                        {v != null ? `${Math.round(v * 10) / 10} ${row.unit}` : "—"}
+                        {v != null ? `${Math.round(v * 10) / 10} ${row.unit} / 100${bases[i]}` : "—"}
                       </p>
                     );
                   })}
@@ -248,8 +261,7 @@ export function CompareView() {
             })}
           </div>
           <p className="mt-2 text-[11px] text-(--color-fg-dim)">
-            Green = best of the set, red = weakest. Carbs and total fat aren&apos;t judged — context
-            matters.
+            Highlights compare values only when every product uses the same basis. Volume and mass labels are not ranked against each other.
           </p>
         </CompareSection>
 
@@ -296,7 +308,7 @@ export function CompareView() {
   );
 }
 
-function ProductHeader({ product }: { product: ProductListItem }) {
+function ProductHeader({ product, shoppingContext }: { product: ProductListItem; shoppingContext?: string }) {
   const thumb = product.image_urls?.[0] ?? null;
   return (
     <div className="relative">
@@ -308,7 +320,7 @@ function ProductHeader({ product }: { product: ProductListItem }) {
       >
         <X className="h-3.5 w-3.5" />
       </button>
-      <Link href={`/product/${product.slug}`} className="group block">
+      <Link href={productHref(product.slug, shoppingContext)} className="group block">
         <div className="relative aspect-square overflow-hidden rounded-2xl photo-frame shadow-[0_1px_2px_rgba(60,40,20,0.05)] transition duration-200 ease-out group-hover:-translate-y-0.5 group-hover:shadow-[0_16px_34px_-20px_rgba(60,40,20,0.34)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4)] dark:group-hover:shadow-[0_16px_34px_-18px_rgba(0,0,0,0.6)]">
           {thumb ? (
             <Image

@@ -35,6 +35,8 @@ async function main() {
         (p.nutrition->>'energy_kcal_100g')::numeric en
       from products p join product_facts f on f.product_id = p.id
       where p.catalog_visible and p.nutrition is not null
+        -- Source-backed manual reviews outrank a model plausibility judgement.
+        and coalesce(p.nutrition->'extra'->>'manual_review_status', '') not in ('verified', 'partial', 'label_conflict')
     ), ranked as (
       select *,
         percent_rank() over (partition by subcategory order by pr) r_pr, percent_rank() over (partition by subcategory order by su) r_su,
@@ -83,7 +85,9 @@ async function main() {
       await sql`
         update public.product_facts f set nutrition_suspect = v.suspect::boolean, nutrition_note = v.note
         from (values ${sql(chunk.map(u => [u.id, u.suspect, u.note]) as never)}) as v(id, suspect, note)
-        where f.product_id = v.id::uuid`;
+        where f.product_id = v.id::uuid
+          and exists (select 1 from products p where p.id=f.product_id
+            and coalesce(p.nutrition->'extra'->>'manual_review_status', '') not in ('verified', 'partial', 'label_conflict'))`;
     }
     console.log("written");
   }

@@ -4,8 +4,9 @@ import { matchAdditives } from "@/lib/scoring/rules";
 import type { RoleCohort } from "@/lib/scoring/role-cohort";
 import { perServeFromNutrition } from "@/lib/scoring/per-serve";
 import type { ProductNutrition } from "@/lib/supabase/types";
-import type { ConcernEntry, ScoreBand, SubScores } from "@/lib/supabase/types";
-import { labelForBand } from "@/lib/utils";
+import type { ConcernEntry, SubScores } from "@/lib/supabase/types";
+import { resolveProductVerdict } from "@/lib/scoring/verdict-resolve";
+import { VERDICT_LABELS, type VerdictId } from "@/lib/scoring/verdict";
 
 export type ScoreExplanation = {
   reasons: string[];
@@ -35,7 +36,7 @@ function pushUnique(list: string[], line: string) {
  */
 export function explainScore(opts: {
   score: number;
-  band: ScoreBand;
+  verdict?: VerdictId | null;
   subscores?: SubScores | null;
   concerns?: ConcernEntry[] | Array<{ type?: string; message?: string; ingredient?: string; tier?: string }>;
   breakdown?: { notes?: string[]; hard_capped?: boolean } | null;
@@ -46,6 +47,7 @@ export function explainScore(opts: {
   subcategory?: string | null;
   role_cohort?: RoleCohort | null;
 }): ScoreExplanation {
+  const verdict = resolveProductVerdict({ verdict: opts.verdict, score: opts.score, name: opts.productName, category: opts.category, subcategory: opts.subcategory, hazardous: opts.breakdown?.hard_capped });
   const reasons: string[] = [];
   const n = opts.nutrition;
   const role = opts.role_cohort ?? null;
@@ -197,34 +199,10 @@ export function explainScore(opts: {
   }
 
   if (reasons.length === 0) {
-    pushUnique(reasons, `${labelForBand(opts.band)} overall for this category`);
+    pushUnique(reasons, verdict ? VERDICT_LABELS[verdict].description : "Based on the available label information");
   }
 
-  // ── Tradeoffs (closing line, role-aware) ─────────────────────────
-  const tradeoffs: string[] = [];
-  if (isAdjunct) {
-    tradeoffs.push("Judge a seasoning by its ingredient list, not its macros.");
-    if (flagged.length === 0) {
-      tradeoffs.push("This one's clean — fine to keep in your pantry.");
-    } else {
-      tradeoffs.push("Look for one without the flagged additives if it matters to you.");
-    }
-  } else if (opts.band === "excellent" || opts.band === "good") {
-    tradeoffs.push("Works well as a regular buy if the price and taste suit you.");
-    if (sugarG != null && sugarG > 8) {
-      tradeoffs.push("Still a packaged item — portion size matters if you're cutting sugar.");
-    }
-  } else if (opts.band === "poor" || opts.band === "bad") {
-    tradeoffs.push(
-      isTreat
-        ? "Fine as an occasional treat — just don't pretend it's a staple."
-        : "Fine once in a while — just don't treat it as your default staple.",
-    );
-    tradeoffs.push("Check the swaps beside this score for similar options in the same aisle.");
-  } else {
-    tradeoffs.push("Mixed bag: fine for taste or convenience, not ideal as an everyday base.");
-    tradeoffs.push("Compare swaps if you want something cleaner without changing aisles.");
-  }
+  const tradeoffs = verdict ? [VERDICT_LABELS[verdict].description] : [];
 
   return {
     reasons: reasons.slice(0, 4),

@@ -14,12 +14,14 @@ export function CompareButton({
   slug,
   name,
   image,
+  shoppingContext,
   size = "icon",
   className,
 }: {
   slug: string;
   name: string;
   image: string | null;
+  shoppingContext?: string;
   size?: "icon" | "labelled";
   className?: string;
 }) {
@@ -36,7 +38,7 @@ export function CompareButton({
   const onToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const ok = toggleCompare({ slug, name, image });
+    const ok = toggleCompare({ slug, name, image, shoppingContext });
     if (!ok) {
       // Tray is full — nudge instead of failing silently.
       setBounced(true);

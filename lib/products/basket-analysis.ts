@@ -1,4 +1,5 @@
 import { computeGoalFit, goalFitInputs } from "@/lib/goals/fit";
+import { canScoreReviewedNutrition } from "@/lib/nutrition/review";
 import { GOAL_PROFILES, type GoalId } from "@/lib/goals/types";
 import { matchAdditives } from "@/lib/scoring/rules";
 import type { SwapSuggestion } from "@/lib/products/alternatives";
@@ -67,16 +68,18 @@ export function computeSwapImpact(
       }
     }
 
-    if (product.core_scores?.verdict === "skip") skipsNow += qty;
-    if (after.core_scores?.verdict === "skip") skipsAfter += qty;
+    const eligibleNow = canScoreReviewedNutrition(product);
+    const eligibleAfter = canScoreReviewedNutrition(after);
+    if (eligibleNow && product.core_scores?.verdict === "skip") skipsNow += qty;
+    if (eligibleAfter && after.core_scores?.verdict === "skip") skipsAfter += qty;
 
     for (let i = 0; i < qty; i++) {
-      if (product.core_scores?.score != null) scoresNow.push(product.core_scores.score);
-      if (after.core_scores?.score != null) scoresAfter.push(after.core_scores.score);
+      if (eligibleNow && product.core_scores?.score != null) scoresNow.push(product.core_scores.score);
+      if (eligibleAfter && after.core_scores?.score != null) scoresAfter.push(after.core_scores.score);
       const sNow = product.nutrition?.sugar_g_100g ?? product.nutrition?.added_sugar_g_100g;
       const sAfter = after.nutrition?.sugar_g_100g ?? after.nutrition?.added_sugar_g_100g;
-      if (typeof sNow === "number") sugarsNow.push(sNow);
-      if (typeof sAfter === "number") sugarsAfter.push(sAfter);
+      if (eligibleNow && typeof sNow === "number") sugarsNow.push(sNow);
+      if (eligibleAfter && typeof sAfter === "number") sugarsAfter.push(sAfter);
     }
   }
 
@@ -99,12 +102,14 @@ export function analyzeBasket(
   goal: GoalId = "balanced",
 ): BasketAnalysis {
   const items = lines.flatMap((l) => Array(l.qty).fill(l.product) as ProductListItem[]);
-  const withNutrition = items.filter((p) => p.nutrition);
-  const scores = items.map((p) => p.core_scores?.score).filter((s): s is number => s != null);
+  const eligible = items.filter(canScoreReviewedNutrition);
+  const excluded = items.length - eligible.length;
+  const withNutrition = eligible.filter((p) => p.nutrition);
+  const scores = eligible.map((p) => p.core_scores?.score).filter((s): s is number => s != null);
   const goalFits =
     goal === "balanced"
       ? []
-      : items.map((p) => computeGoalFit(goal, goalFitInputs(p)).fit);
+      : eligible.map((p) => computeGoalFit(goal, goalFitInputs(p)).fit);
   const totalInr = lines.reduce((s, l) => s + (l.product.price_inr ?? 0) * l.qty, 0);
 
   let proteinPct: number | null = null;
@@ -146,24 +151,25 @@ export function analyzeBasket(
   const goalProfile = GOAL_PROFILES.find((g) => g.id === goal);
   const goalLabel = goalProfile?.label ?? "Balanced";
   const summary: string[] = [];
+  if (excluded) summary.push(`${excluded} item${excluded === 1 ? " is" : "s are"} under nutrition review and excluded from score and nutrition averages.`);
 
   if (goal !== "balanced" && goalFits.length) {
     const avgFit = avg(goalFits)!;
-    const weak = items.filter(
+    const weak = eligible.filter(
       (p) => computeGoalFit(goal, goalFitInputs(p)).fit < 45,
     ).length;
     summary.push(
-      `For ${goalLabel}, this cart averages ${avgFit.toFixed(0)} / 100 across items.`,
+      `For ${goalLabel}, this cart averages ${avgFit.toFixed(0)} / 100 across ${excluded ? "eligible " : ""}items.`,
     );
     if (weak > 0) {
       summary.push(
         `${weak} item${weak === 1 ? "" : "s"} score below 45 for that goal — worth a swap.`,
       );
     } else {
-      summary.push("Nothing here looks like a bad fit for your goal.");
+      summary.push(excluded ? "No scored items look like a bad fit for your goal; items under review are excluded." : "Nothing here looks like a bad fit for your goal.");
     }
   } else if (scores.length) {
-    summary.push(`Overall scores average ${avg(scores)!.toFixed(0)} across the cart.`);
+    summary.push(`Overall scores average ${avg(scores)!.toFixed(0)} across ${excluded ? "eligible items" : "the cart"}.`);
   }
 
   if (goal === "gym" || goal === "bulk" || goal === "protein-budget") {

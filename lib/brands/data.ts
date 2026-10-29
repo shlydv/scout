@@ -41,15 +41,16 @@ function displayName(variants: string[]): string {
   return clean.find(v => v !== v.toUpperCase()) ?? clean[0]!;
 }
 
-type ScoreRow = { brand_key: string; variants: string[]; name: string; category: string | null; subcategory: string | null; score: string | null };
+type ScoreRow = { brand_key: string; variants: string[]; name: string; category: string | null; subcategory: string | null; verdict: string | null; score: string | null };
 
 const loadIndex = unstable_cache(
   async (): Promise<BrandSummary[]> => {
     const sql = searchSql();
     const rows = await sql<ScoreRow[]>`
       select lower(p.brand) brand_key, array[p.brand] variants, p.name, p.category, p.subcategory,
-             coalesce(si.absolute_score, si.scout_score) score
+             coalesce(cs.absolute_score, cs.score) score, cs.verdict
       from products p left join product_search_index si on si.product_id = p.id
+      left join core_scores cs on cs.product_id = p.id
       where p.catalog_visible and p.brand is not null and trim(p.brand) <> ''`;
     const conflicts = await sql<{ brand_key: string; n: number }[]>`
       select lower(p.brand) brand_key, count(distinct lc.product_id)::int n
@@ -65,7 +66,7 @@ const loadIndex = unstable_cache(
       if (r.score != null) {
         const score = Number(r.score);
         b.scored.push(score);
-        if (resolveProductVerdict({ score, name: r.name, category: r.category, subcategory: r.subcategory }) === "skip") b.skip++;
+        if (resolveProductVerdict({ verdict: r.verdict, score, name: r.name, category: r.category, subcategory: r.subcategory }) === "skip") b.skip++;
       }
       byBrand.set(r.brand_key, b);
     }
@@ -85,7 +86,7 @@ const loadIndex = unstable_cache(
     }
     return out;
   },
-  ["brand-index-v2"],
+  ["brand-index-v3-verdict"],
   { revalidate: 86400 },
 );
 
@@ -96,7 +97,7 @@ export async function getBrandIndex(): Promise<BrandSummary[]> {
 type ProductRow = {
   id: string; slug: string; name: string; brand: string; image_urls: string[] | null; ocr_image_url: string | null;
   price_inr: string | null; mrp_inr: string | null; net_weight: string | null; category: string | null; subcategory: string | null;
-  score: string | null; protein: string | null; sugar: string | null; kcal: string | null; variant_key: string | null;
+  verdict: string | null; score: string | null; protein: string | null; sugar: string | null; kcal: string | null; variant_key: string | null;
   category_rank: number | null; category_size: number | null; category_label: string | null;
 };
 
@@ -108,7 +109,7 @@ function toCard(r: ProductRow): SearchCard {
     image: normalizeProductImageUrls(r.image_urls ?? [], { ocrImageUrl: r.ocr_image_url })[0] ?? null,
     price_inr: num(r.price_inr), mrp_inr: num(r.mrp_inr), net_weight: r.net_weight, price_per_100: null,
     score,
-    verdict: score == null ? null : resolveProductVerdict({ score, name: r.name, category: r.category, subcategory: r.subcategory }),
+    verdict: score == null ? null : resolveProductVerdict({ verdict: r.verdict, score, name: r.name, category: r.category, subcategory: r.subcategory }),
     rank: r.category_rank && r.category_size ? { rank: r.category_rank, size: r.category_size, label: r.category_label } : null,
     reasons: [], warning: null, fit: null, sizes: [],
     nutrition: { protein_g: num(r.protein), sugar_g: num(r.sugar), kcal: num(r.kcal) },
@@ -123,14 +124,15 @@ const loadBrand = unstable_cache(
     const key = summary.key;
     const rows = await sql<ProductRow[]>`
       select p.id, p.slug, p.name, p.brand, p.image_urls, p.ocr_image_url, p.price_inr, p.mrp_inr, p.net_weight,
-             p.category, p.subcategory, coalesce(si.absolute_score, si.scout_score) score,
+             p.category, p.subcategory, coalesce(cs.absolute_score, cs.score) score, cs.verdict,
              si.protein_g protein, si.sugar_g sugar, si.energy_kcal kcal, f.variant_key,
-             si.category_rank, si.category_size, si.category_label
+             cs.category_rank, cs.category_size, cs.category_label
       from products p
       left join product_search_index si on si.product_id = p.id
+      left join core_scores cs on cs.product_id = p.id
       left join product_facts f on f.product_id = p.id
       where p.catalog_visible and lower(p.brand) = ${key}
-      order by coalesce(si.absolute_score, si.scout_score) desc nulls last, p.price_inr`;
+      order by coalesce(cs.absolute_score, cs.score) desc nulls last, p.price_inr`;
 
     // One card per pack-size group; the best-scoring size represents it.
     const groups = new Map<string, { card: SearchCard; aisle: string }>();
@@ -152,12 +154,13 @@ const loadBrand = unstable_cache(
     for (const c of cards) byAisle.set(c.aisle, [...(byAisle.get(c.aisle) ?? []), c.card]);
     const aisles = [...byAisle].map(([aisle, items]) => ({ aisle, items })).sort((a, b) => b.items.length - a.items.length || a.aisle.localeCompare(b.aisle));
 
-    const conflictRows = await sql<{ id: string; slug: string; name: string; brand: string; image_urls: string[] | null; ocr_image_url: string | null; price_inr: string | null; net_weight: string | null; score: string | null; claim: string; reality: string; kind: string; severity: "high" | "medium" }[]>`
+    const conflictRows = await sql<{ id: string; slug: string; name: string; brand: string; image_urls: string[] | null; ocr_image_url: string | null; price_inr: string | null; net_weight: string | null; verdict: string | null; score: string | null; claim: string; reality: string; kind: string; severity: "high" | "medium" }[]>`
       select p.id, p.slug, p.name, p.brand, p.image_urls, p.ocr_image_url, p.price_inr, p.net_weight,
-             coalesce(si.absolute_score, si.scout_score) score, lc.claim, lc.reality, lc.kind, lc.severity
+             coalesce(cs.absolute_score, cs.score) score, cs.verdict, lc.claim, lc.reality, lc.kind, lc.severity
       from label_conflicts lc
       join products p on p.id = lc.product_id and p.catalog_visible
       left join product_search_index si on si.product_id = p.id
+      left join core_scores cs on cs.product_id = p.id
       where lower(p.brand) = ${key}
       order by lc.severity, p.name`;
     const conflictCards: LabelConflict[] = conflictRows.map(r => ({
@@ -178,7 +181,7 @@ const loadBrand = unstable_cache(
       conflictCards,
     };
   },
-  ["brand-detail-v2"],
+  ["brand-detail-v3-verdict"],
   { revalidate: 86400 },
 );
 

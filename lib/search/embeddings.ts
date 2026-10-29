@@ -3,6 +3,7 @@
  * Voyage AI (default) or OpenAI-compatible /embeddings endpoint.
  */
 import { Agent, fetch as undiciFetch } from "undici";
+import { abortableDelay, createDeadline, SharedWork, throwIfAborted } from "./planned/runtime";
 /** Dimensions of the stored product embeddings (voyage-3.5). */
 export const EMBEDDING_DIM = 1024;
 
@@ -82,7 +83,7 @@ const embedCache = new Map<string, number[]>();
 /** In-flight requests keyed identically to embedCache — lets concurrent callers
  *  for the same text share ONE network round-trip (e.g. the speculative
  *  pipeline warm + the real fetchCandidatePool embed on a fast-path query). */
-const embedInflight = new Map<string, Promise<number[]>>();
+const embedInflight = new SharedWork<number[]>();
 
 export function clearEmbeddingCache(): void {
   embedCache.clear();
@@ -96,7 +97,9 @@ export function isEmbeddingConfigured(): boolean {
 export async function embedTexts(
   texts: string[],
   inputType: EmbeddingInputType = "document",
+  signal?: AbortSignal,
 ): Promise<number[][]> {
+  throwIfAborted(signal);
   if (!texts.length) return [];
   const endpoint = resolveEmbeddingEndpoint();
   if (!endpoint) return texts.map(() => []);
@@ -120,11 +123,13 @@ export async function embedTexts(
   const MAX_ATTEMPTS = inputType === "query" ? 1 : 5;
   let lastErr: unknown = null;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    throwIfAborted(signal);
+    const deadline = createDeadline(inputType === "query" ? 8_000 : 60_000, signal);
     try {
       const res = await undiciFetch(`${baseUrl}/embeddings`, {
         method: "POST",
         dispatcher,
-        signal: AbortSignal.timeout(inputType === "query" ? 8_000 : 60_000),
+        signal: deadline.signal,
         headers: {
           "content-type": "application/json",
           authorization: `Bearer ${apiKey}`,
@@ -139,7 +144,7 @@ export async function embedTexts(
           ? retryAfter * 1000
           : 2 ** (attempt - 1) * 1000;
         if (attempt < MAX_ATTEMPTS) {
-          await new Promise((r) => setTimeout(r, waitMs));
+          await abortableDelay(waitMs, signal);
           continue;
         }
         throw new Error(`Embeddings HTTP ${res.status} after ${MAX_ATTEMPTS} attempts`);
@@ -149,18 +154,20 @@ export async function embedTexts(
         data?: Array<{ embedding?: number[]; index?: number }>;
         error?: { message?: string };
       };
+      throwIfAborted(deadline.signal);
       if (!res.ok) throw new Error(payload.error?.message ?? `Embeddings HTTP ${res.status}`);
 
       const sorted = [...(payload.data ?? [])].sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
       return sorted.map((row) => row.embedding ?? []);
     } catch (err) {
+      throwIfAborted(signal);
       lastErr = err;
       // Network error: brief backoff then retry.
       if (attempt < MAX_ATTEMPTS) {
-        await new Promise((r) => setTimeout(r, 2 ** (attempt - 1) * 1000));
+        await abortableDelay(2 ** (attempt - 1) * 1000, signal);
         continue;
       }
-    }
+    } finally { deadline.dispose(); }
   }
 
   if (!embedWarned) {
@@ -172,28 +179,24 @@ export async function embedTexts(
   return texts.map(() => []);
 }
 
-export async function embedText(text: string, inputType: EmbeddingInputType = "document"): Promise<number[]> {
+export async function embedText(text: string, inputType: EmbeddingInputType = "document", signal?: AbortSignal): Promise<number[]> {
+  throwIfAborted(signal);
   const key = `${text}\0${inputType}`;
   const cached = embedCache.get(key);
   if (cached) return cached;
 
   // Share an in-flight request so concurrent callers for the same text don't
   // each hit Voyage. On rejection the entry is cleared so the next call retries.
-  const pending = embedInflight.get(key);
-  if (pending) return pending;
-
-  const p = embedTexts([text], inputType)
-    .then(([vec]) => {
-      const result = vec ?? [];
-      if (result.length) {
-        embedCache.set(key, result);
-        if (embedCache.size > 512) embedCache.delete(embedCache.keys().next().value!);
-      }
-      return result;
-    })
-    .finally(() => embedInflight.delete(key));
-  embedInflight.set(key, p);
-  return p;
+  return embedInflight.run(key, async sharedSignal => {
+    const [vec] = await embedTexts([text], inputType, sharedSignal);
+    throwIfAborted(sharedSignal);
+    const result = vec ?? [];
+    if (result.length) {
+      embedCache.set(key, result);
+      if (embedCache.size > 512) embedCache.delete(embedCache.keys().next().value!);
+    }
+    return result;
+  }, signal);
 }
 
 export async function embedTextBatch(

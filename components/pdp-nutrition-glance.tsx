@@ -1,4 +1,5 @@
 import { NutritionFactsTable } from "@/components/nutrition-facts-table";
+import { nutritionReviewStatus } from "@/lib/nutrition/review";
 import { detectNutritionAnomalies, type NutritionContext } from "@/lib/nutrition/anomaly";
 import { formatNutrientValue, resolveNutritionDisplay } from "@/lib/nutrition/nutrition-display";
 import {
@@ -46,8 +47,16 @@ export function PdpNutritionGlance({
   subcategory?: string | null;
   roleCohort?: RoleCohort | null;
 }) {
-  const { rows, hasServe, serveG, packLabel } = resolveNutritionDisplay(nutrition, netWeight);
-  if (!rows.length) return null;
+  const { rows, hasServe, serveQuantity, basisUnit, packLabel } = resolveNutritionDisplay(nutrition, netWeight);
+  const review = nutritionReviewStatus(nutrition);
+  const underReview = review === "partial" || review === "label_conflict";
+  if (!rows.length) {
+    return underReview ? (
+      <div className="panel-soft rounded-2xl p-4 sm:p-5">
+        <NutritionFactsTable nutrition={nutrition} netWeight={netWeight} />
+      </div>
+    ) : null;
+  }
 
   const { watch, good, headline } = judgeNutrition(rows, roleCohort);
   const judged = [...watch, ...good];
@@ -60,7 +69,7 @@ export function PdpNutritionGlance({
   const metaParts = [
     packLabel !== "pack" ? packLabel : null,
     priceInr != null && priceInr > 0 ? `₹${priceInr}` : null,
-    hasServe && serveG ? `${serveG}g serve` : null,
+    hasServe && serveQuantity ? `${serveQuantity}${basisUnit} serve` : null,
   ].filter(Boolean);
 
   return (
@@ -76,10 +85,12 @@ export function PdpNutritionGlance({
 
       {critical.length > 0 ? (
         <div className="mt-3 rounded-xl border border-(--color-bad)/30 bg-(--color-bad)/[0.06] px-3 py-2.5 text-[12px] leading-snug text-(--color-bad)">
-          <p className="font-medium">Nutrition data looks wrong</p>
+          <p className="font-medium">{underReview ? "Nutrition is under review" : "Nutrition data looks wrong"}</p>
           <ul className="mt-1 list-inside list-disc opacity-90">
             {critical.map((a) => (
-              <li key={a.code}>{a.message}</li>
+              <li key={a.code}>{a.code === "manual_review_incomplete"
+                ? "Some label values are missing or disagree. A score is unavailable until these can be verified."
+                : a.message}</li>
             ))}
           </ul>
         </div>

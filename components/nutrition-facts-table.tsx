@@ -1,3 +1,4 @@
+import { nutritionReviewStatus } from "@/lib/nutrition/review";
 import {
   formatNutrientValue,
   resolveNutritionDisplay,
@@ -117,27 +118,43 @@ export function NutritionFactsTable({
   netWeight?: string | null;
   className?: string;
 }) {
-  const { rows, hasServe, serveG, hasPack, packLabel } = resolveNutritionDisplay(
+  const review = nutritionReviewStatus(nutrition);
+  const { rows, hasServe, serveQuantity, basisUnit, hasPack, packLabel } = resolveNutritionDisplay(
     nutrition,
     netWeight,
   );
 
   if (!rows.length) {
     return (
-      <p className="text-sm text-(--color-fg-muted)">No nutrition values on file yet.</p>
+      <p className="text-sm text-(--color-fg-muted)">
+        {review === "label_conflict"
+          ? "Available labels disagree. Nutrition values and a score are withheld until they can be verified."
+          : review === "partial"
+            ? "Label verification is incomplete. Nutrition values and a score are withheld until they can be verified."
+            : "No nutrition values on file yet."}
+      </p>
     );
   }
 
   return (
     <div className={cn("overflow-hidden rounded-xl border border-(--color-line)", className)}>
+      {review === "partial" || review === "label_conflict" ? (
+        <p className="border-b border-(--color-line) px-3 py-3 text-xs text-(--color-fg-muted)">
+          {review === "partial"
+            ? "Only verified values are shown. Conflicting label values are omitted, and no score is available."
+            : "The available labels conflict. Nutrition is under review and no score is available."}
+        </p>
+      ) : null}
+      {basisUnit === "ml" && <p className="border-b border-(--color-line) px-3 py-2 text-xs text-(--color-fg-muted)">The label is declared by volume. No gram conversion or Scout score is inferred.</p>}
+      {typeof nutrition.extra?.label_basis_note === "string" && <p className="border-b border-(--color-line) px-3 py-2 text-xs text-(--color-fg-muted)">{nutrition.extra.label_basis_note}</p>}
       <table className="w-full text-[12px]">
         <thead>
           <tr className="border-b border-(--color-line) bg-(--color-bg-soft) text-[10px] uppercase tracking-[0.12em] text-(--color-fg-dim)">
             <th className="px-3 py-2.5 text-left font-medium">Nutrient</th>
-            <th className="px-2 py-2.5 text-right font-medium tabular-nums">Per 100g</th>
+            <th className="px-2 py-2.5 text-right font-medium tabular-nums">Per 100{basisUnit}</th>
             {hasServe ? (
               <th className="px-2 py-2.5 text-right font-medium tabular-nums">
-                {serveG ? `Per serve (${serveG}g)` : "Per serve"}
+                {serveQuantity ? `Per serve (${serveQuantity}${basisUnit})` : "Per serve"}
               </th>
             ) : null}
             {hasPack ? (
@@ -155,7 +172,7 @@ export function NutritionFactsTable({
       </table>
       {!hasServe && !hasPack ? (
         <p className="border-t border-(--color-line) px-3 py-2 text-[11px] leading-snug text-(--color-fg-dim)">
-          Serving size and pack weight not on file — per 100g only.
+          Serving size and pack weight not on file — per 100{basisUnit} only.
         </p>
       ) : !hasServe ? (
         <p className="border-t border-(--color-line) px-3 py-2 text-[11px] leading-snug text-(--color-fg-dim)">

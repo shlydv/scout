@@ -1,3 +1,4 @@
+import { canScoreReviewedNutrition } from "@/lib/nutrition/review";
 import { computeGoalFit, goalFitInputs } from "@/lib/goals/fit";
 import type { GoalId } from "@/lib/goals/types";
 import { isDietCompatible } from "@/lib/diet/match";
@@ -253,6 +254,7 @@ export function findAlternatives(
   limit = 3,
   opts?: { diet?: DietMode },
 ): SwapSuggestion[] {
+  if (!canScoreReviewedNutrition(current)) return [];
   const aisle = productAisle(current);
   const diet: DietMode = opts?.diet ?? "any";
   const curRank =
@@ -266,6 +268,7 @@ export function findAlternatives(
   const anchorL3 = productUsecase(current);
 
   const pool = catalog.filter((p) => {
+    if (!canScoreReviewedNutrition(p)) return false;
     if (p.id === current.id) return false;
     if (!p.core_scores && goal === "balanced") return false;
     if (anchorL3) {
@@ -423,6 +426,7 @@ export function findSimilarProducts(
   const anchorL3 = productUsecase(current);
 
   const candidates = catalog
+    .filter(canScoreReviewedNutrition)
     .filter((p) => p.id !== current.id && !excludeIds.has(p.id))
     .filter((p) => (anchorL3 ? sameProductUsecase(current, p) : true))
     .filter((p) => isDietCompatible(diet, p).ok)

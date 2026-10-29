@@ -1,4 +1,3 @@
-import { bandFromScore, gradeFromScore, labelForBand, type ScoreBand } from "@/lib/utils";
 
 export type FitVerdict = "strong" | "okay" | "weak";
 
@@ -11,21 +10,14 @@ export function fitVerdict(fit: number): FitVerdict {
 export function fitVerdictLabel(v: FitVerdict): string {
   switch (v) {
     case "strong":
-      return "Strong pick";
+      return "Strong goal fit";
     case "okay":
-      return "Okay";
+      return "Moderate goal fit";
     case "weak":
-      return "Weak fit";
+      return "Weak goal fit";
   }
 }
 
-export function scorePresentation(fit: number) {
-  return {
-    fit,
-    grade: gradeFromScore(fit),
-    band: bandFromScore(fit),
-    bandLabel: labelForBand(bandFromScore(fit)),
-    verdict: fitVerdict(fit),
-    verdictLabel: fitVerdictLabel(fitVerdict(fit)),
-  };
+export function goalFitColor(fit: number): string {
+  return fit >= 70 ? "var(--score-good)" : fit >= 45 ? "var(--score-poor)" : "var(--color-fg-dim)";
 }

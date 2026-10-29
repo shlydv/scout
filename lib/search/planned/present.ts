@@ -3,6 +3,7 @@
  * pack sizes), plan chips that say what Scout understood, plain-language notes
  * for relaxed constraints, and a separate unconfirmed list.
  */
+import { createShoppingContext } from "@/lib/shopping/context";
 import { normalizeProductImageUrls } from "@/lib/products/catalog-hero-image";
 import { resolveProductVerdict } from "@/lib/scoring/verdict-resolve";
 import type { VerdictId } from "@/lib/scoring/verdict";
@@ -12,6 +13,7 @@ import type { SearchPlan } from "./plan";
 import type { PlannedSearchItem, PlannedSearchResult } from "./search";
 
 export type SearchCard = {
+  shoppingContext?: string;
   id: string;
   slug: string;
   name: string;
@@ -171,7 +173,7 @@ export function toCard(it: PlannedSearchItem, plan: SearchPlan): SearchCard {
     id: it.product_id, slug: it.slug, name: it.name, brand: it.brand, image: images[0] ?? null,
     price_inr: it.price_inr, mrp_inr: it.display.mrp_inr, net_weight: it.net_weight, price_per_100: it.price_per_100,
     score: it.scout_score,
-    verdict: it.scout_score == null ? null : resolveProductVerdict({ score: it.scout_score, name: it.name, category: it.category, subcategory: it.subcategory }),
+    verdict: it.scout_score == null ? null : resolveProductVerdict({ verdict: it.scout_verdict, score: it.scout_score, name: it.name, category: it.category, subcategory: it.subcategory }),
     rank: it.display.category_rank && it.display.category_size
       ? { rank: it.display.category_rank, size: it.display.category_size, label: it.display.category_label }
       : null,
@@ -187,14 +189,15 @@ export function presentSearch(r: PlannedSearchResult): SearchResponse {
   if (r.plan.strict && !r.items.length && r.unconfirmed.length) {
     summary = "No product's label confirms it is safe for this request. Products with incomplete labels are not shown.";
   }
+  const shoppingContext = createShoppingContext(r.query, r.plan);
   return {
     query: r.query, summary, intent: r.plan.intent,
     chips: r.plan.intent === "non_food" || r.plan.intent === "unclear" ? [] : planChips(r.plan, r.reference),
     notes: [...new Set(r.relaxed.map(k => relaxNote(k, r.plan)))],
     strict: r.plan.strict, degraded: r.dropped.includes("planner:degraded"),
-    items: r.items.map(it => toCard(it, r.plan)),
+    items: r.items.map(it => ({ ...toCard(it, r.plan), shoppingContext })),
     // Strict (allergy) searches never surface unconfirmed products.
-    unconfirmed: r.plan.strict ? [] : r.unconfirmed.slice(0, 8).map(it => toCard(it, r.plan)),
+    unconfirmed: r.plan.strict ? [] : r.unconfirmed.slice(0, 8).map(it => ({ ...toCard(it, r.plan), shoppingContext })),
     timings: r.timings,
     next_offset: r.next_offset,
   };

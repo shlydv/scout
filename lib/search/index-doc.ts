@@ -41,6 +41,7 @@ export type ProductEvidence = {
   id: string; name: string; brand: string | null;
   category: string | null; subcategory: string | null;
   ingredients: string | null; nutrition_per_100g: ProductNutrition | null;
+  nutrition_per_100ml?: ProductNutrition | null;
   attributes: Record<string, string> | null;
   price_inr: number | null; pack: string | null;
   source: { url: string | null; updated_at: string; data_source: string | null };
@@ -48,10 +49,13 @@ export type ProductEvidence = {
 
 /** The product facts the search document (and its embedding) is built from. */
 export function productEvidence(product: Product): ProductEvidence {
+  const per100g = Object.fromEntries(Object.entries(product.nutrition ?? {}).filter(([key,value]) => key.endsWith("_100g") && typeof value === "number"));
+  const per100ml = Object.fromEntries(Object.entries(product.nutrition ?? {}).filter(([key,value]) => key.endsWith("_100ml") && typeof value === "number"));
   return {
     id: product.id, name: product.name, brand: product.brand,
     category: product.category, subcategory: product.subcategory,
-    ingredients: product.ingredients_raw, nutrition_per_100g: product.nutrition,
+    ingredients: product.ingredients_raw, nutrition_per_100g: Object.keys(per100g).length ? per100g : null,
+    ...(Object.keys(per100ml).length ? { nutrition_per_100ml: per100ml } : {}),
     attributes: product.attributes, price_inr: product.price_inr, pack: product.net_weight,
     source: { url: product.product_url, updated_at: product.updated_at, data_source: product.data_source ?? null },
   };

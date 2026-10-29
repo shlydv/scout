@@ -9,12 +9,14 @@ export function AddToBasketButton({
   slug,
   name,
   productId,
+  shoppingContext,
   className,
   size = "default",
 }: {
   slug: string;
   name: string;
   productId?: string;
+  shoppingContext?: string;
   className?: string;
   /** `icon` — compact overlay for catalog cards */
   size?: "default" | "icon";
@@ -70,7 +72,7 @@ export function AddToBasketButton({
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            addToBasket(slug, name);
+            addToBasket(slug, name, shoppingContext);
           }}
           className="grid h-8 w-8 place-items-center rounded-full bg-(--color-fg) text-(--color-bg) shadow-sm transition hover:opacity-90 active:scale-90"
         >
@@ -84,7 +86,7 @@ export function AddToBasketButton({
     <button
       type="button"
       onClick={() => {
-        addToBasket(slug, name);
+        addToBasket(slug, name, shoppingContext);
       }}
       className={
         className ??

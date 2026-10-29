@@ -1,3 +1,5 @@
+import { resolveProductVerdict } from "@/lib/scoring/verdict-resolve";
+import { canScoreReviewedNutrition } from "@/lib/nutrition/review";
 import type { DietMode } from "@/lib/diet/types";
 import { computeGoalFit, goalFitInputs } from "@/lib/goals/fit";
 import type { GoalId } from "@/lib/goals/types";
@@ -367,6 +369,7 @@ function mapListRow(row: Record<string, unknown>): ProductListItem {
         : null;
   // One displayed score everywhere: the absolute health score the PDP and verdicts use.
   if (core && core.absolute_score != null) core.score = core.absolute_score;
+  if (core) core.verdict = resolveProductVerdict({ verdict: core.verdict, score: core.score, name: row.name as string, category: row.category as string, subcategory: row.subcategory as string });
 
   return {
     id: row.id as string,
@@ -961,6 +964,7 @@ async function paginateGoalCatalog(opts: {
   }
 
   const ranked = pool
+    .filter(canScoreReviewedNutrition)
     .map((p) => ({ p, fit: computeGoalFit(goal, goalFitInputs(p)).fit }))
     .sort((a, b) => {
       const fitDiff = b.fit - a.fit;
@@ -1380,6 +1384,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
     if (s && typeof s === "object") core = s as CoreScore;
   }
   if (core && core.absolute_score != null) core.score = core.absolute_score;
+  if (core) core.verdict = resolveProductVerdict({ verdict: core.verdict, score: core.score, name: row.name as string, category: row.category as string, subcategory: row.subcategory as string });
 
   return {
     id: row.id as string,

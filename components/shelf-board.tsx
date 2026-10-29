@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import { catalogTierStyle } from "@/lib/scoring/verdict-display";
 import type { SearchCard } from "@/lib/search/planned/present";
 import type { Shelf } from "@/lib/shelves";

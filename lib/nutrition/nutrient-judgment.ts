@@ -25,6 +25,8 @@ export function judgeNutrientRow(
   row: ResolvedNutritionRow,
   roleCohort?: RoleCohort | null,
 ): NutrientVerdict | null {
+  // Gram-based thresholds cannot be applied to a volume-only panel.
+  if (row.basisUnit === "ml") return null;
   const verdict = rawJudgeNutrientRow(row);
   // Adjuncts — oils, spices, masalas, condiments — are eaten in 2–5g amounts, so
   // a per-100g "good protein" / "low sugar" reads as a health claim it hasn't
@@ -102,7 +104,7 @@ export function judgeNutrition(rows: ResolvedNutritionRow[], roleCohort?: RoleCo
   }
 
   let headline: string;
-  if (!watch.length && !good.length) headline = "Nothing notable on the label.";
+  if (!watch.length && !good.length) headline = rows.some(row => row.basisUnit === "ml") ? "Label values are shown per 100 ml." : "Nothing notable on the label.";
   else if (!watch.length) headline = "Clean on the numbers that matter.";
   else {
     const concerns = watch.map((w) => w.label === "present" ? w.label : `${w.verdict.label} ${shortName(w.id)}`);

@@ -1,7 +1,7 @@
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import { resolveProductVerdict } from "@/lib/scoring/verdict-resolve";
-import { VERDICT_COLORS } from "@/lib/scoring/verdict-display";
+import { VERDICT_COLORS, verdictTitle as titleForVerdict } from "@/lib/scoring/verdict-display";
 import { catalogCardDisplayName } from "@/lib/products/card-display-name";
 import { displayPriceInr } from "@/lib/products/display-price";
 import type { ProductListItem } from "@/lib/products/queries";
@@ -22,15 +22,7 @@ export function HomeRailCard({ product }: { product: ProductListItem }) {
       })
     : null;
   const c = verdict ? VERDICT_COLORS[verdict] : null;
-  const verdictTitle = verdict
-    ? verdict === "daily_staple"
-      ? "Daily staple"
-      : verdict === "good_choice"
-        ? "Good choice"
-        : verdict === "occasional_treat"
-          ? "Treat"
-          : "Skip"
-    : null;
+  const verdictTitle = verdict ? titleForVerdict(verdict) : null;
   const price = displayPriceInr(product);
   const name = catalogCardDisplayName(product.name);
   const thumb = product.image_urls[0];
