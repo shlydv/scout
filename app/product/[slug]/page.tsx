@@ -40,7 +40,7 @@ import { findAlternatives, findSimilarProducts } from "@/lib/products/alternativ
 import { getProductBySlug, getProductsForSwaps } from "@/lib/products/queries";
 import { displayPriceInr, showMrpStrike } from "@/lib/products/display-price";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import type { SubScores } from "@/lib/supabase/types";
 import { brandSlug } from "@/lib/brands/slug";
 

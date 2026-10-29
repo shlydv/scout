@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import { resolveProductVerdict } from "@/lib/scoring/verdict-resolve";
 import { VERDICT_COLORS, verdictTitle as titleForVerdict } from "@/lib/scoring/verdict-display";
 import { catalogCardDisplayName } from "@/lib/products/card-display-name";

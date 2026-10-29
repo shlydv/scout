@@ -1,5 +1,6 @@
 import { Agent, fetch as undiciFetch } from "undici";
 import { resolveDeepseekApiKey, type DeepseekUsageKind } from "@/lib/search/deepseek-keys";
+import { createDeadline, throwIfAborted } from "./planned/runtime";
 
 const DEFAULT_BASE_URL = "https://api.deepseek.com/v1";
 const DEFAULT_MODEL = "deepseek-v4-flash";
@@ -25,6 +26,7 @@ export type DeepseekChatOptions = {
   user: string;
   maxTokens?: number;
   timeoutMs?: number;
+  signal?: AbortSignal;
   jsonObject?: boolean;
   /** Set to false to skip DeepSeek-specific params (thinking) when calling
    *  OpenAI‑compatible providers like Groq. Defaults to true. */
@@ -45,11 +47,11 @@ export function extractJsonObject(text: string): unknown {
 }
 
 export async function deepseekChat(opts: DeepseekChatOptions): Promise<DeepseekChatResult> {
+  throwIfAborted(opts.signal);
   const apiKey = opts.apiKey ?? resolveDeepseekApiKey(opts.usageKind ?? "search");
   if (!apiKey) throw new Error("DEEPSEEK_API_KEY is missing");
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), opts.timeoutMs ?? 25_000);
+  const deadline = createDeadline(opts.timeoutMs ?? 25_000, opts.signal);
   try {
     const baseUrl = (opts.baseUrl ?? process.env.DEEPSEEK_BASE_URL ?? DEFAULT_BASE_URL).replace(
       /\/+$/,
@@ -58,7 +60,7 @@ export async function deepseekChat(opts: DeepseekChatOptions): Promise<DeepseekC
     const res = await undiciFetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       dispatcher,
-      signal: controller.signal,
+      signal: deadline.signal,
       headers: {
         "content-type": "application/json",
         authorization: `Bearer ${apiKey}`,
@@ -80,12 +82,13 @@ export async function deepseekChat(opts: DeepseekChatOptions): Promise<DeepseekC
       usage?: DeepseekUsage;
       error?: { message?: string };
     };
+    throwIfAborted(deadline.signal);
     if (!res.ok) throw new Error(body.error?.message ?? `DeepSeek HTTP ${res.status}`);
     const content = body.choices?.[0]?.message?.content;
     if (!content) throw new Error("DeepSeek returned no message content");
     return { content, usage: body.usage ?? null };
   } finally {
-    clearTimeout(timeout);
+    deadline.dispose();
   }
 }
 

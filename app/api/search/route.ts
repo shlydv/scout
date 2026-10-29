@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
   // Search is free for guests and signed-in users; identity is only used for history.
   try {
-    const search = await plannedSearch(q, { limit, preferences, offset });
+    const search = await plannedSearch(q, { limit, preferences, offset, signal: req.signal, timeoutMs: 50_000 });
     const result = presentSearch(search);
     if (!result.degraded) setCachedResult(key, result);
     if (process.env.SEARCH_TELEMETRY === "1") {

@@ -5,6 +5,7 @@
  * byte-identical (DeepSeek prompt caching).
  */
 import type { Sql } from "./db";
+import { abortableQuery, SharedWork, throwIfAborted } from "./runtime";
 
 export type CatalogVocabulary = {
   /** Keyed by the qualified name "Subcategory > l3" (l3 names repeat across subcategories). */
@@ -23,23 +24,24 @@ export type CatalogVocabulary = {
 let cached: CatalogVocabulary | null = null;
 const TTL_MS = 30 * 60_000;
 
-let inflight: Promise<CatalogVocabulary> | null = null;
+const inflight = new SharedWork<CatalogVocabulary>();
 
 /** Cached per process; concurrent cold callers share one load. */
-export async function loadVocabulary(sql: Sql): Promise<CatalogVocabulary> {
+export async function loadVocabulary(sql: Sql, signal?: AbortSignal): Promise<CatalogVocabulary> {
+  throwIfAborted(signal);
   if (cached && Date.now() - cached.loadedAt < TTL_MS) return cached;
-  inflight ??= fetchVocabulary(sql).finally(() => { inflight = null; });
-  return inflight;
+  return inflight.run("catalog", sharedSignal => fetchVocabulary(sql, sharedSignal), signal);
 }
 
-async function fetchVocabulary(sql: Sql): Promise<CatalogVocabulary> {
-  const rows = await sql<{ category: string; subcategory: string; l3: string; n: number }[]>`
+async function fetchVocabulary(sql: Sql, signal: AbortSignal): Promise<CatalogVocabulary> {
+  const rows = await abortableQuery(sql<{ category: string; subcategory: string; l3: string; n: number }[]>`
     select category, subcategory, l3_category l3, count(*)::int n
     from products where catalog_visible and l3_category is not null
-    group by 1, 2, 3 order by 1, 2, 3`;
-  const brandRows = await sql<{ brand: string; n: number }[]>`
+    group by 1, 2, 3 order by 1, 2, 3`, signal);
+  const brandRows = await abortableQuery(sql<{ brand: string; n: number }[]>`
     select brand, count(*)::int n from products where catalog_visible and brand is not null
-    group by 1 order by 1`;
+    group by 1 order by 1`, signal);
+  throwIfAborted(signal);
 
   const l3 = new Map<string, { category: string; subcategory: string; l3: string; count: number }>();
   const l3Bare = new Map<string, string[]>();

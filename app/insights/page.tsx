@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import { ArrowUpRight } from "lucide-react";
 import { ConflictCard } from "@/components/insights/conflict-card";
 import { RingGlyph } from "@/components/ring-motif";

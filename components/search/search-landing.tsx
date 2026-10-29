@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import { ConflictCard } from "@/components/insights/conflict-card";
 import { LineTag } from "@/components/line-tag";
 import { Reveal } from "@/components/reveal";

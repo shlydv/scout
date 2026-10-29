@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import { ArrowUpRight } from "lucide-react";
 import { Reveal } from "@/components/reveal";
 import type {

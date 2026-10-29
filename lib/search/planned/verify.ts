@@ -51,14 +51,16 @@ const responseSchema = z.object({
   r: z.array(z.object({ i: z.number().int(), v: z.enum(["good", "ok", "no"]), why: z.string().optional().catch(undefined) })),
 });
 
-export async function verifyItems(query: string, plan: SearchPlan, items: PlannedItem[], maxItems = 20): Promise<{
+export async function verifyItems(query: string, plan: SearchPlan, items: PlannedItem[], maxItems = 20, signal?: AbortSignal): Promise<{
   verdicts: Map<string, { v: Verdict; why: string }>; usage: DeepseekUsage | null; ms: number;
 }> {
   const started = Date.now();
+  signal?.throwIfAborted();
   const batch = items.slice(0, maxItems);
   const verdicts = new Map<string, { v: Verdict; why: string }>();
   if (!batch.length) return { verdicts, usage: null, ms: 0 };
   const { content, usage } = await deepseekChat({
+    signal,
     usageKind: "search",
     model: VERIFIER_MODEL,
     jsonObject: true,
@@ -67,6 +69,7 @@ export async function verifyItems(query: string, plan: SearchPlan, items: Planne
     system: SYSTEM,
     user: JSON.stringify({ request: query, also_consider: plan.judge, hard_requirements: { exclude: plan.exclude, require: plan.require, strict: plan.strict, diet: plan.diet, numeric: plan.numeric, claims: plan.claims_required }, products: batch.map(card) }),
   });
+  signal?.throwIfAborted();
   const parsed = responseSchema.safeParse(extractJsonObject(content));
   if (parsed.success) {
     const indices = parsed.data.r.map(r => r.i);
@@ -89,13 +92,15 @@ export const VERIFY_CHUNK = 25;
  * about as long as 25. A failed batch leaves its items unjudged rather than failing
  * the search.
  */
-export async function verifyInChunks(query: string, plan: SearchPlan, items: PlannedItem[]): Promise<{
+export async function verifyInChunks(query: string, plan: SearchPlan, items: PlannedItem[], signal?: AbortSignal): Promise<{
   verdicts: Map<string, { v: Verdict; why: string }>; usages: DeepseekUsage[]; ms: number; failedChunks: number;
 }> {
   const started = Date.now();
+  signal?.throwIfAborted();
   const chunks: PlannedItem[][] = [];
   for (let i = 0; i < items.length; i += VERIFY_CHUNK) chunks.push(items.slice(i, i + VERIFY_CHUNK));
-  const results = await Promise.allSettled(chunks.map(c => verifyItems(query, plan, c, c.length)));
+  const results = await Promise.allSettled(chunks.map(c => verifyItems(query, plan, c, c.length, signal)));
+  signal?.throwIfAborted();
   const verdicts = new Map<string, { v: Verdict; why: string }>();
   const usages: DeepseekUsage[] = [];
   let failedChunks = 0;

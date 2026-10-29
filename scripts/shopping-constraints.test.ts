@@ -10,13 +10,14 @@ import { productHref } from "@/lib/shopping/links";
 import { degradedPlan } from "@/lib/search/planned/search";
 import { confirm, type PlannedItem } from "@/lib/search/planned/execute";
 import type { SearchPlan } from "@/lib/search/planned/plan";
+import * as searchRuntime from "@/lib/search/planned/runtime";
 
 process.env.SHOPPING_CONTEXT_SECRET = "offline-regression-secret";
 function load(path: string, mocks: Record<string, unknown>, globals: Record<string, unknown> = {}): any {
   const exports = {};
   const { outputText } = ts.transpileModule(readFileSync(path, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } });
-  runInNewContext(outputText, { exports, console: { error() {}, warn() {} }, process, Date, Buffer, URL, URLSearchParams, setTimeout: (fn: () => void) => { fn(); }, ...globals,
-    require: (id: string) => { assert.ok(id in mocks, `Unexpected dependency: ${id}`); return mocks[id]; },
+  runInNewContext(outputText, { exports, console: { error() {}, warn() {} }, process, Date, Buffer, URL, URLSearchParams, DOMException, clearTimeout, setTimeout: (fn: () => void) => { fn(); }, ...globals,
+    require: (id: string) => { if (id === "./runtime") return searchRuntime; assert.ok(id in mocks, `Unexpected dependency: ${id}`); return mocks[id]; },
   }, { filename: path });
   return exports;
 }
