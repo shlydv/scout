@@ -3,7 +3,7 @@
 import { rankPhrase } from "@/lib/utils";
 import { productHref } from "@/lib/shopping/links";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeftRight, X } from "lucide-react";
 import { ScoreRing, VerdictBadge } from "@/components/verdict-chips";

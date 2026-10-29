@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { singleFlight } from "@/lib/cache/single-flight";
 import { collapseVariants } from "@/lib/products/variants";
 import { dietFromParam } from "@/lib/diet/types";
 import { goalFromParam } from "@/lib/goals/types";
@@ -27,9 +28,11 @@ export async function getCachedCatalogMeta(category?: string): Promise<CatalogMe
   })();
 }
 
+const loadScoredProducts = singleFlight(() => getScoredProductsForInsights());
+
 export async function getCachedScoredCatalogForInsights() {
   return unstable_cache(
-    () => getScoredProductsForInsights(),
+    loadScoredProducts,
     ["catalog-insights-scored-v3"],
     { revalidate: 300 },
   )();
@@ -42,19 +45,19 @@ export async function getCachedScoredVerdictStats(): Promise<ScoredVerdictStats>
   })();
 }
 
+const loadLandingInsights = singleFlight(async () => {
+  const [products, stats] = await Promise.all([
+    loadScoredProducts(),
+    getScoredCatalogStats().catch(() => ({ totalScored: 0 })),
+  ]);
+  return buildLandingInsights(products, {
+    totalScored: stats.totalScored || products.filter((p) => p.core_scores).length,
+  });
+});
+
 export async function getCachedLandingInsights() {
   return unstable_cache(
-    async () => {
-      const [products, stats] = await Promise.all([
-        getScoredProductsForInsights(),
-        getScoredCatalogStats().catch(() => ({ totalScored: 0 })),
-      ]);
-      return buildLandingInsights(products, {
-        totalScored: stats.totalScored || products.filter((p) => p.core_scores).length,
-      });
-    },
-    // v4: category hrefs no longer gate on verdict=daily_staple (was silently
-    // empty for treat/skip-heavy aisles) + diversified staples.
+    loadLandingInsights,
     ["catalog-landing-insights-v4"],
     { revalidate: 3600 },
   )();

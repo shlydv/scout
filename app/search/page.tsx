@@ -21,6 +21,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<Params> }) {
   const params = await searchParams;
+  const query = one(params.q) || one(params.prompt);
   return (
     <main className="relative isolate min-h-screen">
       <PaperBackdrop />
@@ -28,7 +29,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
       <div className="mx-auto max-w-6xl px-4 pb-20 pt-6 md:px-6 md:pt-10">
         <Suspense>
           {/* ?prompt= and catalog params are redirected in next.config.ts */}
-          <SearchView initialQuery={one(params.q) || one(params.prompt)} landing={<Suspense><SearchLanding /></Suspense>} />
+          <SearchView initialQuery={query} landing={query.length >= 2 ? null : <Suspense><SearchLanding /></Suspense>} />
         </Suspense>
       </div>
       <SiteFooter />

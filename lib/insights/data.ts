@@ -4,6 +4,7 @@
  * to individual labels. Cached for a day; one card per pack-size group.
  */
 import { unstable_cache } from "next/cache";
+import { singleFlight } from "@/lib/cache/single-flight";
 import { searchSql } from "@/lib/search/planned/db";
 import { normalizeProductImageUrls } from "@/lib/products/catalog-hero-image";
 
@@ -159,7 +160,7 @@ async function load(): Promise<InsightsData> {
   };
 }
 
-export const getInsights = unstable_cache(load, ["insights-facts-v1"], { revalidate: 86_400, tags: ["insights"] });
+export const getInsights = unstable_cache(singleFlight(load), ["insights-facts-v1"], { revalidate: 86_400, tags: ["insights"] });
 
 export const CONFLICT_KIND_LABELS: Record<string, string> = {
   sugar: "Sugar", gluten: "Gluten", palm_oil: "Palm oil", preservative: "Preservatives", colour: "Colours",

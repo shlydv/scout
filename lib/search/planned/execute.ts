@@ -14,6 +14,7 @@ import type { ConceptId, NumericField } from "@/lib/facts/vocab";
 import type { Sql } from "./db";
 import type { NumericFilter, SearchPlan } from "./plan";
 import type { CatalogVocabulary } from "./vocabulary";
+import { abortableQuery, throwIfAborted } from "./runtime";
 
 /** Approximate number of visible products in the plan's scope. */
 export function scopeSize(plan: SearchPlan, vocab: CatalogVocabulary | null, useScope: boolean): number {
@@ -161,7 +162,8 @@ function nameTermPattern(term: string): string {
   return `\\m(${alts.join("|")})`;
 }
 
-async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limit: number): Promise<PlannedItem[]> {
+async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limit: number, signal?: AbortSignal): Promise<PlannedItem[]> {
+  throwIfAborted(signal);
   const { plan } = a;
   const conds: string[] = ["p.catalog_visible"];
   const params: unknown[] = [];
@@ -256,7 +258,7 @@ async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limi
     order by ${order}
     limit ${Math.max(1, Math.min(400, limit))}`;
 
-  const rows = await sql.unsafe(text, params as never[]);
+  const rows = await abortableQuery(sql.unsafe(text, params as never[]), signal);
   return rows.map(r => ({
     product_id: r.id, slug: r.slug, name: r.name, brand: r.brand, category: r.category,
     subcategory: r.subcategory, l3: r.l3_category,
@@ -361,7 +363,8 @@ function rank(items: PlannedItem[], plan: SearchPlan): PlannedItem[] {
   return [...ordered.filter(i => i.confirmation === "confirmed"), ...ordered.filter(i => i.confirmation !== "confirmed")];
 }
 
-async function resolveReference(sql: Sql, plan: SearchPlan, embedding: number[] | null): Promise<ExecuteResult["reference"]> {
+async function resolveReference(sql: Sql, plan: SearchPlan, embedding: number[] | null, signal?: AbortSignal): Promise<ExecuteResult["reference"]> {
+  throwIfAborted(signal);
   if (!plan.comparison) return null;
   const { reference, field } = plan.comparison;
   const words = reference.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(w => w.length >= 3);
@@ -372,7 +375,7 @@ async function resolveReference(sql: Sql, plan: SearchPlan, embedding: number[] 
   const need = Math.max(1, Math.ceil(words.length * 0.6));
   const expr = fieldExpr(field);
   void embedding;
-  const rows = await sql.unsafe(`
+  const rows = await abortableQuery(sql.unsafe(`
     select p.name, ${expr} as v from products p
     join product_search_index si on si.product_id = p.id
       left join core_scores cs on cs.product_id = p.id
@@ -380,19 +383,20 @@ async function resolveReference(sql: Sql, plan: SearchPlan, embedding: number[] 
     where p.catalog_visible and ${expr} is not null
       and (${conds.map(c => `(${c})::int`).join(" + ")}) >= ${need}
     order by (${conds.map(c => `(${c})::int`).join(" + ")}) desc, p.name
-    limit 8`, params as never[]);
+    limit 8`, params as never[]), signal);
   if (!rows.length) return null;
   const values = rows.map(r => Number(r.v)).sort((a, b) => a - b);
   const median = values[Math.floor(values.length / 2)]!;
   return { query: reference, value: median, products: rows.map(r => r.name as string) };
 }
 
-export async function executePlan(sql: Sql, plan: SearchPlan, embedding: number[] | null, opts: { limit?: number; minConfirmed?: number; vocab?: CatalogVocabulary | null; productIds?: string[]; noRelax?: boolean } = {}): Promise<ExecuteResult> {
+export async function executePlan(sql: Sql, plan: SearchPlan, embedding: number[] | null, opts: { limit?: number; minConfirmed?: number; vocab?: CatalogVocabulary | null; productIds?: string[]; noRelax?: boolean; signal?: AbortSignal } = {}): Promise<ExecuteResult> {
+  throwIfAborted(opts.signal);
   const vocab = opts.vocab ?? null;
   const started = Date.now();
   const limit = opts.limit ?? 24;
   const minConfirmed = opts.minConfirmed ?? 3;
-  const reference = await resolveReference(sql, plan, embedding);
+  const reference = await resolveReference(sql, plan, embedding, opts.signal);
   const baseNumeric = [...plan.numeric];
   if (plan.comparison && reference) {
     baseNumeric.push({ field: plan.comparison.field, op: plan.comparison.dir === "higher" ? ">" : "<", value: reference.value });
@@ -403,7 +407,8 @@ export async function executePlan(sql: Sql, plan: SearchPlan, embedding: number[
   const pool = Math.max(limit * 4, 60);
 
   const run = async (step: string) => {
-    const raw = await runAttempt(sql, attempt, embedding, pool);
+    throwIfAborted(opts.signal);
+    const raw = await runAttempt(sql, attempt, embedding, pool, opts.signal);
     const items = rank(raw.map(i => confirm(i, plan, attempt.numeric)), plan);
     counts.push({ step, matched: items.length, confirmed: items.filter(i => i.confirmation === "confirmed").length });
     return items;
@@ -414,6 +419,7 @@ export async function executePlan(sql: Sql, plan: SearchPlan, embedding: number[
   // Up to two widening steps: l3 -> subcategory -> category.
   const relaxOrder = [...plan.relax.filter(k => k !== "scope"), "scope", "scope"];
   for (const key of opts.noRelax ? [] : relaxOrder) {
+    throwIfAborted(opts.signal);
     // Count distinct products, not pack sizes of the same one.
     if (new Set(items.filter(i => i.confirmation === "confirmed").map(i => i.variant_key ?? i.product_id)).size >= minConfirmed) break;
     const next = { ...attempt };
@@ -441,5 +447,6 @@ export async function executePlan(sql: Sql, plan: SearchPlan, embedding: number[
     items = [...items, ...relaxedItems.filter(i => !seen.has(i.product_id)).map(i => ({ ...i, notes: [...i.notes, `relaxed ${key.replace("numeric:", "")}`] }))];
     relaxed.push(key);
   }
+  throwIfAborted(opts.signal);
   return { items: items.slice(0, pool), relaxed, counts, reference, ms: Date.now() - started };
 }

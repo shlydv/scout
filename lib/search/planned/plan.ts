@@ -220,14 +220,16 @@ function preferencesText(prefs: Preferences): string {
   return parts.join("; ") || "none";
 }
 
-export async function planQuery(query: string, vocab: CatalogVocabulary, prefs: Preferences = null): Promise<{ plan: SearchPlan; dropped: string[]; usage: DeepseekUsage | null; ms: number }> {
+export async function planQuery(query: string, vocab: CatalogVocabulary, prefs: Preferences = null, signal?: AbortSignal): Promise<{ plan: SearchPlan; dropped: string[]; usage: DeepseekUsage | null; ms: number }> {
   const started = Date.now();
   const brands = brandCandidates(vocab, query);
   let raw: z.infer<typeof rawPlanSchema> | null = null;
   let usage: DeepseekUsage | null = null;
   // The model occasionally emits malformed JSON; one retry fixes it in practice.
   for (let attempt = 1; attempt <= 2 && !raw; attempt++) {
+    signal?.throwIfAborted();
     const res = await deepseekChat({
+      signal,
       usageKind: "search",
       model: PLANNER_MODEL,
       jsonObject: true,
@@ -244,6 +246,7 @@ export async function planQuery(query: string, vocab: CatalogVocabulary, prefs: 
       if (attempt === 2) throw error;
     }
   }
+  signal?.throwIfAborted();
   if (!raw) throw new Error("planner returned no plan");
   const { plan, dropped } = validatePlan(raw, vocab, brands);
   return { plan, dropped, usage, ms: Date.now() - started };

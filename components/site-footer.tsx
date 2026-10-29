@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import { Sprig } from "@/components/scout-motifs";
 import { SuggestProductType } from "@/components/suggest-product-type";
 

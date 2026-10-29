@@ -2,7 +2,7 @@
 
 import { productHref } from "@/lib/shopping/links";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import { useState } from "react";
 import { AddToBasketButton } from "@/components/add-to-basket-button";
 import { CompareButton } from "@/components/compare-button";

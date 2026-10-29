@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import { notFound } from "next/navigation";
 import { ConflictCard } from "@/components/insights/conflict-card";
 import { PaperBackdrop } from "@/components/paper-backdrop";

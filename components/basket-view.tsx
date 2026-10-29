@@ -3,7 +3,7 @@
 import { productHref } from "@/lib/shopping/links";
 import { canScoreReviewedNutrition } from "@/lib/nutrition/review";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import { ArrowLeftRight, ChevronDown, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { DietPicker } from "@/components/diet-picker";

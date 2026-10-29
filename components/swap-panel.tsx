@@ -1,6 +1,6 @@
 import { productHref } from "@/lib/shopping/links";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import { GoalFitBadge, ScoreBadge } from "@/components/score-display";
 import type { GoalId } from "@/lib/goals/types";
 import { cn } from "@/lib/utils";
