@@ -10,7 +10,7 @@ import { deepseekDisplayFromPayload } from "@/lib/ocr/deepseek-promote";
 import { findAlternatives, findSimilarProducts } from "@/lib/products/alternatives";
 import { explainScore } from "@/lib/products/score-explain";
 import { displayPriceInr } from "@/lib/products/display-price";
-import { getProductBySlug, getProductsForSwaps } from "@/lib/products/queries";
+import { currentProductSlug, getProductBySlug, getProductsForSwaps } from "@/lib/products/queries";
 import { resolveZeptoBuyUrl } from "@/lib/products/zepto-product-url";
 import { goalFromParam } from "@/lib/goals/types";
 import { resolveProductVerdict } from "@/lib/scoring/verdict-resolve";
@@ -52,6 +52,12 @@ export async function GET(
   const { slug } = await params;
   const product = await getProductBySlug(slug);
   if (!product) {
+    const current = await currentProductSlug(slug);
+    if (current) {
+      const moved = request.nextUrl.clone();
+      moved.pathname = `/api/products/${encodeURIComponent(current)}`;
+      return NextResponse.redirect(moved, 308);
+    }
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

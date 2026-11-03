@@ -12,6 +12,7 @@ import {
   clearCompare,
   readCompare,
   removeFromCompare,
+  renameCompareSlugs,
 } from "@/lib/compare/storage";
 import { resolveProductVerdict } from "@/lib/scoring/verdict-resolve";
 import { tierAccentForVerdict, sublabelChipLabels } from "@/lib/scoring/verdict-display";
@@ -19,7 +20,8 @@ import { parsePack } from "@/lib/facts/pack";
 import { nutritionBasisUnit } from "@/lib/nutrition/nutrition-display";
 import { catalogCardDisplayName } from "@/lib/products/card-display-name";
 import { displayPriceInr } from "@/lib/products/display-price";
-import type { ProductListItem } from "@/lib/products/queries";
+import type { ProductBySlug, ProductListItem } from "@/lib/products/queries";
+import { slugRenames } from "@/lib/products/slug-renames";
 
 type NutrientRow = {
   key: string;
@@ -71,11 +73,14 @@ export function CompareView() {
     setLoading(true);
     fetch(`/api/products?slugs=${encodeURIComponent(slugsKey)}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
-      .then((rows: ProductListItem[]) => {
+      .then((rows: ProductBySlug[]) => {
         if (cancelled) return;
-        // Keep tray order, not API order.
+        // Keep tray order, not API order. Entries saved under a slug the product has
+        // since left move to its current one.
         const bySlug = new Map(rows.map((p) => [p.slug, p]));
-        setProducts(slugs.map((s) => bySlug.get(s)).filter(Boolean) as ProductListItem[]);
+        const renames = slugRenames(rows);
+        setProducts(slugs.map((s) => bySlug.get(renames.get(s) ?? s)).filter(Boolean) as ProductListItem[]);
+        renameCompareSlugs(renames);
       })
       .catch(() => {
         if (!cancelled) setProducts([]);

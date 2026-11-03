@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { getProductBySlug } from "@/lib/products/queries";
+import { currentProductSlug, getProductBySlug } from "@/lib/products/queries";
 import { resolveProductVerdict } from "@/lib/scoring/verdict-resolve";
 import { VERDICT_LABELS, type VerdictId } from "@/lib/scoring/verdict";
 
@@ -33,9 +33,17 @@ async function serif(): Promise<ArrayBuffer | null> {
   }
 }
 
+/** Previews cached under an old URL still show the product it now points at. */
+async function productForCard(slug: string) {
+  const product = await getProductBySlug(slug);
+  if (product) return product;
+  const current = await currentProductSlug(slug);
+  return current ? getProductBySlug(current) : null;
+}
+
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const [product, font] = await Promise.all([getProductBySlug(slug).catch(() => null), serif()]);
+  const [product, font] = await Promise.all([productForCard(slug).catch(() => null), serif()]);
   const fonts = font ? [{ name: "Instrument Serif", data: font, style: "normal" as const }] : undefined;
   const display = font ? "Instrument Serif" : "serif";
 

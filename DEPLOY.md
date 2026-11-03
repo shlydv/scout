@@ -23,7 +23,20 @@ Changing a `NEXT_PUBLIC_*` value needs a redeploy; data changes don't.
 
 ## Database
 
-Apply migrations in order with `pnpm db:apply supabase/migrations/<file>.sql` (currently through `0049`). The free tier caps the database at 500 MB, and Scout uses about 440 MB, so check size before adding large columns or indexes.
+Apply migrations in order with `pnpm db:apply supabase/migrations/<file>.sql` (currently through `0051`). The free tier caps the database at 500 MB, and Scout uses about 440 MB, so check size before adding large columns or indexes.
+
+### Product slugs
+
+Product URLs are `/product/<slug>`. A slug can change: the `products_slug_redirects` trigger (migration `0051`) records every old slug in `product_slug_redirects`, and old URLs answer with a 308 to the current slug. That check runs in `app/product/[slug]/layout.tsx`, above `loading.tsx`: a redirect thrown inside the streamed page reaches browsers and crawlers as a 200 with a meta refresh. Baskets and compare trays saved in a browser move to the new slugs the next time the basket or compare page loads.
+
+`pnpm catalog:rename-slugs` drops a leading platform name from slugs (`<platform>-<brand>-<name>-<sku>` → `<brand>-<name>-<sku>`):
+
+1. Apply `0051` first, then deploy the app code that reads redirects.
+2. Run `pnpm catalog:rename-slugs -- --backup-dir=<dir>` with no flags for read-only checks (collisions, sizes) and a backup of the old → new pairs.
+3. Run it again with `--apply --limit=1` and open the old URL on production to see the 308, then run `--apply` for the rest. Each 1,000-row batch is followed by VACUUM, and the run stops above 490 MB.
+4. Undo with `--restore=<backup file>`.
+
+The script verifies TLS. If the pooler's certificate chain is not in the system store, download the CA from Supabase → Database → SSL and set `SUPABASE_DB_CA` to its path.
 
 ## Cron
 

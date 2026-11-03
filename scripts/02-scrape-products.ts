@@ -460,7 +460,8 @@ function productSummaryRow(
   return {
     platform,
     zepto_sku: p.sku,
-    slug: `${platform}-${slugify(p.brand ?? "")}-${slugify(p.name)}-${p.sku}`,
+    // No platform name in public URLs; the trailing sku keeps slugs unique.
+    slug: [slugify(p.brand ?? ""), slugify(p.name), p.sku].filter(Boolean).join("-"),
     name: p.name,
     brand: p.brand,
     super_category: p.super_category,
