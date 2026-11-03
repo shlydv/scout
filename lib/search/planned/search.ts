@@ -114,7 +114,6 @@ export async function plannedSearch(query: string, opts: PlannedSearchOptions = 
   const signal = deadline.signal;
   const embeddingScope = createDeadline(undefined, signal);
   let embedding: Promise<{ e: number[] | null; ms: number }> = Promise.resolve({ e: null, ms: 0 });
-  let planWrite: Promise<void> = Promise.resolve();
   try {
     const started = Date.now();
     throwIfAborted(signal);
@@ -156,23 +155,30 @@ export async function plannedSearch(query: string, opts: PlannedSearchOptions = 
         addUsage(r.usage);
         ({ plan, dropped } = r);
         planMs = r.ms;
-        planWrite = Promise.resolve(storePlan(sql, key, plan, dropped, signal));
+        // Not awaited: the shared-cache write has its own short timeout and must not delay results.
+        void storePlan(sql, key, plan, dropped);
       } catch (error) {
         throwIfAborted(signal);
-        // Never fall back to unfiltered results when planning is unavailable.
         console.error("[planned-search] planner failed", error instanceof Error ? error.message : error);
-        // No unconstrained fallback: the unavailable planner may have missed an allergy.
-        throw new Error("Search requirements could not be checked. Please try again.");
+        // An allergy or medical request never falls back to unfiltered results: the
+        // unavailable planner may have missed a requirement. Anything else gets closest
+        // matches, clearly labelled.
+        if (sensitiveRequest(preserveRequirements(degradedPlan(query), query, prefs), query)) {
+          throw new Error("Search requirements could not be checked. Please try again.");
+        }
+        plan = degradedPlan(query);
+        dropped = ["planner:degraded"];
       }
     }
 
     throwIfAborted(signal);
-    if (dropped.includes("planner:degraded") || dropped.some(x => /^(concept|claim|numeric):/.test(x))) throw new Error("Some search requirements could not be checked. Please try again.");
     plan = lockRequirements(preserveRequirements(plan, query, prefs), query);
     const sensitive = sensitiveRequest(plan, query);
+    if (sensitive && dropped.some(x => /^(concept|claim|numeric):/.test(x))) {
+      throw new Error("Some search requirements could not be checked. Please try again.");
+    }
 
     if (plan.intent === "non_food" || plan.intent === "unclear") {
-      await planWrite;
       throwIfAborted(signal);
       return {
         query, plan, items: [], unconfirmed: [], relaxed: [], counts: [], reference: null, dropped, llm, next_offset: null,
@@ -244,7 +250,6 @@ export async function plannedSearch(query: string, opts: PlannedSearchOptions = 
         ? "No product's label fully confirms your request. Closest options are listed as unconfirmed."
         : sensitive ? "No products could be confirmed for all your requirements. Please try again or check the package label." : "No products match this request.";
 
-    await planWrite;
     throwIfAborted(signal);
     return {
       query, plan, items, unconfirmed: withSizes.slice(shown.length), relaxed: exec.relaxed, counts: exec.counts,
@@ -257,11 +262,11 @@ export async function plannedSearch(query: string, opts: PlannedSearchOptions = 
       },
     };
   } finally {
-    // Abort optional speculation and pending cache IO, then wait for cleanup.
+    // Abort optional speculation, then wait for cleanup.
     // The shelf queue must not start more work while a timed-out SQL query runs.
     deadline.abort();
     embeddingScope.abort();
-    await Promise.allSettled([embedding, planWrite]);
+    await Promise.allSettled([embedding]);
     embeddingScope.dispose();
     deadline.dispose();
   }

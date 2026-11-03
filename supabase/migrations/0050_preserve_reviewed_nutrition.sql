@@ -1,6 +1,7 @@
--- Keep a human-checked source of truth when automatic scraping/OCR reimports
+-- Keep a human-checked source of truth when automated label/OCR reimports
 -- older numbers. A deliberate new review must carry a new values snapshot.
 -- Other product fields and derived serving metadata can still be refreshed.
+-- A blocked write keeps the old panel and raises a warning so the caller sees it.
 create or replace function public.preserve_reviewed_nutrition()
 returns trigger language plpgsql set search_path = public as $$
 begin
@@ -13,6 +14,7 @@ begin
           or ((new.nutrition - 'extra' - 'source') is distinct from (old.nutrition - 'extra' - 'source')
               and new.nutrition->'extra'->>'manual_review_snapshot' = old.nutrition->'extra'->>'manual_review_snapshot')) then
     new.nutrition := old.nutrition;
+    raise warning 'preserve_reviewed_nutrition: kept reviewed nutrition for product %', old.id;
   end if;
   return new;
 end;

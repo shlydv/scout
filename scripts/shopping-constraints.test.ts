@@ -80,6 +80,24 @@ test("planner outage fails closed before executing an unconstrained search", asy
   await assert.rejects(h.api.plannedSearch("gluten free biscuits for celiac disease"), /requirements could not be checked/);
   assert.equal(h.counts().executes, 0);
 });
+test("preferences are not safety requests; allergies, celiac and medical conditions are", () => {
+  for (const q of ["vegan protein bar", "peanut butter no palm oil", "low sugar biscuits", "high protein snacks under 100", "jain namkeen"]) {
+    assert.equal(sensitiveRequest(preserveRequirements(plan(), q), q), false, q);
+  }
+  for (const q of ["gluten free biscuits for celiac", "nut free snacks", "eggless cake", "biscuits for diabetes", "snacks without peanuts", "allergic to sesame"]) {
+    assert.equal(sensitiveRequest(preserveRequirements(plan(), q), q), true, q);
+  }
+  // Saved preferences carry medical needs and allergies into the plan.
+  assert.equal(sensitiveRequest(preserveRequirements(plan(), "biscuits", { healthContexts: ["diabetic"] }), "biscuits"), true);
+  assert.equal(sensitiveRequest(preserveRequirements(plan(), "biscuits", { avoidIngredients: ["peanut"] }), "biscuits"), true);
+  assert.equal(sensitiveRequest(preserveRequirements(plan(), "biscuits", { avoidIngredients: ["palm oil"] }), "biscuits"), false);
+});
+test("planner outage on an ordinary search returns closest matches instead of an error", async () => {
+  const h = searchHarness(plan(), new Map(), true);
+  const r = await h.api.plannedSearch("masala chips");
+  assert.deepEqual(Array.from(r.dropped), ["planner:degraded"]);
+  assert.equal(h.counts().executes, 1);
+});
 test("total verifier outage suppresses sensitive results even if verification is disabled", async () => {
   const h = searchHarness(plan({ strict: true, exclude: ["gluten_source"] }), new Map());
   const r = await h.api.plannedSearch("gluten free biscuits for celiac disease", { verify: false });

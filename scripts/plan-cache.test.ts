@@ -92,7 +92,7 @@ test("malformed, degraded, expired and absent shared plans are misses, never wea
   assert.equal(await getCachedPlan(stubSql(() => { throw new Error("database unavailable"); }).sql, randomUUID()), null);
 });
 
-test("failed REST persistence leaves an isolated local plan usable; no PG write or degraded plan is sent", async () => {
+test("a forbidden PG write falls back to REST; failures leave an isolated local plan usable; degraded plans are never sent", async () => {
   const { sql, calls } = stubSql(() => { throw new Error("PG writes are forbidden"); });
   const written: SharedPlanRecord[] = [];
   const writer = async (record: SharedPlanRecord) => { written.push(record); throw new Error("REST unavailable"); };
@@ -105,13 +105,21 @@ test("failed REST persistence leaves an isolated local plan usable; no PG write 
   assert.deepEqual(hit?.plan.exclude, ["peanut"]);
   assert.equal(written.length, 1);
   assert.deepEqual(written[0]?.plan.exclude, ["peanut"]);
-  assert.equal(calls.length, 0);
+  assert.equal(calls.length, 1);
+  assert.match(calls[0]!.text, /insert into public\.search_plan_cache/);
   const degradedKey = randomUUID();
   await storePlan(sql, degradedKey, plan(), ["planner:degraded"], undefined, writer);
   assert.equal(await getCachedPlan(stubSql().sql, degradedKey), null);
   await storePlan(sql, randomUUID(), { ...plan(), strict: "bad" } as unknown as SearchPlan, [], undefined, writer);
   assert.equal(written.length, 1);
-  assert.equal(calls.length, 0);
+  assert.equal(calls.length, 1);
+});
+test("a successful PG write does not also call the REST writer", async () => {
+  const { sql, calls } = stubSql();
+  let restCalls = 0;
+  await storePlan(sql, randomUUID(), plan(), [], undefined, async () => { restCalls++; });
+  assert.equal(calls.length, 1);
+  assert.equal(restCalls, 0);
 });
 
 test("keys retain preferences and planner/vocabulary fingerprint isolation", () => {
@@ -131,7 +139,9 @@ test("a pre-aborted request cannot read, reuse or store a plan", async () => {
   const localKey = randomUUID();
   await storePlan(sql, localKey, plan(), [], undefined, async () => {});
   await assert.rejects(getCachedPlan(sql, localKey, controller.signal), error => error === reason);
-  assert.equal(calls.length, 0, "no aborted lookup or store may start SQL");
+  // Only the one non-aborted store wrote; no aborted lookup or store started SQL.
+  assert.equal(calls.length, 1, "no aborted lookup or store may start SQL");
+  assert.match(calls[0]!.text, /insert into public\.search_plan_cache/);
 });
 
 test("an aborted shared lookup propagates cancellation instead of returning a miss", async () => {

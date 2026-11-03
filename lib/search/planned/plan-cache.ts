@@ -69,12 +69,21 @@ export async function getCachedPlan(sql: Sql, key: string, signal?: AbortSignal)
   }
 }
 
-export function storePlan(_sql: Sql, key: string, plan: SearchPlan, dropped: string[], signal?: AbortSignal, writer = writeSharedPlan): Promise<void> {
+export function storePlan(sql: Sql, key: string, plan: SearchPlan, dropped: string[], signal?: AbortSignal, writer = writeSharedPlan): Promise<void> {
   throwIfAborted(signal);
   // Degraded plans are never reused; failures to write are harmless.
   if (dropped.includes("planner:degraded")) return Promise.resolve();
   const parsed = cachedValueSchema.safeParse({ plan, dropped });
   if (!parsed.success) return Promise.resolve();
   LOCAL.set(key, { expiresAt: Date.now() + LOCAL_TTL_MS, value: parsed.data });
-  return writer({ cache_key: key, ...parsed.data }, signal).catch(() => {});
+  const record = { cache_key: key, ...parsed.data };
+  // A role that can write stores the plan directly; a read-only search role (scout_ro)
+  // is refused and falls back to the REST writer, so neither depends on the other.
+  return Promise.resolve()
+    .then(() => sql`
+      insert into public.search_plan_cache (cache_key, plan, dropped)
+      values (${key}, ${sql.json(record.plan as never)}, ${record.dropped}::text[])
+      on conflict (cache_key) do update set plan = excluded.plan, dropped = excluded.dropped, created_at = now(), hits = 0`)
+    .then(() => {}, () => writer(record, signal))
+    .catch(() => {});
 }

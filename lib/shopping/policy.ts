@@ -32,11 +32,20 @@ export function preserveRequirements(plan: SearchPlan, query: string, preference
   return { ...plan, diet, judge, strict, exclude: [...exclude] };
 }
 
+const MEDICAL = /allerg|celiac|coeliac|anaphyla|intoleran|diabet|blood sugar|blood pressure|hypertens|kidney|renal|heart|pregnan|medical|\bBP\b/i;
+const ALLERGEN = "gluten|wheat|milk|dairy|lactose|eggs?|peanuts?|groundnuts?|nuts?|tree nuts?|almonds?|cashews?|walnuts?|soy|soya|sesame|mustard|fish|shellfish|seafood|sulphites?|sulfites?";
+const ALLERGEN_REQUEST = new RegExp(`\\b(?:${ALLERGEN})[ -]?(?:free|allerg)|\\b(?:no|without|avoid|must avoid|allergic to)\\s+(?:${ALLERGEN})\\b|\\beggless\\b`, "i");
+
+/**
+ * Safety-critical requests: an allergy, celiac, or a medical condition, asked for in the
+ * query or carried in saved preferences (plan.judge). These fail closed: every shown result
+ * needs an explicit verifier verdict, requirements never relax, and near-misses are hidden.
+ * Preferences such as "low sugar", "high protein", "vegan" or "no palm oil" are not safety
+ * requests; the executor already enforces them from label facts.
+ */
 export function sensitiveRequest(plan: SearchPlan, query = ""): boolean {
-  return plan.strict || plan.exclude.length > 0 || plan.claims_required.length > 0 || Object.values(plan.diet).some(Boolean)
-    || plan.intent === "goal" || plan.judge.length > 0
-    || plan.numeric.some(n => !["price_inr", "price_per_100", "pack_qty", "scout_score"].includes(n.field))
-    || /allerg|celiac|coeliac|anaphyla|diabet|blood sugar|blood pressure|hypertens|kidney|renal|heart|pregnan|medical|\bBP\b/i.test(query);
+  const text = [query, ...plan.judge].join(" ");
+  return plan.strict || MEDICAL.test(text) || ALLERGEN_REQUEST.test(text);
 }
 
 /** Nutrition/claim requirements for sensitive requests are never relaxable. */
