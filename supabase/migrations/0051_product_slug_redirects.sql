@@ -35,8 +35,10 @@ begin
   insert into public.product_slug_redirects (old_slug, product_id)
   values (old.slug, old.id)
   on conflict (old_slug) do update set product_id = excluded.product_id, created_at = now();
-  -- Tables that keep their own copy of the slug.
-  update public.product_search_index set slug = new.slug where product_id = new.id;
+  -- saved_products keeps its own copy of the slug. product_search_index.slug is left
+  -- alone: queries take the slug from products, search:build-index writes the current
+  -- slug whenever it rebuilds a row, and rewriting every wide search row here would
+  -- spend tens of MB of database space.
   if to_regclass('public.saved_products') is not null then
     update public.saved_products set product_slug = new.slug where product_slug = old.slug;
   end if;
