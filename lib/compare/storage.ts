@@ -63,19 +63,19 @@ export function clearCompare(): void {
   writeCompare([]);
 }
 
-/** Move tray entries saved under old slugs to the product's current slug (old → current). */
+/** Move tray entries saved under old slugs to the product's current slug (old → current).
+ *  A duplicate is dropped; the entry kept takes its shopping context if it has none. */
 export function renameCompareSlugs(renames: Map<string, string>): void {
   const list = readCompare();
   if (!list.some((e) => renames.has(e.slug))) return;
-  const seen = new Set<string>();
-  writeCompare(
-    list.flatMap((e) => {
-      const slug = renames.get(e.slug) ?? e.slug;
-      if (seen.has(slug)) return [];
-      seen.add(slug);
-      return [{ ...e, slug }];
-    }),
-  );
+  const kept = new Map<string, CompareEntry>();
+  for (const e of list) {
+    const slug = renames.get(e.slug) ?? e.slug;
+    const prev = kept.get(slug);
+    if (!prev) kept.set(slug, { ...e, slug });
+    else if (!prev.shoppingContext && e.shoppingContext) prev.shoppingContext = e.shoppingContext;
+  }
+  writeCompare([...kept.values()]);
 }
 
 export const COMPARE_EVENT = EVENT;

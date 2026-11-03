@@ -27,7 +27,7 @@ Apply migrations in order with `pnpm db:apply supabase/migrations/<file>.sql` (c
 
 ### Product slugs
 
-Product URLs are `/product/<slug>`. A slug can change: the `products_slug_redirects` trigger (migration `0051`) records every old slug in `product_slug_redirects`, and old URLs answer with a 308 to the current slug. That check runs in `app/product/[slug]/layout.tsx`, above `loading.tsx`: a redirect thrown inside the streamed page reaches browsers and crawlers as a 200 with a meta refresh. Baskets and compare trays saved in a browser move to the new slugs the next time the basket or compare page loads.
+Product URLs are `/product/<slug>`. A slug can change: the `products_slug_redirect` trigger (migration `0051`) records every old slug in `product_slug_redirects`, and old URLs answer with a 308 to the current slug, query string included. That check runs in `proxy.ts`, before rendering: a redirect thrown inside the streamed page reaches browsers and crawlers as a 200 with a meta refresh, and a layout can't see `?context=` / `?q=`. Baskets and compare trays saved in a browser move to the new slugs the next time the basket or compare page loads.
 
 `pnpm catalog:rename-slugs` drops a leading platform name from slugs (`<platform>-<brand>-<name>-<sku>` → `<brand>-<name>-<sku>`):
 

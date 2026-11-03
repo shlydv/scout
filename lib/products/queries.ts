@@ -29,6 +29,7 @@ import { requireSupabaseClient } from "@/lib/supabase/client";
 import type { CoreScore, Grade, Product, ProductNutrition, ScoreBand } from "@/lib/supabase/types";
 import { deepseekDisplayFromPayload } from "@/lib/ocr/deepseek-promote";
 import { normalizeProductImageUrls } from "@/lib/products/catalog-hero-image";
+import { currentProductSlugs } from "@/lib/products/slug-redirects";
 
 
 /** Server-side reads: service role when set, else anon (browser-safe) client. */
@@ -1374,27 +1375,6 @@ async function listRowsBySlug(slugs: string[]): Promise<ProductListItem[]> {
     .in("slug", slugs);
   if (error) throw new Error(error.message);
   return (data ?? []).map((row) => mapListRow(row as Record<string, unknown>));
-}
-
-/**
- * Old slug → current slug, for the given slugs that products have moved away from
- * (migration 0051). A failed lookup is logged and treated as "no redirects", so old
- * URLs fall back to a 404 rather than breaking product pages.
- */
-export async function currentProductSlugs(slugs: string[]): Promise<Map<string, string>> {
-  const renamed = new Map<string, string>();
-  if (!slugs.length) return renamed;
-  const { data, error } = await db().rpc("current_product_slugs", { p_slugs: slugs });
-  if (error) {
-    console.error("[products] slug redirect lookup failed:", error.message);
-    return renamed;
-  }
-  for (const row of (data ?? []) as { old_slug: string; slug: string }[]) renamed.set(row.old_slug, row.slug);
-  return renamed;
-}
-
-export async function currentProductSlug(slug: string): Promise<string | null> {
-  return (await currentProductSlugs([slug])).get(slug) ?? null;
 }
 
 export async function getProductBySlug(slug: string): Promise<ProductDetail | null> {
