@@ -43,7 +43,7 @@ Migrations live in `supabase/migrations`. Apply one with `pnpm db:apply supabase
 ```bash
 pnpm typecheck                                    # app + scripts
 pnpm search:test                                  # planned-search unit tests (offline)
-node --import tsx --test scripts/product-slug-renames.test.ts   # basket/compare slug moves
+node --import tsx --test scripts/product-slug-renames.test.ts scripts/product-slug-proxy.test.ts   # slug moves, old-URL redirects
 node --import tsx scripts/free-access-regression.ts
 pnpm search:eval                                  # 84-case search eval (uses DeepSeek, a few cents)
 pnpm build

@@ -4,6 +4,7 @@ import { beforeEach, test } from "node:test";
 import { readBasket, renameBasketSlugs, writeBasket } from "@/lib/basket/storage";
 import { readCompare, renameCompareSlugs } from "@/lib/compare/storage";
 import { slugRenames } from "@/lib/products/slug-renames";
+import { mayBeOldSlug, redirectPrefixes } from "@/lib/products/slug-redirects";
 
 const store = new Map<string, string>();
 const events: string[] = [];
@@ -70,4 +71,18 @@ test("compare entries keep tray order, drop a duplicate and keep a shopping cont
   renameCompareSlugs(new Map([["x-a-1", "a-1"], ["x-c-3", "c-3"]]));
   assert.deepEqual(readCompare().map((e) => [e.slug, e.shoppingContext]), [["a-1", "ctx-a"], ["c-3", "ctx-c"]]);
   assert.deepEqual(events, ["scout-compare"]);
+});
+
+test("only slugs with a configured old prefix are looked up", () => {
+  const prefixes = redirectPrefixes(" legacy- , older- ,");
+  assert.deepEqual(prefixes, ["legacy-", "older-"]);
+  assert.equal(mayBeOldSlug("amul-amul-butter-1a2b3c4d", prefixes), false);
+  assert.equal(mayBeOldSlug("legacy-amul-amul-butter-1a2b3c4d", prefixes), true);
+  assert.equal(mayBeOldSlug("older-x-1a2b3c4d", prefixes), true);
+});
+
+test("with no prefixes configured every slug is looked up", () => {
+  assert.deepEqual(redirectPrefixes(""), []);
+  assert.deepEqual(redirectPrefixes(" , "), []);
+  assert.equal(mayBeOldSlug("amul-amul-butter-1a2b3c4d", []), true);
 });

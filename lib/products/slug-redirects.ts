@@ -1,7 +1,18 @@
 import { requireSupabaseClient } from "@/lib/supabase/client";
 
-/** The lookup runs before every product page, so it gets a hard budget. */
+/** The lookup runs before product pages, so it gets a hard budget. */
 const LOOKUP_MS = 1500;
+
+/** PRODUCT_SLUG_REDIRECT_PREFIXES: comma-separated prefixes that old slugs start with. */
+export function redirectPrefixes(raw = process.env.PRODUCT_SLUG_REDIRECT_PREFIXES): string[] {
+  return (raw ?? "").split(",").map((p) => p.trim()).filter(Boolean);
+}
+
+/** Whether a slug could be an old one. With no prefixes configured every slug could be;
+ *  with prefixes, current slugs skip the lookup entirely. */
+export function mayBeOldSlug(slug: string, prefixes: string[]): boolean {
+  return !prefixes.length || prefixes.some((p) => slug.startsWith(p));
+}
 
 /**
  * Old slug → current slug, for the given slugs that products have moved away from
