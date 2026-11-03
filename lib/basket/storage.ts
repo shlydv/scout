@@ -101,3 +101,19 @@ export function clearBasket(): void {
 export function basketCount(): number {
   return readBasket().reduce((n, e) => n + e.qty, 0);
 }
+
+/** Move lines saved under old slugs to the product's current slug (old → current); a line
+ *  already under the current slug absorbs the quantity. */
+export function renameBasketSlugs(renames: Map<string, string>): void {
+  const list = readBasket();
+  if (!list.some((e) => renames.has(e.slug))) return;
+  const next: BasketEntry[] = [];
+  for (const entry of list) {
+    const slug = renames.get(entry.slug) ?? entry.slug;
+    const same = next.find((e) => e.slug === slug);
+    if (same) same.qty += entry.qty;
+    else next.push({ ...entry, slug });
+  }
+  writeBasket(next);
+  dispatchBasket();
+}

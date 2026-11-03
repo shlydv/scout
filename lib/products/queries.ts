@@ -1345,7 +1345,27 @@ export async function getProductsForSwaps(
   return rows;
 }
 
-export async function getProductsBySlugs(slugs: string[]): Promise<ProductListItem[]> {
+/** A product found by slug. `renamed_from` lists requested slugs it has since moved away from. */
+export type ProductBySlug = ProductListItem & { renamed_from?: string[] };
+
+/** One row per product; slugs a product has moved away from resolve to it under its current slug. */
+export async function getProductsBySlugs(slugs: string[]): Promise<ProductBySlug[]> {
+  if (!slugs.length) return [];
+  const rows: ProductBySlug[] = await listRowsBySlug(slugs);
+  const found = new Set(rows.map((p) => p.slug));
+  const renamed = await currentProductSlugs(slugs.filter((s) => !found.has(s)));
+  if (!renamed.size) return rows;
+
+  rows.push(...(await listRowsBySlug([...new Set(renamed.values())].filter((s) => !found.has(s)))));
+  const bySlug = new Map(rows.map((p) => [p.slug, p]));
+  for (const [oldSlug, slug] of renamed) {
+    const product = bySlug.get(slug);
+    if (product) (product.renamed_from ??= []).push(oldSlug);
+  }
+  return rows;
+}
+
+async function listRowsBySlug(slugs: string[]): Promise<ProductListItem[]> {
   if (!slugs.length) return [];
   const supabase = db();
   const { data, error } = await supabase
@@ -1354,6 +1374,27 @@ export async function getProductsBySlugs(slugs: string[]): Promise<ProductListIt
     .in("slug", slugs);
   if (error) throw new Error(error.message);
   return (data ?? []).map((row) => mapListRow(row as Record<string, unknown>));
+}
+
+/**
+ * Old slug → current slug, for the given slugs that products have moved away from
+ * (migration 0051). A failed lookup is logged and treated as "no redirects", so old
+ * URLs fall back to a 404 rather than breaking product pages.
+ */
+export async function currentProductSlugs(slugs: string[]): Promise<Map<string, string>> {
+  const renamed = new Map<string, string>();
+  if (!slugs.length) return renamed;
+  const { data, error } = await db().rpc("current_product_slugs", { p_slugs: slugs });
+  if (error) {
+    console.error("[products] slug redirect lookup failed:", error.message);
+    return renamed;
+  }
+  for (const row of (data ?? []) as { old_slug: string; slug: string }[]) renamed.set(row.old_slug, row.slug);
+  return renamed;
+}
+
+export async function currentProductSlug(slug: string): Promise<string | null> {
+  return (await currentProductSlugs([slug])).get(slug) ?? null;
 }
 
 export async function getProductBySlug(slug: string): Promise<ProductDetail | null> {
