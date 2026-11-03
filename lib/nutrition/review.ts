@@ -10,6 +10,16 @@ export function nutritionReviewSnapshot(nutrition: ProductNutrition): string {
     .sort(([a], [b]) => a.localeCompare(b)));
 }
 
+/** A review source is a public https page, or a reference to evidence we hold rather than a retailer URL:
+ * "label-photo" (the pack photo on file), "retailer-listing" (a store's product listing), or
+ * "scout-product:<uuid>" (a sibling product whose panel was reviewed). */
+export function isReviewSource(source: string): boolean {
+  return /^https:\/\//.test(source)
+    || source === "label-photo"
+    || source === "retailer-listing"
+    || /^scout-product:[0-9a-f-]{36}$/.test(source);
+}
+
 export function nutritionReviewStatus(nutrition: ProductNutrition | null | undefined):
   "verified" | "partial" | "label_conflict" | null {
   if (!nutrition) return null;
@@ -20,7 +30,7 @@ export function nutritionReviewStatus(nutrition: ProductNutrition | null | undef
   if (typeof extra.manual_review_sources !== "string" || typeof extra.manual_review_at !== "string") return null;
   try {
     const sources: unknown = JSON.parse(extra.manual_review_sources);
-    if (!Array.isArray(sources) || !sources.length || !sources.every(s => typeof s === "string" && /^https:\/\//.test(s))) return null;
+    if (!Array.isArray(sources) || !sources.length || !sources.every(s => typeof s === "string" && isReviewSource(s))) return null;
     if (!Number.isFinite(Date.parse(extra.manual_review_at))) return null;
   } catch { return null; }
   return status;

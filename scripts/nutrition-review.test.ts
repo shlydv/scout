@@ -56,7 +56,7 @@ test("two-decimal normalization may total 100.01g but a 101g panel is still reje
   assert.ok(detectNutritionAnomalies(impossible, product).some(a => a.code === "macro_mass_exceeds_100g" && a.severity === "critical"));
 });
 
-const fiberLabelSource = "https://cdn.zeptonow.com/cms/product_variant/15a1425d-317b-4d0c-95f7-d5079d1e2b511dxMTd9UVpQcKSht1TTgm5rCVtK_xHzLA.jpeg";
+const fiberLabelSource = "label-photo";
 const highFiberPanel: ProductNutrition = { energy_kcal_100g: 256.7, protein_g_100g: 6.8, carbs_g_100g: 40.6, fat_g_100g: 22.5, fiber_g_100g: 33.9 };
 function reviewedFiberPanel(n: ProductNutrition = highFiberPanel): ProductNutrition {
   const panel = reviewed(n);
@@ -121,6 +121,9 @@ test("partial and conflicting panels explain why values and scores are withheld"
 test("missing evidence and stale booleans do not authorize bypass", () => {
   assert.equal(nutritionReviewStatus({ ...jerky, extra: { manual_review_status: "verified" } }), null);
   assert.equal(nutritionReviewStatus({ ...jerky, extra: { ...jerky.extra, manual_review_sources: "[]" } }), null);
+  assert.equal(nutritionReviewStatus({ ...jerky, extra: { ...jerky.extra, manual_review_sources: JSON.stringify(["http://insecure.example/label"]) } }), null);
+  assert.equal(nutritionReviewStatus({ ...jerky, extra: { ...jerky.extra, manual_review_sources: JSON.stringify(["somewhere online"]) } }), null);
+  assert.equal(nutritionReviewStatus({ ...jerky, extra: { ...jerky.extra, manual_review_sources: JSON.stringify(["label-photo", "retailer-listing"]) } }), "verified");
 });
 
 
