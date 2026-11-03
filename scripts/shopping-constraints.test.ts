@@ -198,12 +198,27 @@ test("swaps POST applies every retained context and disables shared caching", as
   assert.equal((await route.POST({ json: async () => ({ slugs: ["current"], contexts: [null] }) })).options.status, 400);
 });
 
+test("allergen facts reach the verifier only for allergy and medical requests", async () => {
+  const { z } = await import("zod");
+  const sent: string[] = [];
+  const api = load("lib/search/planned/verify.ts", {
+    zod: { z },
+    "@/lib/search/deepseek-client": { deepseekChat: async (o: { user: string }) => { sent.push(o.user); return { content: '{"r":[]}', usage: null }; }, extractJsonObject: JSON.parse },
+    "./execute": { claimStatus: () => "holds" },
+    "@/lib/shopping/policy": { sensitiveRequest },
+  });
+  await api.verifyItems("healthy snacks for kids tiffin", plan(), [item("one")]);
+  await api.verifyItems("nut free snacks", plan(), [item("one")]);
+  assert.doesNotMatch(sent[0]!, /allergen_facts/);
+  assert.match(sent[1]!, /allergen_facts/);
+});
 test("malformed duplicate verifier indices cannot accidentally approve a sensitive product", async () => {
   const { z } = await import("zod");
   const api = load("lib/search/planned/verify.ts", {
     zod: { z },
     "@/lib/search/deepseek-client": { deepseekChat: async () => ({ content: '{"r":[{"i":0,"v":"no"},{"i":0,"v":"good"}]}', usage: null }), extractJsonObject: JSON.parse },
     "./execute": { claimStatus: () => "holds" },
+    "@/lib/shopping/policy": { sensitiveRequest },
   });
   const result = await api.verifyItems("celiac", plan({ strict: true }), [item("one")]);
   assert.equal(result.verdicts.size, 0);
