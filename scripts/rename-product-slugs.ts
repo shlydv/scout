@@ -146,7 +146,6 @@ async function moveSlugs(sql: Sql, moves: { id: string; from: string; to: string
     });
     moved += rows.length;
     await sql.unsafe("vacuum (analyze) products");
-    await sql.unsafe("vacuum product_search_index");
     const mb = await dbSizeMb(sql);
     console.log(
       `[rename-slugs] ${Math.min(i + BATCH, moves.length)}/${moves.length}: moved ${rows.length} in ${((Date.now() - started) / 1000).toFixed(1)}s, database ${mb.toFixed(1)} MB`,
