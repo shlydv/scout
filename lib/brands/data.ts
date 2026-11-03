@@ -41,51 +41,51 @@ function displayName(variants: string[]): string {
   return clean.find(v => v !== v.toUpperCase()) ?? clean[0]!;
 }
 
-type ScoreRow = { brand_key: string; variants: string[]; name: string; category: string | null; subcategory: string | null; score: string | null };
+type IndexRow = { brand_key: string; variants: string[]; n: number; scored: number; score_sum: string | null; skip: number; conflicts: number };
 
+// Aggregated in SQL: one row per brand (~1.5k) instead of every product (~13.5k, ~1.7 MB a read).
+// A product is "skip" when its score is below 40, whatever its role (lib/scoring/verdict.ts).
 const loadIndex = unstable_cache(
   async (): Promise<BrandSummary[]> => {
     const sql = searchSql();
-    const rows = await sql<ScoreRow[]>`
-      select lower(p.brand) brand_key, array[p.brand] variants, p.name, p.category, p.subcategory,
-             coalesce(si.absolute_score, si.scout_score) score
-      from products p left join product_search_index si on si.product_id = p.id
-      where p.catalog_visible and p.brand is not null and trim(p.brand) <> ''`;
-    const conflicts = await sql<{ brand_key: string; n: number }[]>`
-      select lower(p.brand) brand_key, count(distinct lc.product_id)::int n
-      from label_conflicts lc join products p on p.id = lc.product_id and p.catalog_visible
-      group by 1`;
-    const conflictMap = new Map(conflicts.map(c => [c.brand_key, c.n]));
+    const rows = await sql<IndexRow[]>`
+      with scored as (
+        select lower(p.brand) brand_key, p.brand, coalesce(si.absolute_score, si.scout_score)::float8 score
+        from products p left join product_search_index si on si.product_id = p.id
+        where p.catalog_visible and p.brand is not null and trim(p.brand) <> ''
+      ), spellings as (
+        select brand_key, brand, count(*) n from scored group by 1, 2
+      ), conflicts as (
+        select lower(p.brand) brand_key, count(distinct lc.product_id)::int n
+        from label_conflicts lc join products p on p.id = lc.product_id and p.catalog_visible
+        group by 1
+      )
+      select s.brand_key,
+             (select array_agg(sp.brand order by sp.n desc, sp.brand) from spellings sp where sp.brand_key = s.brand_key) variants,
+             count(*)::int n, count(s.score)::int scored, sum(s.score) score_sum,
+             count(*) filter (where s.score < 40)::int skip,
+             coalesce(max(c.n), 0)::int conflicts
+      from scored s left join conflicts c on c.brand_key = s.brand_key
+      group by s.brand_key
+      order by n desc, s.brand_key`;
 
-    const byBrand = new Map<string, { variants: Set<string>; n: number; scored: number[]; skip: number }>();
-    for (const r of rows) {
-      const b = byBrand.get(r.brand_key) ?? { variants: new Set<string>(), n: 0, scored: [], skip: 0 };
-      b.variants.add(r.variants[0]!);
-      b.n++;
-      if (r.score != null) {
-        const score = Number(r.score);
-        b.scored.push(score);
-        if (resolveProductVerdict({ score, name: r.name, category: r.category, subcategory: r.subcategory }) === "skip") b.skip++;
-      }
-      byBrand.set(r.brand_key, b);
-    }
     const seen = new Set<string>();
     const out: BrandSummary[] = [];
-    for (const [key, b] of [...byBrand].sort((x, y) => y[1].n - x[1].n)) {
-      const name = displayName([...b.variants]);
+    for (const r of rows) {
+      const name = displayName(r.variants);
       const slug = brandSlug(name);
       if (!slug || seen.has(slug)) continue;
       seen.add(slug);
       out.push({
-        slug, key, name, products: b.n,
-        avgScore: b.scored.length ? Math.round(b.scored.reduce((s, x) => s + x, 0) / b.scored.length) : null,
-        skipPct: b.scored.length ? Math.round((100 * b.skip) / b.scored.length) : 0,
-        conflicts: conflictMap.get(key) ?? 0,
+        slug, key: r.brand_key, name, products: r.n,
+        avgScore: r.scored ? Math.round(Number(r.score_sum) / r.scored) : null,
+        skipPct: r.scored ? Math.round((100 * r.skip) / r.scored) : 0,
+        conflicts: r.conflicts,
       });
     }
     return out;
   },
-  ["brand-index-v2"],
+  ["brand-index-v3"],
   { revalidate: 86400 },
 );
 
@@ -115,10 +115,10 @@ function toCard(r: ProductRow): SearchCard {
   };
 }
 
+// Takes the summary rather than looking it up: an unstable_cache called inside
+// another one skips its cache, so the index lookup lives in getBrand.
 const loadBrand = unstable_cache(
-  async (slug: string): Promise<BrandDetail | null> => {
-    const summary = (await loadIndex()).find(b => b.slug === slug);
-    if (!summary) return null;
+  async (summary: BrandSummary): Promise<BrandDetail> => {
     const sql = searchSql();
     const key = summary.key;
     const rows = await sql<ProductRow[]>`
@@ -178,10 +178,11 @@ const loadBrand = unstable_cache(
       conflictCards,
     };
   },
-  ["brand-detail-v2"],
+  ["brand-detail-v3"],
   { revalidate: 86400 },
 );
 
 export async function getBrand(slug: string): Promise<BrandDetail | null> {
-  return loadBrand(slug);
+  const summary = (await loadIndex()).find(b => b.slug === slug);
+  return summary ? loadBrand(summary) : null;
 }
