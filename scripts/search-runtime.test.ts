@@ -208,6 +208,7 @@ test("verifier cancellation aborts every active chunk instead of returning an un
   const api = load("lib/search/planned/verify.ts", {
     zod: { z },
     "./execute": { claimStatus: () => "holds" },
+    "@/lib/shopping/policy": { sensitiveRequest: () => false },
     "@/lib/search/deepseek-client": {
       extractJsonObject: JSON.parse,
       deepseekChat: (opts: any) => new Promise((_yes, no) => {
