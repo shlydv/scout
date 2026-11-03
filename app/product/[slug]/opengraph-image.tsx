@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
-import { currentProductSlug, getProductBySlug } from "@/lib/products/queries";
+import { getProductBySlug } from "@/lib/products/queries";
+import { currentProductSlug } from "@/lib/products/slug-redirects";
 import { resolveProductVerdict } from "@/lib/scoring/verdict-resolve";
 import { VERDICT_LABELS, type VerdictId } from "@/lib/scoring/verdict";
 
