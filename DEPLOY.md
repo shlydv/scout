@@ -18,6 +18,7 @@ Set these in Vercel → Project → Settings → Environment Variables (Producti
 | `ADMIN_EMAILS` | Google accounts allowed into `/admin` |
 | `RESEND_API_KEY` + `NEXT_PUBLIC_SEARCH_ALERTS=1` | Optional: saved-search alert emails (button hidden otherwise) |
 | `SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN` | Optional: error monitoring (inert when empty) |
+| `PRODUCT_SLUG_REDIRECT_PREFIXES` | Optional: prefixes old product slugs start with (comma-separated). When set, only those slugs pay for the redirect lookup; empty checks every product URL. See [Product slugs](#product-slugs) |
 
 Changing a `NEXT_PUBLIC_*` value needs a redeploy; data changes don't.
 
@@ -27,7 +28,7 @@ Apply migrations in order with `pnpm db:apply supabase/migrations/<file>.sql` (c
 
 ### Product slugs
 
-Product URLs are `/product/<slug>`. A slug can change: the `products_slug_redirect` trigger (migration `0051`) records every old slug in `product_slug_redirects`, and old URLs answer with a 308 to the current slug, query string included. That check runs in `proxy.ts`, before rendering: a redirect thrown inside the streamed page reaches browsers and crawlers as a 200 with a meta refresh, and a layout can't see `?context=` / `?q=`. Baskets and compare trays saved in a browser move to the new slugs the next time the basket or compare page loads.
+Product URLs are `/product/<slug>`. A slug can change: the `products_slug_redirect` trigger (migration `0051`) records every old slug in `product_slug_redirects`, and old URLs answer with a 308 to the current slug, query string included. That check runs in `proxy.ts`, before rendering: a redirect thrown inside the streamed page reaches browsers and crawlers as a 200 with a meta refresh, and a layout can't see `?context=` / `?q=`. Baskets and compare trays saved in a browser move to the new slugs the next time the basket or compare page loads. The lookup costs one small RPC per product request; set `PRODUCT_SLUG_REDIRECT_PREFIXES` to the prefix the old slugs share (for the rename below, the platform name plus `-`) so current slugs skip it, and clear or extend it if a later rename produces old slugs of another shape.
 
 `pnpm catalog:rename-slugs` drops a leading platform name from slugs (`<platform>-<brand>-<name>-<sku>` → `<brand>-<name>-<sku>`):
 
