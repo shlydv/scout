@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import { useEffect, useRef, useState } from "react";
 
 type TopItem = {

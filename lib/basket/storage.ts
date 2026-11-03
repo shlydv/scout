@@ -1,4 +1,5 @@
 export type BasketEntry = {
+  shoppingContexts?: string[];
   slug: string;
   name: string;
   qty: number;
@@ -40,11 +41,13 @@ export function writeBasket(entries: BasketEntry[]): void {
   localStorage.setItem(KEY, JSON.stringify(entries));
 }
 
-export function addToBasket(slug: string, name: string): BasketEntry[] {
+export function addToBasket(slug: string, name: string, shoppingContext?: string): BasketEntry[] {
   const list = readBasket();
   const existing = list.find((e) => e.slug === slug);
-  if (existing) existing.qty += 1;
-  else list.push({ slug, name, qty: 1, addedAt: Date.now() });
+  if (existing) {
+    existing.qty += 1;
+    if (shoppingContext) existing.shoppingContexts = [...new Set([...(existing.shoppingContexts ?? []), shoppingContext])];
+  } else list.push({ slug, name, qty: 1, addedAt: Date.now(), shoppingContexts: shoppingContext ? [shoppingContext] : undefined });
   writeBasket(list);
   dispatchBasket();
   return list;
@@ -65,6 +68,7 @@ export function replaceInBasket(fromSlug: string, toSlug: string, toName: string
   const existingTarget = list.find((e) => e.slug === toSlug);
   if (existingTarget && existingTarget !== entry) {
     existingTarget.qty += entry.qty;
+    existingTarget.shoppingContexts = [...new Set([...(existingTarget.shoppingContexts ?? []), ...(entry.shoppingContexts ?? [])])];
     const next = list.filter((e) => e.slug !== fromSlug);
     writeBasket(next);
     dispatchBasket();

@@ -18,7 +18,7 @@ const MUTED = "#5e544b";
 const DIM = "#8a7f74";
 const VERDICT_COLOUR: Record<VerdictId, string> = {
   daily_staple: "#16a34a",
-  good_choice: "#65a30d",
+  good_choice: "#84a822",
   occasional_treat: "#d97706",
   skip: "#dc2626",
 };
@@ -52,7 +52,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const score = cs?.absolute_score ?? cs?.score ?? null;
   const verdict = cs ? resolveProductVerdict({ verdict: cs.verdict, score, name: product.name, category: product.category, subcategory: product.subcategory }) : null;
   const colour = verdict ? VERDICT_COLOUR[verdict] : DIM;
-  const take = (cs?.opinion?.headline ?? (verdict ? VERDICT_LABELS[verdict].description : "Read before you buy.")).slice(0, 110);
+  const take = (verdict ? VERDICT_LABELS[verdict].description : "Read before you buy.").slice(0, 110);
   const image = product.image_urls?.[0];
   const name = product.name.length > 70 ? `${product.name.slice(0, 68)}…` : product.name;
 

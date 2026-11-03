@@ -12,7 +12,7 @@ export const VERDICT_LABELS: Record<
   },
   good_choice: {
     title: "Good choice",
-    description: "Nutritious with minor trade-offs, or top of its cohort",
+    description: "A good overall choice, with some trade-offs",
   },
   occasional_treat: {
     title: "Occasional treat",
@@ -20,7 +20,7 @@ export const VERDICT_LABELS: Record<
   },
   skip: {
     title: "Skip",
-    description: "Avoid or only when nothing else is available",
+    description: "Look for a better option in this aisle",
   },
 };
 

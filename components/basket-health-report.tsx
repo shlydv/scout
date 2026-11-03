@@ -2,20 +2,12 @@
 
 import { ArrowRight } from "lucide-react";
 import { ScoreRing } from "@/components/verdict-chips";
-import { colorForScore, gradeFromScore } from "@/lib/utils";
-import type { BasketAnalysis, SwapImpact } from "@/lib/products/basket-analysis";
 
-/** Headline word for the basket grade — matches the score bands used elsewhere. */
-function gradeWord(score: number): string {
-  if (score >= 76) return "Excellent";
-  if (score >= 51) return "Solid";
-  if (score >= 26) return "Mixed";
-  return "Rough";
-}
+import type { BasketAnalysis, SwapImpact } from "@/lib/products/basket-analysis";
 
 /** A compact score pip (tinted number) for the before→after row. */
 function Pip({ value, strong = false }: { value: number; strong?: boolean }) {
-  const c = colorForScore(value);
+  const c = "var(--color-fg-muted)";
   return (
     <span
       className="inline-flex h-9 min-w-9 items-center justify-center rounded-xl border px-2 font-display text-lg tabular-nums leading-none"
@@ -56,12 +48,11 @@ export function BasketHealthReport({
   impact: SwapImpact | null;
   swapsLoading: boolean;
 }) {
-  const score = analysis.avgGoalFit ?? analysis.avgCoreScore;
+  const score = analysis.avgCoreScore;
   if (score == null) return null;
 
   const rounded = Math.round(score);
-  const grade = gradeFromScore(rounded);
-  const color = colorForScore(rounded);
+  const color = "var(--color-fg-muted)";
 
   const facts: string[] = [];
   if (analysis.flaggedAdditiveSkus > 0) {
@@ -83,23 +74,17 @@ export function BasketHealthReport({
       <div className="flex items-center gap-4 p-5 sm:gap-5 sm:p-6">
         <div className="relative shrink-0">
           <ScoreRing score={rounded} color={color} />
-          <span
-            className="absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full border-2 border-(--color-panel) font-display text-[13px] font-semibold leading-none"
-            style={{ backgroundColor: color, color: "var(--color-bg)" }}
-          >
-            {grade}
-          </span>
+
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-(--color-fg-dim)">
-            Basket grade · {analysis.goalLabel}
+            Average Scout score
           </p>
           <p className="mt-1 font-display text-[1.6rem] leading-tight text-(--color-fg)">
-            {gradeWord(rounded)}{" "}
-            <span className="text-(--color-fg-dim)">for {analysis.goalLabel.toLowerCase()}</span>
+            {rounded}/100 across scored items
           </p>
           <p className="mt-1 text-[13px] leading-snug text-(--color-fg-muted)">
-            {analysis.summary[0] ?? "This cart looks balanced for your goal."}
+            {analysis.summary[0] ?? "Based on the scored products in your basket."}
           </p>
           {facts.length > 0 ? (
             <p className="mt-1.5 text-[11.5px] leading-snug text-(--color-fg-dim)">{facts.join(" · ")}</p>

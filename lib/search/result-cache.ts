@@ -4,7 +4,7 @@ import type { AiSearchPreferences } from "@/lib/search/preferences";
 const TTL_MS = 5 * 60_000;
 const MAX = 128;
 /** Bump when ranking or response shape changes so warm instances drop stale results. */
-const VERSION = "planned-v3";
+const VERSION = "planned-v5-verdict";
 const cache = new Map<string, { at: number; value: unknown }>();
 
 export function resultCacheKey(q: string, limit: number, prefs: AiSearchPreferences | null | undefined, offset = 0): string {

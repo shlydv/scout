@@ -52,7 +52,7 @@ export async function upsertFacts(sql: postgres.Sql, rows: ReturnType<typeof fac
         jain = excluded.jain, kind = excluded.kind, ingredients = excluded.ingredients, evidence = excluded.evidence,
         pack_qty = excluded.pack_qty, pack_unit = excluded.pack_unit, price_per_100 = excluded.price_per_100,
         source_hash = excluded.source_hash, model = excluded.model, variant_key = excluded.variant_key,
-        nutrition_suspect = null, nutrition_note = null, built_at = now()`;
+        built_at = now()`;
   }
   // New rows need their compact embedding copy (the trigger only fires on index writes).
   await sql`

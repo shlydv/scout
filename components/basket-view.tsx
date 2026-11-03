@@ -1,7 +1,9 @@
 "use client";
 
+import { productHref } from "@/lib/shopping/links";
+import { canScoreReviewedNutrition } from "@/lib/nutrition/review";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import { ArrowLeftRight, ChevronDown, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { DietPicker } from "@/components/diet-picker";
@@ -14,7 +16,8 @@ import type { DietMode } from "@/lib/diet/types";
 import { analyzeBasket, computeSwapImpact } from "@/lib/products/basket-analysis";
 import { BasketHealthReport } from "@/components/basket-health-report";
 import type { SwapSuggestion } from "@/lib/products/alternatives";
-import { scoreTileSurface } from "@/lib/score/surfaces";
+import { resolveProductVerdict } from "@/lib/scoring/verdict-resolve";
+import { VERDICT_COLORS, verdictTitle } from "@/lib/scoring/verdict-display";
 import {
   addToBasket,
   clearBasket,
@@ -31,6 +34,7 @@ export function BasketView() {
   const [entries, setEntries] = useState<ReturnType<typeof readBasket>>([]);
   const [catalog, setCatalog] = useState<ProductListItem[]>([]);
   const [swapsBySlug, setSwapsBySlug] = useState<Record<string, SwapSuggestion[]>>({});
+  const [checkedRequest, setCheckedRequest] = useState<{ key: string; context?: string }>({ key: "" });
   const [swapsLoading, setSwapsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [fetchFailed, setFetchFailed] = useState(false);
@@ -102,6 +106,10 @@ export function BasketView() {
     [entries],
   );
 
+  const contextsKey = JSON.stringify([...new Set(entries.flatMap(e => e.shoppingContexts ?? []))].sort());
+  const swapRequestKey = JSON.stringify([slugsKey, contextsKey, goal, diet]);
+  const activeSwaps = useMemo(() => checkedRequest.key === swapRequestKey ? swapsBySlug : {}, [checkedRequest.key, swapRequestKey, swapsBySlug]);
+
   useEffect(() => {
     if (!slugsKey) {
       setSwapsBySlug({});
@@ -109,11 +117,12 @@ export function BasketView() {
     }
     let cancelled = false;
     setSwapsLoading(true);
-    const dietQ = diet !== "any" ? `&diet=${diet}` : "";
-    fetch(`/api/swaps?slugs=${encodeURIComponent(slugsKey)}&goal=${goal}${dietQ}`)
+    setCheckedRequest({ key: "" });
+    setSwapsBySlug({});
+    fetch("/api/swaps", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slugs: slugsKey.split(","), goal, diet, contexts: JSON.parse(contextsKey) }) })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((data: { swaps: Record<string, SwapSuggestion[]> }) => {
-        if (!cancelled) setSwapsBySlug(data.swaps ?? {});
+      .then((data: { swaps: Record<string, SwapSuggestion[]>; shoppingContext?: string }) => {
+        if (!cancelled) { setSwapsBySlug(data.swaps ?? {}); setCheckedRequest({ key: swapRequestKey, context: data.shoppingContext }); }
       })
       .catch(() => {
         if (!cancelled) setSwapsBySlug({});
@@ -124,7 +133,7 @@ export function BasketView() {
     return () => {
       cancelled = true;
     };
-  }, [slugsKey, goal, diet]);
+  }, [slugsKey, contextsKey, goal, diet, swapRequestKey]);
 
   const lines = useMemo(() => {
     const bySlug = new Map(catalog.map((p) => [p.slug, p]));
@@ -142,8 +151,8 @@ export function BasketView() {
   }, [entries, catalog]);
 
   const analysis = useMemo(() => analyzeBasket(lines, goal), [lines, goal]);
-  const swapImpact = useMemo(() => computeSwapImpact(lines, swapsBySlug), [lines, swapsBySlug]);
-  const swapCount = Object.values(swapsBySlug).reduce((n, s) => n + s.length, 0);
+  const swapImpact = useMemo(() => computeSwapImpact(lines, activeSwaps), [lines, activeSwaps]);
+  const swapCount = Object.values(activeSwaps).reduce((n, s) => n + s.length, 0);
 
   if (loading && entries.length > 0) {
     return (
@@ -212,6 +221,9 @@ export function BasketView() {
         </p>
       </div>
 
+      {contextsKey !== "[]" && <p className="text-sm text-(--color-fg-muted)">Swaps keep your saved search requirements. If they cannot be confirmed, no swaps are shown.</p>}
+      {lines.some(({ product }) => !canScoreReviewedNutrition(product)) && <p className="text-sm text-(--color-fg-muted)">Items under nutrition review are excluded from scores and nutrition averages.</p>}
+
       <BasketHealthReport analysis={analysis} impact={swapImpact} swapsLoading={swapsLoading} />
 
       <div className="space-y-2">
@@ -222,15 +234,16 @@ export function BasketView() {
       <ul className="divide-y divide-(--color-line) rounded-2xl border border-(--color-line) bg-(--color-panel)">
         {lines.map(({ product, qty }) => (
           <CartLine
+              shoppingContext={contextsKey !== "[]" ? (checkedRequest.key === swapRequestKey ? checkedRequest.context : undefined) ?? "unavailable" : undefined}
             key={product.id}
             product={product}
             qty={qty}
             fit={
-              goal === "balanced"
+              goal === "balanced" || !canScoreReviewedNutrition(product)
                 ? null
                 : computeGoalFit(goal, goalFitInputs(product))
             }
-            swaps={swapsBySlug[product.slug] ?? []}
+            swaps={activeSwaps[product.slug] ?? []}
           />
         ))}
       </ul>
@@ -295,21 +308,25 @@ function CartLine({
   qty,
   fit,
   swaps,
+  shoppingContext,
 }: {
+  shoppingContext?: string;
   product: ProductListItem;
   qty: number;
   fit: ReturnType<typeof computeGoalFit> | null;
   swaps: SwapSuggestion[];
 }) {
   const [replacing, setReplacing] = useState<string | null>(null);
-  const score = fit?.fit ?? product.core_scores?.score;
-  const surface = score != null ? scoreTileSurface(score) : null;
+  const core = product.core_scores;
+  const score = core?.absolute_score ?? core?.score;
+  const verdict = resolveProductVerdict({ verdict: core?.verdict, score, name: product.name, category: product.category, subcategory: product.subcategory });
+  const surface = verdict ? VERDICT_COLORS[verdict] : null;
 
   return (
     <li className="p-4">
       <div className="flex gap-3 sm:gap-4">
         <Link
-          href={`/product/${product.slug}`}
+          href={productHref(product.slug, shoppingContext)}
           className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-(--color-line) bg-(--color-bg-soft) sm:h-[4.5rem] sm:w-[4.5rem]"
         >
           {product.image_urls[0] ? (
@@ -330,7 +347,7 @@ function CartLine({
           ) : null}
           <div className="flex items-start justify-between gap-2">
             <Link
-              href={`/product/${product.slug}`}
+              href={productHref(product.slug, shoppingContext)}
               className="line-clamp-2 text-[14px] font-medium leading-snug text-(--color-fg) hover:text-(--color-accent)"
             >
               {product.name}
@@ -339,16 +356,18 @@ function CartLine({
               <span
                 className="flex h-8 min-w-[2rem] shrink-0 items-center justify-center rounded-lg border font-display text-base tabular-nums leading-none"
                 style={{
-                  backgroundColor: surface.backgroundColor,
-                  borderColor: surface.borderColor,
-                  color: surface.accentColor,
+                  backgroundColor: surface.bg,
+                  borderColor: surface.border,
+                  color: surface.fg,
                 }}
               >
-                {Math.round(score)}
+                <span title={verdict ? verdictTitle(verdict) : "Scout score"}>{Math.round(score)}</span>
               </span>
             ) : null}
           </div>
 
+          {verdict && <p className="mt-1 text-[11px]" style={{ color: surface?.fg }}>{verdictTitle(verdict)}</p>}
+          {fit && <p className="mt-1 text-[11px] text-(--color-fg-muted)">Goal fit: {Math.round(fit.fit)}/100</p>}
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             {product.price_inr != null ? (
               <span className="font-semibold tabular-nums text-(--color-fg)">
@@ -408,7 +427,7 @@ function CartLine({
                 className="u-lift flex items-center gap-3 rounded-xl border border-(--color-line) bg-(--color-bg-soft) p-2.5"
               >
                 <Link
-                  href={`/product/${alt.slug}`}
+                  href={productHref(alt.slug, shoppingContext)}
                   className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-(--color-panel)"
                 >
                   {alt.image_urls[0] ? (
@@ -423,7 +442,7 @@ function CartLine({
                 </Link>
                 <div className="min-w-0 flex-1">
                   <Link
-                    href={`/product/${alt.slug}`}
+                    href={productHref(alt.slug, shoppingContext)}
                     className="line-clamp-1 text-[13px] font-medium text-(--color-fg) hover:text-(--color-accent)"
                   >
                     {alt.name}

@@ -14,6 +14,7 @@ import type { ConceptId, NumericField } from "@/lib/facts/vocab";
 import type { Sql } from "./db";
 import type { NumericFilter, SearchPlan } from "./plan";
 import type { CatalogVocabulary } from "./vocabulary";
+import { abortableQuery, throwIfAborted } from "./runtime";
 
 /** Approximate number of visible products in the plan's scope. */
 export function scopeSize(plan: SearchPlan, vocab: CatalogVocabulary | null, useScope: boolean): number {
@@ -56,6 +57,7 @@ export type PlannedItem = {
   price_inr: number | null;
   net_weight: string | null;
   scout_score: number | null;
+  scout_verdict?: string | null;
   nutrition: Record<string, number | string | null> | null;
   kind: string | null;
   ingredients: string[];
@@ -101,6 +103,7 @@ const NUTRI: Record<string, string> = {
 /** Label physics: macros cannot exceed 100 g and energy must roughly equal 4p + 4c + 9f. */
 const NUTRITION_PLAUSIBLE = `(
   not coalesce(f.nutrition_suspect, false)
+  and coalesce(p.nutrition->'extra'->>'manual_review_status', '') not in ('partial', 'label_conflict')
   and coalesce((p.nutrition->>'protein_g_100g')::numeric, 0) + coalesce((p.nutrition->>'fat_g_100g')::numeric, 0)
     + coalesce((p.nutrition->>'carbs_g_100g')::numeric, 0) <= 105
   and (p.nutrition->>'energy_kcal_100g' is null or p.nutrition->>'protein_g_100g' is null
@@ -115,7 +118,7 @@ function fieldExpr(field: NumericField): string {
   if (field === "price_inr") return "nullif(p.price_inr, 0)";
   if (field === "price_per_100") return "f.price_per_100";
   if (field === "pack_qty") return "f.pack_qty";
-  if (field === "scout_score") return "coalesce(si.absolute_score, si.scout_score)";
+  if (field === "scout_score") return "coalesce(cs.absolute_score, cs.score)";
   if (field === "protein_per_100kcal") {
     return "((p.nutrition->>'protein_g_100g')::numeric * 100 / nullif((p.nutrition->>'energy_kcal_100g')::numeric, 0))";
   }
@@ -149,6 +152,7 @@ type Attempt = {
   useNameTerms: boolean;
   useClaimsRequired: boolean;
   numeric: NumericFilter[];
+  productIds?: string[];
 };
 
 function nameTermPattern(term: string): string {
@@ -158,11 +162,14 @@ function nameTermPattern(term: string): string {
   return `\\m(${alts.join("|")})`;
 }
 
-async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limit: number): Promise<PlannedItem[]> {
+async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limit: number, signal?: AbortSignal): Promise<PlannedItem[]> {
+  throwIfAborted(signal);
   const { plan } = a;
   const conds: string[] = ["p.catalog_visible"];
   const params: unknown[] = [];
   const param = (v: unknown, cast = "") => { params.push(v); return `$${params.length}${cast}`; };
+
+  if (a.productIds) conds.push(`p.id = any(${param(a.productIds, "::uuid[]")})`);
 
   if (a.useScope && (plan.l3.length || plan.subcategories.length || plan.categories.length)) {
     const ors: string[] = [];
@@ -225,14 +232,15 @@ async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limi
       select p.id, ${sortExpr ?? "null::numeric"} as sort_value
       from products p
       join product_search_index si on si.product_id = p.id
+      left join core_scores cs on cs.product_id = p.id
       left join product_facts f on f.product_id = p.id
       where ${conds.join("\n        and ")}
       order by ${stage1Order}
       limit ${stage1Limit}
     ), cand as (
       select p.id, p.slug, p.name, p.brand, p.category, p.subcategory, p.l3_category, p.price_inr,
-             p.net_weight, p.nutrition, coalesce(si.absolute_score, si.scout_score) scout_score, p.image_urls, p.mrp_inr, p.ocr_image_url,
-             si.primary_type, si.absolute_score, si.category_rank, si.category_size, si.category_label,
+             p.net_weight, p.nutrition, coalesce(cs.absolute_score, cs.score) scout_score, cs.verdict as scout_verdict, p.image_urls, p.mrp_inr, p.ocr_image_url,
+             si.primary_type, cs.absolute_score, cs.category_rank, cs.category_size, cs.category_label,
              f.product_id as f_id, f.kind, f.ingredients, f.claims, f.present, f.may_contain, f.unknown,
              f.conflicts, f.ingredient_status, f.veg, f.vegan, f.jain, f.price_per_100, f.evidence, f.variant_key,
              ids.sort_value, ${NUTRITION_PLAUSIBLE} as nutrition_ok,
@@ -242,6 +250,7 @@ async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limi
       from ids
       join products p on p.id = ids.id
       join product_search_index si on si.product_id = p.id
+      left join core_scores cs on cs.product_id = p.id
       left join product_facts f on f.product_id = p.id
     )
     select *, coalesce(similarity, 0) * 1.0 + least(lexical, 1) * 0.15 as relevance
@@ -249,12 +258,13 @@ async function runAttempt(sql: Sql, a: Attempt, embedding: number[] | null, limi
     order by ${order}
     limit ${Math.max(1, Math.min(400, limit))}`;
 
-  const rows = await sql.unsafe(text, params as never[]);
+  const rows = await abortableQuery(sql.unsafe(text, params as never[]), signal);
   return rows.map(r => ({
     product_id: r.id, slug: r.slug, name: r.name, brand: r.brand, category: r.category,
     subcategory: r.subcategory, l3: r.l3_category,
     price_inr: r.price_inr == null ? null : Number(r.price_inr),
     net_weight: r.net_weight, scout_score: r.scout_score == null ? null : Number(r.scout_score),
+    scout_verdict: r.scout_verdict ?? null,
     nutrition: r.nutrition, kind: r.kind, ingredients: r.ingredients ?? [], claims: r.claims ?? [],
     present: r.present ?? [], may_contain: r.may_contain ?? [], unknown: r.unknown ?? [],
     conflicts: r.conflicts ?? [], ingredient_status: r.ingredient_status, veg: r.veg, vegan: r.vegan,
@@ -282,6 +292,7 @@ export function confirm(item: PlannedItem & { hasFacts?: boolean }, plan: Search
   const usesNutrition = numeric.some(n => NUTRITION_FIELDS.has(n.field)) || NUTRITION_FIELDS.has(plan.sort.field as NumericField);
   if (usesNutrition && !item.nutrition_trusted) notes.push("nutrition label looks inconsistent");
   const hasFacts = item.hasFacts !== false;
+  if (plan.exclude.length && item.ingredient_status !== "complete") notes.push("ingredient label is incomplete");
   const state = (c: ConceptId) =>
     !hasFacts ? "unknown"
       : item.present.includes(c) ? "present"
@@ -289,6 +300,7 @@ export function confirm(item: PlannedItem & { hasFacts?: boolean }, plan: Search
           : item.unknown.includes(c) ? "unknown" : "absent";
   for (const c of plan.exclude) {
     const s = state(c);
+    if (s === "present" || (plan.strict && s === "may_contain")) notes.push(`contains excluded ${c.replace(/_/g, " ")}`);
     if (s === "unknown") notes.push(`label doesn't confirm no ${c.replace(/_/g, " ")}${item.evidence[c] ? ` (${item.evidence[c]})` : ""}`);
     if (s === "may_contain") notes.push(`may contain ${c.replace(/_/g, " ")}`);
   }
@@ -296,8 +308,13 @@ export function confirm(item: PlannedItem & { hasFacts?: boolean }, plan: Search
   if (plan.diet.veg && (!hasFacts || item.veg !== "veg")) notes.push("veg status not confirmed");
   if (plan.diet.vegan && item.vegan !== true) notes.push("vegan status not confirmed");
   if (plan.diet.jain && item.jain !== true) notes.push("jain status not confirmed");
-  for (const n of numeric) if (numericValue(item, n.field) == null) notes.push(`${n.field.replace(/_/g, " ")} not on label`);
+  for (const n of numeric) {
+    const value = numericValue(item, n.field);
+    if (value == null || !Number.isFinite(value)) notes.push(`${n.field.replace(/_/g, " ")} not on label`);
+    else if (!(n.op === "<=" ? value <= n.value : n.op === "<" ? value < n.value : n.op === ">=" ? value >= n.value : value > n.value)) notes.push(`${n.field.replace(/_/g, " ")} outside required limit`);
+  }
   for (const c of plan.claims_required) {
+    if (!item.claims.includes(c)) notes.push(`required ${c.replace(/_/g, " ")} claim not on label`);
     if (claimStatus(item, c) === "contradicted") notes.push(`the label contradicts the pack's "${c.replace(/_/g, " ")}" claim`);
   }
   // may_contain under a non-strict exclusion is a warning, not a failure.
@@ -346,7 +363,8 @@ function rank(items: PlannedItem[], plan: SearchPlan): PlannedItem[] {
   return [...ordered.filter(i => i.confirmation === "confirmed"), ...ordered.filter(i => i.confirmation !== "confirmed")];
 }
 
-async function resolveReference(sql: Sql, plan: SearchPlan, embedding: number[] | null): Promise<ExecuteResult["reference"]> {
+async function resolveReference(sql: Sql, plan: SearchPlan, embedding: number[] | null, signal?: AbortSignal): Promise<ExecuteResult["reference"]> {
+  throwIfAborted(signal);
   if (!plan.comparison) return null;
   const { reference, field } = plan.comparison;
   const words = reference.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(w => w.length >= 3);
@@ -357,37 +375,40 @@ async function resolveReference(sql: Sql, plan: SearchPlan, embedding: number[] 
   const need = Math.max(1, Math.ceil(words.length * 0.6));
   const expr = fieldExpr(field);
   void embedding;
-  const rows = await sql.unsafe(`
+  const rows = await abortableQuery(sql.unsafe(`
     select p.name, ${expr} as v from products p
     join product_search_index si on si.product_id = p.id
+      left join core_scores cs on cs.product_id = p.id
     left join product_facts f on f.product_id = p.id
     where p.catalog_visible and ${expr} is not null
       and (${conds.map(c => `(${c})::int`).join(" + ")}) >= ${need}
     order by (${conds.map(c => `(${c})::int`).join(" + ")}) desc, p.name
-    limit 8`, params as never[]);
+    limit 8`, params as never[]), signal);
   if (!rows.length) return null;
   const values = rows.map(r => Number(r.v)).sort((a, b) => a - b);
   const median = values[Math.floor(values.length / 2)]!;
   return { query: reference, value: median, products: rows.map(r => r.name as string) };
 }
 
-export async function executePlan(sql: Sql, plan: SearchPlan, embedding: number[] | null, opts: { limit?: number; minConfirmed?: number; vocab?: CatalogVocabulary | null } = {}): Promise<ExecuteResult> {
+export async function executePlan(sql: Sql, plan: SearchPlan, embedding: number[] | null, opts: { limit?: number; minConfirmed?: number; vocab?: CatalogVocabulary | null; productIds?: string[]; noRelax?: boolean; signal?: AbortSignal } = {}): Promise<ExecuteResult> {
+  throwIfAborted(opts.signal);
   const vocab = opts.vocab ?? null;
   const started = Date.now();
   const limit = opts.limit ?? 24;
   const minConfirmed = opts.minConfirmed ?? 3;
-  const reference = await resolveReference(sql, plan, embedding);
+  const reference = await resolveReference(sql, plan, embedding, opts.signal);
   const baseNumeric = [...plan.numeric];
   if (plan.comparison && reference) {
     baseNumeric.push({ field: plan.comparison.field, op: plan.comparison.dir === "higher" ? ">" : "<", value: reference.value });
   }
-  let attempt: Attempt = { plan, scopeSize: scopeSize(plan, vocab, true), useScope: true, useBrands: true, useNameTerms: true, useClaimsRequired: true, numeric: baseNumeric };
+  let attempt: Attempt = { plan, scopeSize: scopeSize(plan, vocab, true), useScope: true, useBrands: true, useNameTerms: true, useClaimsRequired: true, numeric: baseNumeric, productIds: opts.productIds };
   const relaxed: string[] = [];
   const counts: ExecuteResult["counts"] = [];
   const pool = Math.max(limit * 4, 60);
 
   const run = async (step: string) => {
-    const raw = await runAttempt(sql, attempt, embedding, pool);
+    throwIfAborted(opts.signal);
+    const raw = await runAttempt(sql, attempt, embedding, pool, opts.signal);
     const items = rank(raw.map(i => confirm(i, plan, attempt.numeric)), plan);
     counts.push({ step, matched: items.length, confirmed: items.filter(i => i.confirmation === "confirmed").length });
     return items;
@@ -397,7 +418,8 @@ export async function executePlan(sql: Sql, plan: SearchPlan, embedding: number[
   // Widening scope one level is always available as the last resort.
   // Up to two widening steps: l3 -> subcategory -> category.
   const relaxOrder = [...plan.relax.filter(k => k !== "scope"), "scope", "scope"];
-  for (const key of relaxOrder) {
+  for (const key of opts.noRelax ? [] : relaxOrder) {
+    throwIfAborted(opts.signal);
     // Count distinct products, not pack sizes of the same one.
     if (new Set(items.filter(i => i.confirmation === "confirmed").map(i => i.variant_key ?? i.product_id)).size >= minConfirmed) break;
     const next = { ...attempt };
@@ -425,5 +447,6 @@ export async function executePlan(sql: Sql, plan: SearchPlan, embedding: number[
     items = [...items, ...relaxedItems.filter(i => !seen.has(i.product_id)).map(i => ({ ...i, notes: [...i.notes, `relaxed ${key.replace("numeric:", "")}`] }))];
     relaxed.push(key);
   }
+  throwIfAborted(opts.signal);
   return { items: items.slice(0, pool), relaxed, counts, reference, ms: Date.now() - started };
 }

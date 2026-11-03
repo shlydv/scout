@@ -26,7 +26,7 @@ export function PdpMacroStrip({
   roleCohort?: RoleCohort | null;
 }) {
   if (!nutrition) return null;
-  const { rows } = resolveNutritionDisplay(nutrition, netWeight);
+  const { rows, basisUnit } = resolveNutritionDisplay(nutrition, netWeight);
   const byId = new Map(rows.map((r) => [r.id, r]));
 
   const cells = MACROS.map((m) => {
@@ -43,7 +43,7 @@ export function PdpMacroStrip({
   if (cells.filter((c) => c.value != null).length < 2) return null;
 
   return (
-    <div className="grid grid-cols-4 gap-2 sm:gap-3" aria-label="Macros per 100g">
+    <div className="grid grid-cols-4 gap-2 sm:gap-3" aria-label={`Macros per 100${basisUnit}`}>
       {cells.map((c) => (
         <div
           key={c.id}
@@ -61,7 +61,7 @@ export function PdpMacroStrip({
               <span className="text-[12px] font-normal opacity-70">{c.unit}</span>
             ) : null}
           </p>
-          <p className="mt-1.5 text-[9px] text-(--color-fg-dim)">per 100g</p>
+          <p className="mt-1.5 text-[9px] text-(--color-fg-dim)">per 100{basisUnit}</p>
         </div>
       ))}
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import { usePathname } from "next/navigation";
 import { NavCartLink } from "@/components/nav-cart-link";
 import { ThemeToggle } from "@/components/theme-toggle";

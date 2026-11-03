@@ -4,9 +4,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { writeStoredGoal } from "@/lib/goals/storage";
 import type { GoalFitRow } from "@/lib/goals/build-goal-rows";
 import { GOAL_PROFILES, type GoalId } from "@/lib/goals/types";
-import { scorePresentation } from "@/lib/goals/verdict";
 import { scoreTileSurface } from "@/lib/score/surfaces";
-import { cn, type Grade } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 export function ProductGoalFitList({
   rows,
@@ -15,7 +14,7 @@ export function ProductGoalFitList({
   cardClassName,
 }: {
   rows: GoalFitRow[];
-  overall: { fit: number; grade: Grade; reasons: string[] } | null;
+  overall: { fit: number; reasons: string[] } | null;
   className?: string;
   cardClassName?: string;
 }) {
@@ -44,7 +43,6 @@ export function ProductGoalFitList({
     id: GoalId;
     label: string;
     fit: number;
-    grade: Grade;
     caption: string;
   }[] = [];
 
@@ -64,7 +62,6 @@ export function ProductGoalFitList({
       id: row.id,
       label: profileShort(row.id),
       fit: row.fit,
-      grade: scorePresentation(row.fit).grade,
       caption: row.primaryMetric,
     });
   }
@@ -150,7 +147,7 @@ function summarizeGoals(goals: Array<{ label: string; fit: number }>): string {
   const meaningful = sorted.filter((g) => g.fit >= 30).slice(0, 2);
 
   if (meaningful.length === 0) {
-    return "Not a strong fit for any tracked goal — treat it as an occasional buy.";
+    return "No strong fit for the tracked goals. See the Scout verdict for the overall assessment.";
   }
 
   const strongText = meaningful.map((g) => `${g.label} (${g.fit})`).join(", ");

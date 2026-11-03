@@ -10,6 +10,7 @@ export function resolveProductVerdict(opts: {
   subcategory?: string | null;
   hazardous?: boolean;
 }): VerdictId | null {
+  if (opts.score == null || !Number.isFinite(opts.score)) return null;
   const valid = new Set<VerdictId>([
     "daily_staple",
     "good_choice",
@@ -19,7 +20,6 @@ export function resolveProductVerdict(opts: {
   if (opts.verdict && valid.has(opts.verdict as VerdictId)) {
     return opts.verdict as VerdictId;
   }
-  if (opts.score == null || !Number.isFinite(opts.score)) return null;
   const role = inferRoleCohort({
     name: opts.name,
     category: opts.category,

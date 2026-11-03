@@ -1,5 +1,6 @@
+import { productHref } from "@/lib/shopping/links";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import { GoalFitBadge, ScoreBadge } from "@/components/score-display";
 import type { GoalId } from "@/lib/goals/types";
 import { cn } from "@/lib/utils";
@@ -8,6 +9,7 @@ import type { ProductListItem } from "@/lib/products/queries";
 
 export function SwapPanel({
   current,
+  shoppingContext,
   suggestions,
   compact,
   goal = "balanced",
@@ -17,6 +19,7 @@ export function SwapPanel({
   gridColumns = 3,
 }: {
   current: ProductListItem;
+  shoppingContext?: string;
   suggestions: SwapSuggestion[];
   compact?: boolean;
   goal?: GoalId;
@@ -89,7 +92,7 @@ export function SwapPanel({
           return (
             <li key={product.id}>
               <Link
-                href={`/product/${product.slug}`}
+                href={productHref(product.slug, shoppingContext)}
                 className={cn(
                   "u-lift flex gap-2 rounded-lg border border-(--color-line) bg-(--color-panel) hover:border-(--color-accent)",
                   grid
@@ -105,17 +108,14 @@ export function SwapPanel({
                     grid ? "flex items-center justify-between gap-2" : "flex flex-col items-center gap-1",
                   )}
                 >
-                  {goal !== "balanced" ? (
-                    <GoalFitBadge fit={goalFit} size="sm" />
-                  ) : product.core_scores ? (
+                  {product.core_scores ? (
                     <ScoreBadge
                       score={product.core_scores.score}
-                      grade={product.core_scores.grade}
+                      verdict={product.core_scores.verdict}
                       className={grid ? "!h-10 !min-w-10 !rounded-lg !text-xl" : "!text-3xl"}
                     />
-                  ) : (
-                    <GoalFitBadge fit={goalFit} size="sm" />
-                  )}
+                  ) : null}
+                  {goal !== "balanced" && <GoalFitBadge fit={goalFit} size="sm" />}
                   {grid && product.price_inr != null ? (
                     <span className="text-[11px] font-semibold tabular-nums text-(--color-fg-muted)">
                       ₹{product.price_inr}

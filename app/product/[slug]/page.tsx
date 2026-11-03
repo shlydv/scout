@@ -1,3 +1,5 @@
+import { productHref } from "@/lib/shopping/links";
+import { resolveShoppingContext, filterShoppingCandidates } from "@/lib/shopping/recommendations";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { IngredientPanel } from "@/components/ingredient-panel";
@@ -9,7 +11,6 @@ import { reconcileNutrition } from "@/lib/nutrition/sanity";
 import { ProductGallery } from "@/components/product-gallery";
 import { ProductGoalFitList } from "@/components/product-goal-fit-list";
 import { ProductGoalToolbar } from "@/components/product-goal-toolbar";
-import { ScoutVerdictCard } from "@/components/scout-verdict-card";
 import { VerdictTakeCard } from "@/components/verdict-take-card";
 import { SwapPanel } from "@/components/swap-panel";
 import { buildOverallGoalSummary, buildProductGoalRows } from "@/lib/goals/build-goal-rows";
@@ -39,12 +40,12 @@ import { findAlternatives, findSimilarProducts } from "@/lib/products/alternativ
 import { getProductBySlug, getProductsForSwaps } from "@/lib/products/queries";
 import { displayPriceInr, showMrpStrike } from "@/lib/products/display-price";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import type { SubScores } from "@/lib/supabase/types";
 import { brandSlug } from "@/lib/brands/slug";
 
 export const revalidate = 300;
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 /** Share cards carry the verdict — the score IS the story. */
 export async function generateMetadata({
@@ -61,7 +62,6 @@ export async function generateMetadata({
     ? `${product.name} — ${score.score}/100 · Scout`
     : `${product.name} · Scout`;
   const description =
-    score?.opinion?.headline ??
     (score
       ? `Scout health score ${score.score}/100. We read the back label so you don't have to.`
       : "We read the back label so you don't have to.");
@@ -85,6 +85,7 @@ export default async function ProductPage({
     goal?: string;
     diet?: string;
     q?: string;
+    context?: string;
     category?: string;
     subcategory?: string;
     usecase?: string;
@@ -147,8 +148,12 @@ export default async function ProductPage({
   });
   const otherSizes = (variants.get(product.id)?.sizes ?? []).filter((s) => s.slug !== product.slug);
 
-  const swaps = findAlternatives(product, distinctPool, goal, 8, { diet });
-  const similarProducts = findSimilarProducts(product, distinctPool, goal, 8, {
+  const shopping = await resolveShoppingContext(sp.context, sp.q);
+  const checkedPool = await filterShoppingCandidates([product, ...distinctPool], shopping);
+  const currentConfirmed = !shopping.active || checkedPool.some(p => p.id === product.id);
+  const safePool = checkedPool.filter(p => p.id !== product.id);
+  const swaps = findAlternatives(product, safePool, goal, 8, { diet });
+  const similarProducts = findSimilarProducts(product, safePool, goal, 8, {
     diet,
     excludeIds: new Set(swaps.map((s) => s.product.id)),
   });
@@ -176,7 +181,7 @@ export default async function ProductPage({
   const scoreWhy = score
     ? explainScore({
         score: score.score,
-        band: score.band,
+        verdict,
         subscores,
         concerns: score.concerns,
         breakdown: score.breakdown,
@@ -248,11 +253,11 @@ export default async function ProductPage({
               {product.net_weight ? ` · ${product.net_weight}` : ""}
             </p>
             <DietBadgeRow badge={dietBadge} selected={diet} />
-            {otherSizes.length > 0 ? (
+            {!shopping.active && otherSizes.length > 0 ? (
               <p className="mt-3 flex flex-wrap items-center gap-1.5 text-[13px] text-(--color-fg-muted)">
                 <span>Also in</span>
                 {otherSizes.map((s) => (
-                  <Link key={s.slug} href={`/product/${s.slug}`} className="rounded-full border border-(--color-line) px-2.5 py-0.5 hover:border-(--color-fg-muted) hover:text-(--color-fg)">
+                  <Link key={s.slug} href={productHref(s.slug, shopping.token ?? (shopping.active ? "unavailable" : undefined), sp.q)} className="rounded-full border border-(--color-line) px-2.5 py-0.5 hover:border-(--color-fg-muted) hover:text-(--color-fg)">
                     {s.net_weight ?? "other size"}{s.price_inr != null ? ` · ₹${s.price_inr}` : ""}
                   </Link>
                 ))}
@@ -268,30 +273,21 @@ export default async function ProductPage({
                 ) : null}
               </p>
             ) : null}
+            {shopping.active && <p role="status" className="mt-4 text-sm text-(--color-fg-muted)">{currentConfirmed ? "Checked against your search requirements." : "This product could not be confirmed for your search requirements. Check the label before choosing it."}</p>}
             <ProductGoalToolbar
+              shoppingContext={shopping.token ?? (shopping.active ? "unavailable" : undefined)}
               slug={product.slug}
               name={product.name}
               image={product.image_urls?.[0] ?? null}
               zeptoBuyUrl={zeptoBuyUrl}
               shareText={
                 score?.score != null
-                  ? `Is ${product.name} actually healthy? Scout scores it ${score.absolute_score ?? score.score}/100${verdict ? ` (${VERDICT_LABELS[verdict].title.toLowerCase()})` : ""}${score.opinion?.headline ? ` — ${score.opinion.headline}` : ""}.`
+                  ? `Is ${product.name} actually healthy? Scout scores it ${score.absolute_score ?? score.score}/100${verdict ? ` (${VERDICT_LABELS[verdict].title.toLowerCase()})` : ""}.`
                   : `${product.name} — read by Scout`
               }
             />
 
-            {verdict && score?.opinion ? (
-              <div className="mt-5">
-                <ScoutVerdictCard
-                  score={score?.score}
-                  absoluteScore={score?.absolute_score}
-                  categoryRank={score?.category_rank}
-                  categorySize={score?.category_size}
-                  categoryLabel={score?.category_label}
-                  opinion={score.opinion}
-                />
-              </div>
-            ) : verdict ? (
+            {verdict ? (
               <div className="mt-5">
                 <VerdictTakeCard
                   verdict={verdict}
@@ -301,8 +297,6 @@ export default async function ProductPage({
                   categorySize={score?.category_size}
                   categoryLabel={score?.category_label}
                   sublabelIds={pdpSublabels}
-                  deepseekChips={deepseekDisplay?.chips}
-                  deepseekWhy={deepseekDisplay?.why}
                   explanation={scoreWhy}
                 />
               </div>
@@ -372,11 +366,18 @@ export default async function ProductPage({
           </aside>
         </Reveal>
 
+        {shopping.active && (shopping.blocked || (!swaps.length && !similarProducts.length)) ? (
+          <p role="status" className="mt-8 text-sm text-(--color-fg-muted)">No alternatives could be confirmed for your search requirements. Search again to refresh these checks.</p>
+        ) : shopping.active ? (
+          <p className="mt-8 text-sm text-(--color-fg-muted)">Alternatives checked against your search requirements.</p>
+        ) : null}
+
         {/* Better alternatives — full-width, below the deep-dive, above discovery.
             Action ("swap to something stronger") outranks browse, so it leads. */}
         {swaps.length > 0 ? (
           <Reveal className="mt-12">
             <SwapPanel
+              shoppingContext={shopping.token}
               current={product}
               suggestions={swaps}
               compact
@@ -392,6 +393,7 @@ export default async function ProductPage({
         {similarProducts.length > 0 ? (
           <Reveal className="mt-12">
             <SwapPanel
+              shoppingContext={shopping.token}
               current={product}
               suggestions={similarProducts}
               compact

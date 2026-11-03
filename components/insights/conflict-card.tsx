@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import { LineTag } from "@/components/line-tag";
 import type { LabelConflict } from "@/lib/insights/data";
 

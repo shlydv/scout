@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import { PaperBackdrop } from "@/components/paper-backdrop";
 import { Reveal } from "@/components/reveal";
 import { SiteFooter } from "@/components/site-footer";

@@ -1,6 +1,8 @@
+import { nutritionReviewSnapshot, nutritionReviewStatus } from "@/lib/nutrition/review";
 import type { ProductNutrition } from "@/lib/supabase/types";
 
 export type NutritionAnomalyCode =
+  | "manual_review_incomplete"
   | "macro_mass_exceeds_100g"
   | "kcal_mismatch"
   | "category_protein_high"
@@ -29,6 +31,9 @@ export type NutritionContext = {
 };
 
 const MACRO_KEYS = ["protein_g_100g", "carbs_g_100g", "fat_g_100g"] as const;
+// Three independently rounded two-decimal values can total 100.01g.
+// Allow only that normalization noise, not a material excess of mass.
+const MAX_MACRO_MASS_G = 100.02;
 
 function ctxText(ctx: NutritionContext): string {
   return [ctx.name, ctx.category, ctx.subcategory].filter(Boolean).join(" ");
@@ -63,13 +68,8 @@ function isHighProteinCategory(ctx: NutritionContext): boolean {
 }
 
 function macroSum(n: ProductNutrition): number {
-  // On Indian nutrition labels, dietary fiber is often listed as a sub-row of
-  // total carbohydrates. When both carbs_g_100g and fiber_g_100g are present,
-  // fiber is already included in carbs — subtracting it avoids false positives
-  // (e.g. peanut butter with 29g carbs including 6g fiber + 41g fat + 30g protein
-  // = 100.6g which is NOT anomalous, just rounding). Allow a small tolerance (2g).
-  const carbs = (n.carbs_g_100g ?? 0) - (n.fiber_g_100g ?? 0);
-  return (n.protein_g_100g ?? 0) + Math.max(0, carbs) + (n.fat_g_100g ?? 0);
+  // Fibre included in total carbohydrate still contributes physical mass.
+  return (n.protein_g_100g ?? 0) + (n.carbs_g_100g ?? 0) + (n.fat_g_100g ?? 0);
 }
 
 function impliedKcal(n: ProductNutrition): number | null {
@@ -77,6 +77,25 @@ function impliedKcal(n: ProductNutrition): number | null {
   const c = n.carbs_g_100g;
   const f = n.fat_g_100g;
   if (p == null && c == null && f == null) return null;
+  const fiber = n.fiber_g_100g;
+  const extra = n.extra;
+  if (nutritionReviewStatus(n) === "verified"
+    && extra?.manual_review_carb_basis === "total_includes_fiber"
+    && extra.manual_review_carb_basis_snapshot === nutritionReviewSnapshot(n)
+    && typeof extra.manual_review_carb_basis_source === "string"
+    && typeof p === "number" && Number.isFinite(p) && p >= 0
+    && typeof c === "number" && Number.isFinite(c) && c >= 0
+    && typeof f === "number" && Number.isFinite(f) && f >= 0
+    && typeof fiber === "number" && Number.isFinite(fiber) && fiber >= 0 && fiber <= c) {
+    // The verified review already validates the JSON source list. Require the
+    // explicit carbohydrate-basis evidence to belong to that same review.
+    const sources: string[] = JSON.parse(extra.manual_review_sources as string);
+    if (sources.includes(extra.manual_review_carb_basis_source)) {
+      // Plausibility only: digestible carbohydrate 4 kcal/g, fibre 2 kcal/g.
+      // Keep the declared energy and nutrient values unchanged.
+      return 4 * p + 4 * (c - fiber) + 9 * f + 2 * fiber;
+    }
+  }
   return 4 * (p ?? 0) + 4 * (c ?? 0) + 9 * (f ?? 0);
 }
 
@@ -100,7 +119,7 @@ function looksLikeDecimalError(value: number, n: ProductNutrition, ctx: Nutritio
     const after = kcalMismatchRatio(trial);
     if (after != null && (before == null || after < before * 0.5)) {
       if (isTeaOrCoffee(ctx) && scaled <= 25) return true;
-      if (macroSum(trial) <= 100 && scaled <= 90) return true;
+      if (macroSum(trial) <= MAX_MACRO_MASS_G && scaled <= 90) return true;
     }
   }
   return false;
@@ -110,10 +129,14 @@ export function detectNutritionAnomalies(
   nutrition: ProductNutrition,
   ctx: NutritionContext,
 ): NutritionAnomaly[] {
+  const reviewStatus = nutritionReviewStatus(nutrition);
   const out: NutritionAnomaly[] = [];
+  if (reviewStatus === "partial" || reviewStatus === "label_conflict") {
+    out.push({ code: "manual_review_incomplete", severity: "critical", message: "Label review found unresolved or contradictory nutrition; do not infer missing values or score this product." });
+  }
   const sum = macroSum(nutrition);
 
-  if (sum > 100) {
+  if (sum > MAX_MACRO_MASS_G) {
     out.push({
       code: "macro_mass_exceeds_100g",
       severity: "critical",
@@ -344,7 +367,14 @@ export function detectNutritionAnomalies(
     }
   }
 
-  return out;
+  // A source-verified label can legitimately exceed generic category expectations.
+  // Physical inconsistencies remain visible even on a reviewed record.
+  const categoryGuesses = new Set<NutritionAnomalyCode>([
+    "category_protein_high", "category_protein_critical", "category_oil_macros",
+    "protein_carbs_swap", "kcal_protein_swap", "decimal_anomaly",
+    "energy_high_low_protein", "energy_per_serve_misread", "per_pack_not_per_100g",
+  ]);
+  return reviewStatus === "verified" ? out.filter(a => !categoryGuesses.has(a.code)) : out;
 }
 
 export function nutritionHasCriticalAnomalies(
@@ -498,6 +528,7 @@ export function tryCorrectNutrition(
   nutrition: ProductNutrition,
   ctx: NutritionContext,
 ): ProductNutrition | null {
+  if (nutritionReviewStatus(nutrition)) return nutrition;
   if (!nutritionHasCriticalAnomalies(nutrition, ctx)) return nutrition;
 
   const lowEnergyFixed = tryFixLowEnergy(nutrition, ctx);
@@ -523,7 +554,7 @@ export function tryCorrectNutrition(
   type Candidate = { n: ProductNutrition; mismatch: number; critical: boolean };
   const candidates: Candidate[] = [];
 
-  if (macroSum(nutrition) > 100) {
+  if (macroSum(nutrition) > MAX_MACRO_MASS_G) {
     for (const factor of [0.1, 0.01] as const) {
       let trial = nutrition;
       for (const key of MACRO_KEYS) trial = scaleMacro(trial, key, factor);
@@ -578,6 +609,7 @@ export function sanitizeNutrition(
   ctx: NutritionContext,
 ): ProductNutrition | null {
   if (!nutrition) return null;
+  if (nutritionReviewStatus(nutrition)) return nutrition;
 
   const corrected = tryCorrectNutrition(nutrition, ctx) ?? nutrition;
   const criticalAnomalies = detectNutritionAnomalies(corrected, ctx).filter(
@@ -621,6 +653,7 @@ export async function sanitizeNutritionWithLlm(
   cacheKey?: string,
 ): Promise<ProductNutrition | null> {
   if (!nutrition) return null;
+  if (nutritionReviewStatus(nutrition)) return nutrition;
 
   const corrected = tryCorrectNutrition(nutrition, ctx) ?? nutrition;
   const criticalAnomalies = detectNutritionAnomalies(corrected, ctx).filter(

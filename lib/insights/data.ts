@@ -4,6 +4,7 @@
  * to individual labels. Cached for a day; one card per pack-size group.
  */
 import { unstable_cache } from "next/cache";
+import { singleFlight } from "@/lib/cache/single-flight";
 import { searchSql } from "@/lib/search/planned/db";
 import { normalizeProductImageUrls } from "@/lib/products/catalog-hero-image";
 
@@ -72,13 +73,14 @@ async function load(): Promise<InsightsData> {
     where p.catalog_visible`;
 
   const conflictRows = await sql<(Row & { claim: string; reality: string; kind: string; severity: "high" | "medium"; variant_key: string | null; brand_size: number })[]>`
-    select p.id, p.slug, p.name, p.brand, p.image_urls, p.ocr_image_url, p.price_inr, p.net_weight, coalesce(si.absolute_score, si.scout_score) score,
+    select p.id, p.slug, p.name, p.brand, p.image_urls, p.ocr_image_url, p.price_inr, p.net_weight, coalesce(cs.absolute_score, cs.score) score,
            lc.claim, lc.reality, lc.kind, lc.severity, f.variant_key,
            (select count(*) from products b where b.brand = p.brand and b.catalog_visible)::int brand_size
     from label_conflicts lc
     join products p on p.id = lc.product_id and p.catalog_visible
     join product_facts f on f.product_id = p.id
     left join product_search_index si on si.product_id = p.id
+      left join core_scores cs on cs.product_id = p.id
     where cardinality(p.image_urls) > 0
     order by brand_size desc, p.name`;
   // One card per product line, at most two per brand, so no brand dominates the story.
@@ -117,11 +119,12 @@ async function load(): Promise<InsightsData> {
         group by 1 having count(*) >= 25
       ), ex as (
         select distinct on (p.subcategory) p.subcategory aisle, p.id, p.slug, p.name, p.brand, p.image_urls, p.ocr_image_url,
-               p.price_inr, p.net_weight, coalesce(si.absolute_score, si.scout_score) score
+               p.price_inr, p.net_weight, coalesce(cs.absolute_score, cs.score) score
         from products p join product_facts f on f.product_id = p.id
         left join product_search_index si on si.product_id = p.id
+      left join core_scores cs on cs.product_id = p.id
         where p.catalog_visible and ${concept} = any(f.present) and cardinality(p.image_urls) > 0
-        order by p.subcategory, coalesce(si.absolute_score, si.scout_score) desc nulls last
+        order by p.subcategory, coalesce(cs.absolute_score, cs.score) desc nulls last
       )
       select a.aisle, a.total, a.pct, ex.id, ex.slug, ex.name, ex.brand, ex.image_urls, ex.ocr_image_url, ex.price_inr, ex.net_weight, ex.score
       from a left join ex on ex.aisle = a.aisle
@@ -132,11 +135,12 @@ async function load(): Promise<InsightsData> {
   const bestRows = await sql<(Row & { aisle: string; total: number })[]>`
     with ranked as (
       select p.subcategory aisle, p.id, p.slug, p.name, p.brand, p.image_urls, p.ocr_image_url, p.price_inr, p.net_weight,
-             coalesce(si.absolute_score, si.scout_score) score, count(*) over (partition by p.subcategory)::int total,
-             row_number() over (partition by p.subcategory order by coalesce(si.absolute_score, si.scout_score) desc nulls last, p.price_inr) rn
+             coalesce(cs.absolute_score, cs.score) score, count(*) over (partition by p.subcategory)::int total,
+             row_number() over (partition by p.subcategory order by coalesce(cs.absolute_score, cs.score) desc nulls last, p.price_inr) rn
       from products p join product_search_index si on si.product_id = p.id
+      left join core_scores cs on cs.product_id = p.id
       left join product_facts f on f.product_id = p.id
-      where p.catalog_visible and coalesce(si.absolute_score, si.scout_score) is not null and cardinality(p.image_urls) > 0
+      where p.catalog_visible and coalesce(cs.absolute_score, cs.score) is not null and cardinality(p.image_urls) > 0
         and not coalesce(f.nutrition_suspect, false)
     )
     select * from ranked where rn = 1 and total >= 40 order by total desc limit 12`;
@@ -156,7 +160,7 @@ async function load(): Promise<InsightsData> {
   };
 }
 
-export const getInsights = unstable_cache(load, ["insights-facts-v1"], { revalidate: 86_400, tags: ["insights"] });
+export const getInsights = unstable_cache(singleFlight(load), ["insights-facts-v1"], { revalidate: 86_400, tags: ["insights"] });
 
 export const CONFLICT_KIND_LABELS: Record<string, string> = {
   sugar: "Sugar", gluten: "Gluten", palm_oil: "Palm oil", preservative: "Preservatives", colour: "Colours",
