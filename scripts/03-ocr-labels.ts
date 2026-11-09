@@ -287,14 +287,17 @@ async function markPlatformCompleteBulk(
 ): Promise<number> {
   const pageSize = 500;
   let marked = 0;
-  let offset = 0;
+  // Page by id: marked rows leave the "pending" set, so offsets would skip unmarked rows.
+  let after = "00000000-0000-0000-0000-000000000000";
 
   while (true) {
     let q = supabase
       .from("products")
       .select("id, ingredients_raw, nutrition")
       .eq("ocr_status", "pending")
-      .range(offset, offset + pageSize - 1);
+      .gt("id", after)
+      .order("id")
+      .limit(pageSize);
     if (withDetail) q = q.not("raw_payload", "is", null);
 
     const { data, error } = await q;
@@ -331,7 +334,7 @@ async function markPlatformCompleteBulk(
     }
 
     if (data.length < pageSize) break;
-    offset += pageSize;
+    after = data[data.length - 1]!.id as string;
   }
 
   return marked;

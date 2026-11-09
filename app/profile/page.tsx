@@ -24,7 +24,6 @@ export default function ProfilePage() {
   const { ready, session, profile, signInWithGoogle, signOut, refreshProfile } = useAuth();
   const router = useRouter();
   const [identities, setIdentities] = useState<Identity[]>([]);
-  const [linkingPhone, setLinkingPhone] = useState(false);
   const [phoneInput, setPhoneInput] = useState("");
   const [otpInput, setOtpInput] = useState("");
   const [linkStep, setLinkStep] = useState<"idle" | "phone" | "otp">("idle");
@@ -162,7 +161,9 @@ export default function ProfilePage() {
     setLinkError(null);
     try {
       const phone = phoneInput.startsWith("+") ? phoneInput : `+91${phoneInput.replace(/\D/g, "")}`;
-      const { error } = await supabaseClient.auth.signInWithOtp({ phone });
+      // Adds the number to the signed-in account. signInWithOtp would sign in to a
+      // separate phone-only account instead.
+      const { error } = await supabaseClient.auth.updateUser({ phone });
       if (error) throw error;
       setLinkStep("otp");
     } catch (e) { setLinkError((e as Error).message); }
@@ -176,7 +177,7 @@ export default function ProfilePage() {
     setLinkError(null);
     try {
       const phone = phoneInput.startsWith("+") ? phoneInput : `+91${phoneInput.replace(/\D/g, "")}`;
-      const { error } = await supabaseClient.auth.verifyOtp({ phone, token: otpInput, type: "sms" });
+      const { error } = await supabaseClient.auth.verifyOtp({ phone, token: otpInput, type: "phone_change" });
       if (error) throw error;
       setLinkStep("idle");
       setPhoneInput("");
@@ -199,7 +200,8 @@ export default function ProfilePage() {
   const displayName = profile?.full_name ?? email?.split("@")[0] ?? phone ?? "Scout user";
 
   const hasGoogle = identities.some(i => i.provider === "google");
-  const hasPhone = identities.some(i => i.provider === "phone");
+  // A number added from this page is confirmed on the account (session.user.phone).
+  const hasPhone = identities.some(i => i.provider === "phone") || Boolean(session.user?.phone);
 
   function formatDate(iso: string) {
     const d = new Date(iso);
@@ -273,7 +275,7 @@ export default function ProfilePage() {
                           {n.query}
                         </Link>
                         {" — "}
-                        {n.new_matches} matches (was {n.previous})
+                        {n.new_matches} new {n.new_matches === 1 ? "product" : "products"}
                       </li>
                     ))}
                 </ul>

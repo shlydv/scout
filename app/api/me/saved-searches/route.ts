@@ -51,16 +51,7 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  if (wantsAlert) {
-    await adminClient().from("search_alerts").insert({
-      user_id: authed.user.id,
-      saved_search_id: data.id,
-      query: data.query,
-      preferences: data.preferences ?? {},
-      active: true,
-    });
-  }
-
+  // alert_enabled is the alert's only switch; the alert runner keeps its state row.
   return NextResponse.json({ saved_search: data });
 }
 
@@ -91,33 +82,6 @@ export async function PATCH(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  if (body?.alert_enabled === true) {
-    const { data: existing } = await supabase
-      .from("search_alerts")
-      .select("id")
-      .eq("saved_search_id", id)
-      .eq("user_id", authed.user.id)
-      .maybeSingle();
-
-    if (existing) {
-      await supabase.from("search_alerts").update({ active: true }).eq("id", existing.id);
-    } else {
-      await supabase.from("search_alerts").insert({
-        user_id: authed.user.id,
-        saved_search_id: id,
-        query: data.query,
-        preferences: data.preferences ?? {},
-        active: true,
-      });
-    }
-  } else if (body?.alert_enabled === false) {
-    await supabase
-      .from("search_alerts")
-      .update({ active: false })
-      .eq("saved_search_id", id)
-      .eq("user_id", authed.user.id);
-  }
 
   return NextResponse.json({ saved_search: data });
 }

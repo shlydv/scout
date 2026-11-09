@@ -70,13 +70,11 @@ assert.equal((await guard.requireAuthedUser(request("signed-in"))).user.id, "use
 const alerts = load("app/api/me/search-alerts/route.ts", {
   "next/server": next,
   "@/lib/auth/require-user": guard,
-  "@/lib/supabase/admin": { adminClient: () => ({ from: () => ({ select: () => ({
-    eq: (key: string, value: string) => {
-      assert.equal(key, "user_id"); assert.equal(value, "user-1");
-      return { eq: async () => ({ data: [] }) };
-    },
-  }) }) }) },
-  "@/lib/search/alerts/runner": { runAlertsForRecords: async () => [] },
+  "@/lib/search/alerts/runner": {
+    dueAlerts: async (opts: { userId?: string }) => { assert.equal(opts.userId, "user-1"); return []; },
+    listAlerts: async () => [],
+    runAlerts: async () => [],
+  },
 });
 assert.equal((await alerts.POST(request(null))).status, 401);
 assert.equal((await alerts.POST(request("signed-in"))).status, 200, "Alerts need an account, not a plan");

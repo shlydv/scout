@@ -5,7 +5,7 @@ config({ path: ".env.local" });
 
 async function main() {
   const s = adminClient();
-  const [total, withDetail, pendingDetail, withNutrition, scored, ocrPending] =
+  const [total, withDetail, pendingDetail, withNutrition, scored, ocrPending, visibilityUnchecked] =
     await Promise.all([
       s.from("products").select("*", { count: "exact", head: true }),
       s.from("products").select("*", { count: "exact", head: true }).not("raw_payload", "is", null),
@@ -21,6 +21,8 @@ async function main() {
         .select("*", { count: "exact", head: true })
         .not("raw_payload", "is", null)
         .eq("ocr_status", "pending"),
+      // Rows whose data changed since visibility was computed: run pnpm catalog:backfill-visible.
+      s.from("products").select("*", { count: "exact", head: true }).is("catalog_checked_at", null),
     ]);
   console.log(
     JSON.stringify({
@@ -30,6 +32,7 @@ async function main() {
       withNutrition: withNutrition.count ?? 0,
       scored: scored.count ?? 0,
       ocrPending: ocrPending.count ?? 0,
+      visibilityUnchecked: visibilityUnchecked.error ? visibilityUnchecked.error.message : visibilityUnchecked.count ?? 0,
     }),
   );
 }
