@@ -18,7 +18,7 @@ Live: [oasis-phi-one.vercel.app](https://oasis-phi-one.vercel.app)
 
 ## How it works
 
-1. **Catalog**: products, images, ingredients and nutrition live in the Supabase `products` table, the only source of truth. Missing labels are filled by OCR of pack images (Apple Vision locally, then DeepSeek structuring). Products are never deleted (the database refuses); hide one with `catalog_visible = false`.
+1. **Catalog**: products, images, ingredients and nutrition live in the Supabase `products` table, the only source of truth. Missing labels are filled by OCR of pack images (Apple Vision locally, then DeepSeek structuring). Products are never deleted (the database refuses); take one off the site by setting `hidden_reason`. Visibility is computed from the product's data by `pnpm catalog:backfill-visible`, which rechecks only products whose data changed since the last run (`pnpm db:status` shows how many).
 2. **Scores**: `lib/scoring` (v9) blends an absolute score (nutrition, ingredients and additives, label claims) with a score relative to the product's cohort, and assigns a verdict: daily staple, good choice, occasional treat or skip. Cards and pages show the absolute score.
 3. **Facts**: `lib/facts` maps each ingredient to plain concepts (added sugar, palm oil, maida, onion/garlic…) as present, may-contain or unknown, keeping the source line as evidence. Audits flag implausible nutrition, incomplete ingredient lists, and pack claims the label contradicts.
 4. **Search**: plan → SQL → verify. Embeddings come from Voyage (voyage-3.5). Plans are cached per query.

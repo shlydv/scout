@@ -1,33 +1,12 @@
-import { adminClient } from "@/lib/supabase/admin";
+import { searchSql } from "@/lib/search/planned/db";
 import type { AlertTrigger } from "@/lib/search/alerts/runner";
 
 /**
- * Persist in-app alert hits (+ optional email via Resend).
- * Best-effort: never throw — cron must keep sweeping other alerts.
+ * Email alert hits via Resend (optional). The in-app notification is already committed
+ * with the alert's state, so this is best-effort and never throws.
  */
-export async function deliverAlertTriggers(triggers: AlertTrigger[]): Promise<void> {
+export async function emailAlertTriggers(triggers: AlertTrigger[]): Promise<void> {
   if (!triggers.length) return;
-  const supabase = adminClient();
-
-  const rows = triggers.map((t) => ({
-    user_id: t.user_id,
-    alert_id: t.id,
-    query: t.query,
-    new_matches: t.new_matches,
-    previous: t.previous,
-  }));
-
-  try {
-    const { error } = await supabase.from("alert_notifications").insert(rows);
-    if (error) {
-      console.error("[alerts] notification insert failed:", error.message);
-    }
-  } catch (e) {
-    console.error(
-      "[alerts] notification insert failed:",
-      e instanceof Error ? e.message : e,
-    );
-  }
 
   const resendKey = process.env.RESEND_API_KEY;
   if (!resendKey) return;
@@ -37,13 +16,17 @@ export async function deliverAlertTriggers(triggers: AlertTrigger[]): Promise<vo
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") ?? "https://oasis-phi-one.vercel.app";
 
   const userIds = [...new Set(triggers.map((t) => t.user_id))];
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, email")
-    .in("id", userIds);
+  let profiles: { id: string; email: string | null }[] = [];
+  try {
+    profiles = await searchSql()<{ id: string; email: string | null }[]>`
+      select id, email from public.profiles where id = any(${userIds}::uuid[])`;
+  } catch (e) {
+    console.error("[alerts] email lookup failed:", e instanceof Error ? e.message : e);
+    return;
+  }
 
   const emailByUser = new Map(
-    (profiles ?? [])
+    profiles
       .filter((p): p is { id: string; email: string } => Boolean(p.email))
       .map((p) => [p.id, p.email]),
   );
@@ -61,9 +44,9 @@ export async function deliverAlertTriggers(triggers: AlertTrigger[]): Promise<vo
         body: JSON.stringify({
           from,
           to: [email],
-          subject: `New matches for “${t.query.slice(0, 60)}”`,
+          subject: `New products for “${t.query.slice(0, 60)}”`,
           text: [
-            `Scout found ${t.new_matches} matches for “${t.query}” (was ${t.previous}).`,
+            `Scout found ${t.new_matches} new ${t.new_matches === 1 ? "product" : "products"} for “${t.query}”.`,
             ``,
             `Open your saved search: ${site}/search?q=${encodeURIComponent(t.query)}`,
             `Manage alerts: ${site}/profile`,

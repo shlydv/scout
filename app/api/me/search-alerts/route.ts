@@ -1,49 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminClient } from "@/lib/supabase/admin";
 import { requireAuthedUser } from "@/lib/auth/require-user";
-import { runAlertsForRecords, type AlertRecord } from "@/lib/search/alerts/runner";
+import { dueAlerts, listAlerts, runAlerts } from "@/lib/search/alerts/runner";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
-/** List active alerts for the user. */
+/** List the user's switched-on alerts. */
 export async function GET(req: NextRequest) {
   const authed = await requireAuthedUser(req);
   if (authed instanceof NextResponse) return authed;
 
-  const { data, error } = await adminClient()
-    .from("search_alerts")
-    .select("id, query, preferences, last_match_count, last_notified_at, active, created_at, saved_search_id")
-    .eq("user_id", authed.user.id)
-    .eq("active", true)
-    .order("created_at", { ascending: false });
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ alerts: data ?? [] });
+  try {
+    return NextResponse.json({ alerts: await listAlerts(authed.user.id) });
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : "Could not list alerts" }, { status: 500 });
+  }
 }
 
 /**
- * Run alert checks — compares current result count vs last notified.
- * Call from cron or manually; returns alerts with new matches.
+ * Run the user's alerts now; returns the ones that found products they have not been
+ * told about before.
  */
 export async function POST(req: NextRequest) {
   const authed = await requireAuthedUser(req);
   if (authed instanceof NextResponse) return authed;
 
-  const supabase = adminClient();
-  const { data: alerts } = await supabase
-    .from("search_alerts")
-    .select("*")
-    .eq("user_id", authed.user.id)
-    .eq("active", true);
-
-  const triggered = await runAlertsForRecords((alerts ?? []) as AlertRecord[]);
-  const updates = triggered.map(({ id, query, new_matches, previous }) => ({
-    id,
-    query,
-    new_matches,
-    previous,
-  }));
-
-  return NextResponse.json({ triggered: updates });
+  try {
+    const triggered = await runAlerts(await dueAlerts({ userId: authed.user.id }));
+    const updates = triggered.map(({ id, query, new_matches, previous }) => ({
+      id,
+      query,
+      new_matches,
+      previous,
+    }));
+    return NextResponse.json({ triggered: updates });
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : "Alert run failed" }, { status: 500 });
+  }
 }
