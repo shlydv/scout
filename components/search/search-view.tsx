@@ -304,6 +304,7 @@ export function SearchView({ examples, heroFoot, landing, footer }: {
       <Suspense fallback={null}><QuerySync onChange={setUrlQuery} /></Suspense>
 
       <div ref={dockRef} className="home-dock">
+        <span className="home-dock-band" aria-hidden />
         <div className="relative mx-auto flex h-full max-w-6xl items-center justify-center px-4 md:px-6">
           <form onSubmit={e => { e.preventDefault(); submit(input); }} role="search" className={`home-box${loading ? " is-busy" : ""}`}>
             <input
@@ -331,6 +332,7 @@ export function SearchView({ examples, heroFoot, landing, footer }: {
               <span className="sr-only min-[420px]:hidden">Search</span>
             </button>
             <span className="home-box-progress" aria-hidden />
+            <span className="home-box-shadow" aria-hidden />
           </form>
         </div>
       </div>

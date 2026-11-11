@@ -2,7 +2,8 @@
 import { refiningConflictIsSupported } from "@/lib/facts/label-conflict";
 /**
  * Verify claim-vs-ingredient conflicts noted by the facts pass and store only the
- * clear, defensible ones in label_conflicts (shown on home and insights).
+ * clear, defensible ones in label_conflicts. These are candidates: the site shows one only after
+ * the hand-check in docs/claims-review.md (pnpm claims:review).
  * Re-verifies a product only when its facts source changed.
  *   pnpm facts:conflicts -- [--dry-run] [--all]
  */
@@ -21,7 +22,7 @@ const all = args.includes("--all");
 const SYSTEM = `You verify claimed contradictions between an Indian packaged food's on-pack claim and its own ingredient list. Each case has the product name, pack_text (the claims printed on the pack), its cleaned ingredients and a note written by an automated reader.
 First rule: the claim must literally appear in the name or pack_text. If you cannot quote it from there, drop the case (e.g. "Veg"/"100% veg"/a green dot is NOT a vegan claim; "vegetarian" is not "vegan").
 Keep a case only when it is a clear, defensible contradiction a fair reader would agree with:
-- "Sugar free"/"zero sugar"/"no added sugar" with sugar, jaggery, glucose, syrups, honey or dextrose listed: keep. Dates, fruit or milk as the only sweetener: drop (debatable).
+- "Sugar free"/"zero sugar"/"no added sugar" with sugar, jaggery, glucose, syrups, honey or dextrose listed: keep. Dates, fruit or milk as the only sweetener: drop (debatable). Tabletop sweeteners and sugar substitutes (stevia, sucralose blends) whatever their bulking agent (dextrose, maltodextrin, erythritol): drop.
 - "No refined sugar" is not the same as "no added sugar". Jaggery, honey, dates or mishri alone do not establish a refining-process contradiction; drop unless the ingredient list explicitly names refined or white sugar.
 - "Gluten free" with wheat, maida, semolina, barley, rye or malt listed: keep. Oats alone: drop (often certified gluten-free).
 - "No palm oil" with palm/palmolein listed: keep. "No preservatives" with a listed preservative (benzoate, sorbate, sulphite, nitrite, propionate): keep; antioxidants alone: drop.

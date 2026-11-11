@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Link from "@/components/navigation-link";
 import { ArrowUpRight } from "lucide-react";
 import { HomeRailCard } from "@/components/home-rail-card";
-import { HomeCategoryGrid } from "@/components/home-editorial";
-import { ConflictCard } from "@/components/insights/conflict-card";
+import { HomeBoards } from "@/components/home-boards";
 import { RingGlyph } from "@/components/ring-motif";
 import { shelfNo } from "@/components/shelf-board";
 import { CountUp, Reveal } from "@/components/reveal";
@@ -13,7 +12,7 @@ import { SearchView } from "@/components/search/search-view";
 import { SEARCH_PROMPTS } from "@/components/search-prompts";
 import { getCachedLandingInsights } from "@/lib/products/catalog-cache";
 import { getInsights, type InsightsData } from "@/lib/insights/data";
-import { EMPTY_LANDING_INSIGHTS, type LandingInsights } from "@/lib/products/landing-insights";
+import type { LandingInsights } from "@/lib/products/landing-insights";
 import { getHomeShelves } from "@/lib/products/queries";
 import { collapseVariants } from "@/lib/products/variants";
 import { SHELVES } from "@/lib/shelves";
@@ -25,16 +24,13 @@ export const metadata: Metadata = { alternates: { canonical: "/" } };
 export default async function Home() {
   const shelves = await getHomeShelves();
   const staples = await collapseVariants(shelves.dailyStaples);
-  let insights: LandingInsights = EMPTY_LANDING_INSIGHTS;
-  let facts: InsightsData | null = null;
-  try {
-    [insights, facts] = await Promise.all([getCachedLandingInsights(), getInsights()]);
-  } catch (err) {
-    console.warn("[home] insights skipped:", err);
-  }
+  // Loaded apart, so one source failing doesn't empty the other's sections.
+  const [landing, facts] = await Promise.all([
+    getCachedLandingInsights().catch((err) => { console.warn("[home] landing insights skipped:", err); return null; }),
+    getInsights().catch((err) => { console.warn("[home] label facts skipped:", err); return null; }),
+  ]);
   // One proof fact, told big: the share of packs with added sugar.
   const proof = facts?.ingredientStats.find(st => st.concept === "added_sugar") ?? facts?.ingredientStats[0] ?? null;
-  const oneIn = facts?.conflictedProducts ? Math.round(facts.claimers / facts.conflictedProducts) : 0;
 
   // Example asks start on a different phrase each day.
   const dayIndex = Math.floor(Date.now() / 86_400_000);
@@ -76,67 +72,26 @@ export default async function Home() {
           </p>
         )}
         footer={<SiteFooter />}
-        landing={<HomeSections facts={facts} oneIn={oneIn} proof={proof} staples={staples} categories={insights.bestInClass} />}
+        landing={<HomeSections landing={landing} facts={facts} proof={proof} staples={staples} />}
       />
     </main>
   );
 }
 
 
-/** Everything under the search box while nothing is searched. */
-function HomeSections({ facts, oneIn, proof, staples, categories }: {
+/** Everything under the search box while nothing is searched: the leaderboards, then the shelves. */
+function HomeSections({ landing, facts, proof, staples }: {
+  landing: LandingInsights | null;
   facts: InsightsData | null;
-  oneIn: number;
   proof: InsightsData["ingredientStats"][number] | null;
   staples: Awaited<ReturnType<typeof getHomeShelves>>["dailyStaples"];
-  categories: LandingInsights["bestInClass"];
 }) {
   return (
     <>
-      {/* ── One proof, told with confidence: a number inside the score ring ── */}
-      {proof && (
-        <section className="relative overflow-hidden border-b border-(--color-line) bg-(--color-bg-soft)">
-          <RingGlyph className="absolute left-1/2 top-1/2 h-[340px] w-[340px] -translate-x-1/2 -translate-y-[58%] opacity-60 md:h-[440px] md:w-[440px]" />
-          <Reveal className="relative z-10 mx-auto flex max-w-3xl flex-col items-center px-6 py-20 text-center md:py-28">
-            <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-(--color-fg-dim)">What we found</p>
-            <p className="font-display mt-5 text-7xl leading-none text-(--color-accent) md:text-8xl">{proof.pct}%</p>
-            <p className="font-display mt-5 max-w-2xl text-balance text-2xl leading-snug text-(--color-fg) md:text-[1.9rem]">
-              of the packaged foods we&apos;ve read {proof.label}.
-            </p>
-            <Link href="/insights" className="mt-7 inline-flex items-center gap-1.5 text-sm font-medium text-(--color-fg-muted) underline-offset-4 transition hover:text-(--color-fg) hover:underline">
-              What else is in there <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
-          </Reveal>
-        </section>
-      )}
-
-      {/* ── The hook: what the pack says vs what the label says ─────────── */}
-      {facts && facts.conflicts.length >= 3 && (
-        <section className="border-b border-(--color-line)">
-          <Reveal className="mx-auto max-w-7xl px-6 py-16 md:py-24">
-            <div className="mb-9 flex flex-wrap items-end justify-between gap-4">
-              <div className="max-w-2xl">
-                <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-(--color-bad)">Scout warning · front of pack vs back</p>
-                <h2 className="font-display mt-3 text-3xl leading-tight md:text-[2.5rem]">
-                  {oneIn ? `1 in ${oneIn} “free-from” claims doesn’t survive the ingredient list.` : "Claims that don't survive the ingredient list."}
-                </h2>
-                <p className="mt-3 text-[15px] leading-relaxed text-(--color-fg-muted)">
-                  Sugar-free packs that list sugar. “No palm oil” chips fried in palmolein. Every one checked twice against the printed label.
-                </p>
-              </div>
-              <Link href="/insights/claims" className="inline-flex items-center gap-1.5 text-sm font-medium text-(--color-fg-muted) transition hover:text-(--color-fg)">
-                See all {facts.conflictedProducts} <ArrowUpRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {facts.conflicts.slice(0, 6).map(c => <ConflictCard key={`${c.id}-${c.claim}`} c={c} />)}
-            </div>
-          </Reveal>
-        </section>
-      )}
+      <HomeBoards landing={landing} insights={facts} />
 
       {/* ── Start from a goal ──────────────────────────────────────────── */}
-      <section className="border-b border-(--color-line)">
+      <section className="border-y border-(--color-line)">
         <Reveal className="mx-auto max-w-7xl px-6 py-14 md:py-20">
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -163,6 +118,23 @@ function HomeSections({ facts, oneIn, proof, staples, categories }: {
         </Reveal>
       </section>
 
+      {/* ── One proof, told with confidence: a number inside the score ring ── */}
+      {proof && (
+        <section className="relative overflow-hidden border-b border-(--color-line) bg-(--color-bg-soft)">
+          <RingGlyph className="absolute left-1/2 top-1/2 h-[340px] w-[340px] -translate-x-1/2 -translate-y-[58%] opacity-60 md:h-[440px] md:w-[440px]" />
+          <Reveal className="relative z-10 mx-auto flex max-w-3xl flex-col items-center px-6 py-20 text-center md:py-28">
+            <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-(--color-fg-dim)">What we found</p>
+            <p className="font-display mt-5 text-7xl leading-none text-(--color-accent) md:text-8xl">{proof.pct}%</p>
+            <p className="font-display mt-5 max-w-2xl text-balance text-2xl leading-snug text-(--color-fg) md:text-[1.9rem]">
+              of the packaged foods we&apos;ve read {proof.label}.
+            </p>
+            <Link href="/insights" className="mt-7 inline-flex items-center gap-1.5 text-sm font-medium text-(--color-fg-muted) underline-offset-4 transition hover:text-(--color-fg) hover:underline">
+              What else is in there <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          </Reveal>
+        </section>
+      )}
+
       {/* ── The light after the shade: what Scout actually loves ──────────── */}
       <Rail
         eyebrow="What Scout loves"
@@ -172,8 +144,6 @@ function HomeSections({ facts, oneIn, proof, staples, categories }: {
         items={staples}
       />
 
-      {/* ── Explore: every aisle, judged ──────────────────────────────────── */}
-      {categories.length > 0 && <HomeCategoryGrid categories={categories} />}
     </>
   );
 }

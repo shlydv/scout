@@ -94,17 +94,6 @@ export type LandingInsights = {
   worthItList: LandingWorthItProduct[];
 };
 
-export const EMPTY_LANDING_INSIGHTS: LandingInsights = {
-  totalScored: 0,
-  avgScore: 0,
-  facts: [],
-  pickOfDay: null,
-  goalBoards: [],
-  bestInClass: [],
-  dodgeList: [],
-  worthItList: [],
-};
-
 function sugarOf(n: ProductNutrition | null | undefined): number | null {
   const s = n?.sugar_g_100g ?? n?.added_sugar_g_100g;
   return typeof s === "number" ? s : null;

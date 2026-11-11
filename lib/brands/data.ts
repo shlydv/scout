@@ -10,6 +10,7 @@ import { resolveProductVerdict } from "@/lib/scoring/verdict-resolve";
 import { searchSql } from "@/lib/search/planned/db";
 import type { SearchCard } from "@/lib/search/planned/present";
 import type { LabelConflict } from "@/lib/insights/data";
+import { CLAIM_REVIEWS_VERSION, reviewedConflicts } from "@/lib/insights/reviewed-claims";
 
 /** Smallest catalogue that gets a ranking; smaller brands still get a page. */
 export const RANKED_MIN_PRODUCTS = 10;
@@ -57,7 +58,7 @@ const loadIndex = unstable_cache(
         select brand_key, brand, count(*) n from scored group by 1, 2
       ), conflicts as (
         select lower(p.brand) brand_key, count(distinct lc.product_id)::int n
-        from label_conflicts lc join products p on p.id = lc.product_id and p.catalog_visible
+        from ${reviewedConflicts(sql)} lc join products p on p.id = lc.product_id and p.catalog_visible
         group by 1
       )
       select s.brand_key,
@@ -87,7 +88,7 @@ const loadIndex = unstable_cache(
     }
     return out;
   },
-  ["brand-index-v3-verdict"],
+  ["brand-index-v3-verdict", CLAIM_REVIEWS_VERSION],
   { revalidate: 86400 },
 );
 
@@ -158,7 +159,7 @@ const loadBrand = unstable_cache(
     const conflictRows = await sql<{ id: string; slug: string; name: string; brand: string; image_urls: string[] | null; ocr_image_url: string | null; price_inr: string | null; net_weight: string | null; verdict: string | null; score: string | null; claim: string; reality: string; kind: string; severity: "high" | "medium" }[]>`
       select p.id, p.slug, p.name, p.brand, p.image_urls, p.ocr_image_url, p.price_inr, p.net_weight,
              coalesce(cs.absolute_score, cs.score) score, cs.verdict, lc.claim, lc.reality, lc.kind, lc.severity
-      from label_conflicts lc
+      from ${reviewedConflicts(sql)} lc
       join products p on p.id = lc.product_id and p.catalog_visible
       left join product_search_index si on si.product_id = p.id
       left join core_scores cs on cs.product_id = p.id
@@ -182,7 +183,7 @@ const loadBrand = unstable_cache(
       conflictCards,
     };
   },
-  ["brand-detail-v3-verdict"],
+  ["brand-detail-v3-verdict", CLAIM_REVIEWS_VERSION],
   { revalidate: 86400 },
 );
 
