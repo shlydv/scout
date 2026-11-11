@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 export function CatalogBackLink({ params }: { params: { q?: string; prompt?: string } }) {
   const router = useRouter();
   const q = (params.q ?? params.prompt ?? "").trim();
-  const href = q ? `/search?q=${encodeURIComponent(q)}` : "/catalog";
+  const href = q ? `/?q=${encodeURIComponent(q)}` : "/catalog";
   return (
     <Link
       href={href}

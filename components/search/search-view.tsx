@@ -1,25 +1,16 @@
 "use client";
 
-import Link from "@/components/navigation-link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, Info, X } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowRight, ChevronDown, Info, X } from "lucide-react";
 import { SearchCats } from "@/components/search-cats";
 import { SearchResultCard } from "@/components/search/search-result-card";
 import { SavedSearchActions } from "@/components/saved-search-actions";
+import { useDockMorph } from "@/components/search/use-dock-morph";
 import { useAuth } from "@/lib/auth/context";
 import { hasSavedPreferences, readAiSearchPreferences, type AiSearchPreferences } from "@/lib/search/preferences";
 import { readRecentSearches, recordRecentSearch } from "@/lib/search/recent-searches";
 import type { SearchCard, SearchResponse } from "@/lib/search/planned/present";
-
-const EXAMPLES = [
-  "gluten free biscuits under ₹100",
-  "healthier than maggi",
-  "high protein snacks for the gym",
-  "chips without palm oil",
-  "bina cheeni wala biscuit",
-  "tiffin snacks for kids",
-];
 
 /** Results per page; each page is verified in two parallel batches. */
 const PAGE_SIZE = 50;
@@ -65,24 +56,22 @@ function LoadingState({ query }: { query: string }) {
   );
 }
 
-/** Recent searches, then examples — one quiet scrolling row under the box. */
-function ChipRow({ onPick }: { onPick: (q: string) => void }) {
+/** Recent searches, then example asks: two short centred rows under the box. */
+function ChipRow({ examples, onPick }: { examples: string[]; onPick: (q: string) => void }) {
   const [recent, setRecent] = useState<string[]>([]);
-  useEffect(() => setRecent(readRecentSearches().slice(0, 4)), []);
-  const examples = EXAMPLES.filter(q => !recent.includes(q));
-  const chip = "flex-shrink-0 rounded-full border px-3 py-1 text-[11.5px] transition";
+  useEffect(() => setRecent(readRecentSearches().slice(0, 2)), []);
+  const rest = examples.filter(q => !recent.includes(q));
+  const chip = "rounded-full border px-3 py-1 text-[12px] transition hover:border-(--color-fg-dim) hover:text-(--color-fg)";
+  const row = (label: string, items: string[], cls: string) => items.length > 0 && (
+    <div className="flex flex-wrap items-center justify-center gap-1.5">
+      <span className="pr-0.5 text-[10px] uppercase tracking-wide text-(--color-fg-dim)">{label}</span>
+      {items.map(q => <button key={q} type="button" onClick={() => onPick(q)} className={`${chip} ${cls}`}>{q}</button>)}
+    </div>
+  );
   return (
-    <div className="edge-fade-x -mx-1 overflow-x-auto px-1 pb-0.5 scrollbar-none">
-      <div className="flex items-center gap-1.5 whitespace-nowrap">
-        {recent.length > 0 && <span className="flex-shrink-0 text-[10px] uppercase tracking-wide text-(--color-fg-dim)">Recent</span>}
-        {recent.map(q => (
-          <button key={`r-${q}`} type="button" onClick={() => onPick(q)} className={`${chip} border-(--color-line-strong) bg-(--color-bg-soft) font-medium text-(--color-fg-muted) hover:border-(--color-fg-dim) hover:text-(--color-fg)`}>{q}</button>
-        ))}
-        {recent.length > 0 && <span className="h-4 w-px flex-shrink-0 bg-(--color-line)" aria-hidden />}
-        {examples.map(q => (
-          <button key={q} type="button" onClick={() => onPick(q)} className={`${chip} border-(--color-line) text-(--color-fg-dim) hover:border-(--color-fg-dim) hover:text-(--color-fg)`}>{q}</button>
-        ))}
-      </div>
+    <div className="grid gap-2">
+      {row("Recent", recent, "border-(--color-line-strong) bg-(--color-bg-soft) font-medium text-(--color-fg-muted)")}
+      {row("Try", rest, "border-(--color-line) bg-(--color-panel) text-(--color-fg-muted)")}
     </div>
   );
 }
@@ -99,7 +88,7 @@ function Results({ data, prefs, onMore, loadingMore }: { data: SearchResponse; p
     <div className="grid grid-cols-1 gap-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div className="min-w-0">
-          <h1 className="font-display text-2xl leading-tight text-(--color-fg) md:text-[1.65rem]">{data.summary}</h1>
+          <h2 className="font-display text-2xl leading-tight text-(--color-fg) md:text-[1.65rem]">{data.summary}</h2>
           {data.chips.length > 0 && (
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               <span className="text-[10px] uppercase tracking-wide text-(--color-fg-dim)">Read as</span>
@@ -179,17 +168,41 @@ function Results({ data, prefs, onMore, loadingMore }: { data: SearchResponse; p
   );
 }
 
-export function SearchView({ initialQuery, landing }: { initialQuery: string; landing?: React.ReactNode }) {
-  const router = useRouter();
+/** Reports ?q= from inside its own Suspense boundary, so the rest of the home page still prerenders. */
+function QuerySync({ onChange }: { onChange: (q: string) => void }) {
   const params = useSearchParams();
+  const q = (params.get("q") ?? params.get("prompt") ?? "").trim();
+  useEffect(() => onChange(q), [q, onChange]);
+  return null;
+}
+
+/**
+ * Home and search are one page. The hero's box is the search box: scrolling down, or searching,
+ * docks it under the nav (useDockMorph), and below it sit either the home sections (`landing`)
+ * or the results. ?q= is the source of truth; searching pushes it without a server round trip,
+ * and Back to the bare page glides back up to the hero.
+ */
+export function SearchView({ examples, heroFoot, landing, footer }: {
+  examples: string[];
+  heroFoot?: React.ReactNode;
+  landing: React.ReactNode;
+  footer: React.ReactNode;
+}) {
   const auth = useAuth();
-  const urlQuery = (params.get("q") ?? params.get("prompt") ?? "").trim();
-  const [input, setInput] = useState(initialQuery || urlQuery);
+  const [urlQuery, setUrlQuery] = useState<string | null>(null);
+  const [input, setInput] = useState("");
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [prefs, setPrefs] = useState<AiSearchPreferences | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const abort = useRef<AbortController | null>(null);
+  // The query being searched or shown, so the URL catching up with a submit doesn't search twice.
+  const shown = useRef("");
+  const synced = useRef(false);
+  const baseTitle = useRef("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const dockRef = useRef<HTMLDivElement>(null);
+  const belowRef = useRef<HTMLDivElement>(null);
+  const morph = useDockMorph(dockRef, belowRef);
 
   useEffect(() => {
     const p = readAiSearchPreferences();
@@ -215,6 +228,7 @@ export function SearchView({ initialQuery, landing }: { initialQuery: string; la
     abort.current?.abort();
     const ctrl = new AbortController();
     abort.current = ctrl;
+    shown.current = q;
     setLoadingMore(false);
     setStatus({ kind: "loading", query: q });
     try {
@@ -245,62 +259,105 @@ export function SearchView({ initialQuery, landing }: { initialQuery: string; la
     }
   }, [status, loadingMore, fetchPage]);
 
-  // The URL is the source of truth: typing never searches by itself, submitting
-  // (or back/forward) changes ?q= and that runs the search.
+  // Arriving with ?q=, Back/Forward and links to /?q= all land here.
   useEffect(() => {
+    if (urlQuery === null) return;
+    const first = !synced.current;
+    synced.current = true;
     setInput(urlQuery);
-    if (urlQuery.length >= 2) void run(urlQuery);
-    else setStatus({ kind: "idle" });
+    if (urlQuery.length >= 2) {
+      if (shown.current !== urlQuery) void run(urlQuery);
+      morph.dock();
+    } else {
+      abort.current?.abort();
+      shown.current = "";
+      setLoadingMore(false);
+      setStatus({ kind: "idle" });
+      if (!first) morph.top();
+    }
     // `run` changes when auth/preferences load; only the query should trigger a search.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlQuery]);
 
+  useEffect(() => {
+    baseTitle.current ||= document.title;
+    const q = status.kind === "idle" ? "" : status.kind === "done" ? status.data.query : status.query;
+    document.title = q ? `${q} · Scout search` : baseTitle.current;
+  }, [status]);
+
   const submit = (q: string) => {
     const trimmed = q.trim();
-    if (trimmed.length < 2) return;
+    if (trimmed.length < 2) {
+      inputRef.current?.focus();
+      return;
+    }
     setInput(trimmed);
-    if (trimmed === urlQuery) void run(trimmed);
-    else router.push(`/search?q=${encodeURIComponent(trimmed)}`);
     inputRef.current?.blur();
+    if (trimmed !== urlQuery) window.history.pushState(null, "", `/?q=${encodeURIComponent(trimmed)}`);
+    void run(trimmed);
+    morph.dock();
   };
 
+  const loading = status.kind === "loading";
   return (
-    <div className="grid grid-cols-1 gap-6">
-      <section>
-        <p className="font-display mb-3 text-2xl leading-tight text-(--color-fg) md:text-3xl">Ask Scout</p>
-        <form onSubmit={e => { e.preventDefault(); submit(input); }} role="search" className="flex items-start gap-2">
-          <div className="relative flex-1">
+    <>
+      <Suspense fallback={null}><QuerySync onChange={setUrlQuery} /></Suspense>
+
+      <div ref={dockRef} className="home-dock">
+        <div className="relative mx-auto flex h-full max-w-6xl items-center justify-center px-4 md:px-6">
+          <form onSubmit={e => { e.preventDefault(); submit(input); }} role="search" className={`home-box${loading ? " is-busy" : ""}`}>
             <input
               ref={inputRef}
               value={input}
               onChange={e => setInput(e.target.value)}
-              placeholder="e.g. paneer with low fat under ₹150"
-              aria-label="Search Scout"
+              // On a phone, tapping the box in the hero docks it first, like a native search bar.
+              onFocus={() => { if (window.matchMedia("(max-width: 767px)").matches && !morph.docked()) morph.dock(); }}
+              name="q"
+              type="search"
               enterKeyHint="search"
-              className="min-h-[48px] w-full rounded-2xl border border-(--color-line-strong) bg-(--color-bg) pl-5 pr-10 text-[15px] text-(--color-fg) outline-none transition placeholder:text-(--color-fg-dim) focus:border-(--color-fg-muted) focus:shadow-md focus:ring-4 focus:ring-(--color-accent)/10"
+              autoComplete="off"
+              placeholder="Search or describe a snack…"
+              aria-label="Ask Scout about any packaged food"
+              className="h-full min-w-0 flex-1 bg-transparent px-3 text-[15px] text-(--color-fg) outline-none placeholder:text-(--color-fg-dim) [&::-webkit-search-cancel-button]:appearance-none"
             />
             {input && (
-              <button type="button" onClick={() => { setInput(""); inputRef.current?.focus(); }} className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-(--color-fg-dim) hover:text-(--color-fg)" aria-label="Clear">
+              <button type="button" onClick={() => { setInput(""); inputRef.current?.focus(); }} className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-(--color-fg-dim) transition hover:bg-(--color-bg-soft) hover:text-(--color-fg)" aria-label="Clear">
                 <X className="h-4 w-4" />
               </button>
             )}
-          </div>
-          <button type="submit" disabled={status.kind === "loading"} className="min-h-[48px] rounded-2xl bg-(--color-fg) px-6 text-sm font-semibold text-(--color-bg) transition hover:opacity-80 disabled:cursor-wait disabled:opacity-60">
-            {status.kind === "loading" ? "Searching…" : "Search"}
-          </button>
-        </form>
-        <div className="mt-3"><ChipRow onPick={submit} /></div>
-      </section>
-
-      {status.kind === "idle" && landing}
-      {status.kind === "loading" && <LoadingState query={status.query} />}
-      {status.kind === "error" && (
-        <div className="rounded-xl border border-dashed border-(--color-line-strong) p-5">
-          <p className="font-medium text-(--color-fg)">{status.message}</p>
-          <button type="button" onClick={() => void run(status.query)} className="mt-3 text-sm text-(--color-accent) hover:underline">Try again</button>
+            <button type="submit" disabled={loading} className="home-box-go inline-flex h-full shrink-0 items-center justify-center gap-1.5 whitespace-nowrap bg-(--color-fg) px-3.5 text-sm font-semibold text-(--color-bg) transition hover:opacity-90 disabled:cursor-wait disabled:opacity-70 min-[420px]:px-5">
+              <span className="hidden min-[420px]:inline">{loading ? "Searching…" : "Ask Scout"}</span>
+              <ArrowRight className="h-4 w-4" aria-hidden />
+              <span className="sr-only min-[420px]:hidden">Search</span>
+            </button>
+            <span className="home-box-progress" aria-hidden />
+          </form>
         </div>
-      )}
-      {status.kind === "done" && <Results data={status.data} prefs={prefs} onMore={() => void loadMore()} loadingMore={loadingMore} />}
-    </div>
+      </div>
+
+      <div className="home-hero-foot relative z-10 mx-auto w-full max-w-2xl px-4 text-center">
+        <ChipRow examples={examples} onPick={submit} />
+        {heroFoot}
+      </div>
+
+      <div ref={belowRef} className="home-below">
+        <div className="home-below-rise">
+          <div hidden={status.kind !== "idle"}>{landing}</div>
+          {status.kind !== "idle" && (
+            <div className="mx-auto max-w-6xl px-4 pb-20 pt-6 md:px-6 md:pt-8">
+              {status.kind === "loading" && <LoadingState query={status.query} />}
+              {status.kind === "error" && (
+                <div className="rounded-xl border border-dashed border-(--color-line-strong) p-5">
+                  <p className="font-medium text-(--color-fg)">{status.message}</p>
+                  <button type="button" onClick={() => void run(status.query)} className="mt-3 text-sm text-(--color-accent) hover:underline">Try again</button>
+                </div>
+              )}
+              {status.kind === "done" && <Results data={status.data} prefs={prefs} onMore={() => void loadMore()} loadingMore={loadingMore} />}
+            </div>
+          )}
+        </div>
+        {footer}
+      </div>
+    </>
   );
 }

@@ -112,7 +112,7 @@ export function CompareView() {
           here — then see them label to label.
         </p>
         <Link
-          href="/search"
+          href="/"
           className="u-press mt-8 inline-flex rounded-full bg-(--color-fg) px-5 py-2.5 text-sm font-medium text-(--color-bg) transition hover:opacity-90"
         >
           Browse catalog
@@ -299,7 +299,7 @@ export function CompareView() {
           >
             Clear comparison
           </button>
-          <Link href="/search" className="text-sm font-medium text-(--color-accent) hover:opacity-80">
+          <Link href="/" className="text-sm font-medium text-(--color-accent) hover:opacity-80">
             Add more products
           </Link>
         </div>

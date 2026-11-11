@@ -1,5 +1,6 @@
+import type { Metadata } from "next";
 import Link from "@/components/navigation-link";
-import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { HomeRailCard } from "@/components/home-rail-card";
 import { HomeCategoryGrid } from "@/components/home-editorial";
 import { ConflictCard } from "@/components/insights/conflict-card";
@@ -8,6 +9,7 @@ import { shelfNo } from "@/components/shelf-board";
 import { CountUp, Reveal } from "@/components/reveal";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
+import { SearchView } from "@/components/search/search-view";
 import { SEARCH_PROMPTS } from "@/components/search-prompts";
 import { getCachedLandingInsights } from "@/lib/products/catalog-cache";
 import { getInsights, type InsightsData } from "@/lib/insights/data";
@@ -17,6 +19,8 @@ import { collapseVariants } from "@/lib/products/variants";
 import { SHELVES } from "@/lib/shelves";
 
 export const revalidate = 600;
+// Searches are /?q= on this page; they all point Google at the bare home page.
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export default async function Home() {
   const shelves = await getHomeShelves();
@@ -32,88 +36,63 @@ export default async function Home() {
   const proof = facts?.ingredientStats.find(st => st.concept === "added_sugar") ?? facts?.ingredientStats[0] ?? null;
   const oneIn = facts?.conflictedProducts ? Math.round(facts.claimers / facts.conflictedProducts) : 0;
 
-  // Typewriter starts on a different phrase each day.
+  // Example asks start on a different phrase each day.
   const dayIndex = Math.floor(Date.now() / 86_400_000);
   const promptStart = dayIndex % SEARCH_PROMPTS.length;
   const examples = [0, 1, 2].map((i) => SEARCH_PROMPTS[(promptStart + i) % SEARCH_PROMPTS.length]!);
 
-
   return (
-    <main className="min-h-screen">
+    <main className="relative min-h-screen">
       <SiteNav />
-
-      {/* ── Hero — one headline, one action, room to breathe ─────────────── */}
-      {/* min-h fills the first fold so the next section's tint never peeks up
-          into the hero on tall screens; content sits optically centered. */}
-      <section className="relative flex min-h-[88vh] items-center overflow-hidden border-b border-(--color-line)">
+      <div aria-hidden className="home-hero-art pointer-events-none absolute inset-x-0 top-0 h-svh overflow-hidden">
         <HeroBackdrop />
-        <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center px-6 pb-20 pt-12 text-center md:pb-24 md:pt-16">
-          <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-(--color-fg-dim)">
-            Honest grocery intel · India
+      </div>
+
+      {/* ── Hero: one headline; the box below it is the site's search box ──── */}
+      <div className="home-hero-copy relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center justify-end px-6 text-center">
+        <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-(--color-fg-dim)">
+          Honest grocery intel · India
+        </p>
+        <h1 className="font-display mt-6 text-balance text-5xl leading-[0.97] md:text-7xl">
+          We read the back label{" "}
+          <span className="italic text-(--color-accent)">so you don&apos;t have to</span>.
+        </h1>
+        <p className="mt-6 max-w-xl text-lg leading-relaxed text-(--color-fg-muted)">
+          Ask Scout what&apos;s actually in your basket — what&apos;s worth it,
+          and what to skip.
+        </p>
+      </div>
+
+      <SearchView
+        examples={examples}
+        heroFoot={shelves.totalScored > 0 && (
+          <p className="mt-9 text-[12px] tracking-wide text-(--color-fg-dim)">
+            <span className="font-medium text-(--color-fg-muted) tabular-nums">
+              <CountUp value={shelves.totalScored} />
+            </span>{" "}
+            <Link href="/catalog" className="underline-offset-4 transition hover:text-(--color-fg) hover:underline">
+              products scored across India&apos;s quick-commerce shelves
+            </Link>
           </p>
-          <h1 className="font-display mt-6 text-balance text-5xl leading-[0.97] md:text-7xl">
-            We read the back label{" "}
-            <span className="italic text-(--color-accent)">so you don&apos;t have to</span>.
-          </h1>
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-(--color-fg-muted)">
-            Ask Scout what&apos;s actually in your basket — what&apos;s worth it,
-            and what to skip.
-          </p>
+        )}
+        footer={<SiteFooter />}
+        landing={<HomeSections facts={facts} oneIn={oneIn} proof={proof} staples={staples} categories={insights.bestInClass} />}
+      />
+    </main>
+  );
+}
 
-          {/* The one action */}
-          <form
-            action="/search"
-            method="get"
-            className="mt-9 flex w-full max-w-xl items-center gap-2 rounded-2xl border border-(--color-line-strong) bg-(--color-panel) p-2 shadow-sm transition focus-within:border-(--color-fg-muted) focus-within:shadow-md focus-within:ring-4 focus-within:ring-(--color-accent)/10"
-          >
-            <input
-              name="q"
-              required
-              minLength={2}
-              type="search"
-              autoComplete="off"
-              placeholder="Search a snack, or describe what you want…"
-              aria-label="Ask Scout about any packaged food"
-              className="min-h-11 flex-1 bg-transparent px-3 text-[15px] text-(--color-fg) outline-none placeholder:text-(--color-fg-dim)"
-            />
-            <button
-              type="submit"
-              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-(--color-fg) px-4 text-sm font-semibold text-(--color-bg) transition hover:opacity-90 sm:px-5"
-            >
-              Ask Scout
-              <ArrowRight className="h-4 w-4" />
-            </button>
-          </form>
 
-          {/* Quiet example asks */}
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1.5 text-[13px] text-(--color-fg-dim)">
-            <span className="text-(--color-fg-dim)/70">Try</span>
-            {examples.map((ex, i) => (
-              <span key={ex} className="flex items-center gap-2">
-                {i > 0 && <span className="text-(--color-fg-dim)/40">·</span>}
-                <Link
-                  href={`/search?q=${encodeURIComponent(ex)}`}
-                  className="text-(--color-fg-muted) underline-offset-4 transition hover:text-(--color-fg) hover:underline"
-                >
-                  {ex}
-                </Link>
-              </span>
-            ))}
-          </div>
-
-          {shelves.totalScored > 0 && (
-            <p className="mt-10 text-[12px] tracking-wide text-(--color-fg-dim)">
-              <span className="font-medium text-(--color-fg-muted) tabular-nums">
-                <CountUp value={shelves.totalScored} />
-              </span>{" "}
-              <Link href="/catalog" className="underline-offset-4 transition hover:text-(--color-fg) hover:underline">
-                products scored across India&apos;s quick-commerce shelves
-              </Link>
-            </p>
-          )}
-        </div>
-      </section>
-
+/** Everything under the search box while nothing is searched. */
+function HomeSections({ facts, oneIn, proof, staples, categories }: {
+  facts: InsightsData | null;
+  oneIn: number;
+  proof: InsightsData["ingredientStats"][number] | null;
+  staples: Awaited<ReturnType<typeof getHomeShelves>>["dailyStaples"];
+  categories: LandingInsights["bestInClass"];
+}) {
+  return (
+    <>
       {/* ── One proof, told with confidence: a number inside the score ring ── */}
       {proof && (
         <section className="relative overflow-hidden border-b border-(--color-line) bg-(--color-bg-soft)">
@@ -194,10 +173,8 @@ export default async function Home() {
       />
 
       {/* ── Explore: every aisle, judged ──────────────────────────────────── */}
-      {insights.bestInClass.length > 0 && <HomeCategoryGrid categories={insights.bestInClass} />}
-
-      <SiteFooter />
-    </main>
+      {categories.length > 0 && <HomeCategoryGrid categories={categories} />}
+    </>
   );
 }
 

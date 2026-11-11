@@ -15,8 +15,8 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
-    // Old search URLs: ?prompt= (AI search) became ?q=; catalog filters moved to /catalog.
-    // Query strings are passed through to the destination.
+    // Search lives on the home page now (/?q=). Old search URLs: ?prompt= (AI search) became ?q=;
+    // catalog filters moved to /catalog. Query strings are passed through to the destination.
     const catalogKeys = ["category", "subcategory", "usecase", "brand", "grade", "verdict", "sublabel", "sort", "maxprice", "min", "goal", "diet", "slugs"];
     return [
       { source: "/blog", destination: "/", permanent: true },
@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
         source: "/search",
         has: [{ type: "query", key: "prompt", value: "(?<prompt>.+)" }],
         missing: [{ type: "query", key: "q" }],
-        destination: "/search?q=:prompt",
+        destination: "/?q=:prompt",
         permanent: true,
       },
       ...catalogKeys.map((key) => ({
@@ -34,6 +34,7 @@ const nextConfig: NextConfig = {
         destination: "/catalog",
         permanent: true,
       })),
+      { source: "/search", destination: "/", permanent: true },
     ];
   },
   images: {

@@ -30,7 +30,7 @@ export default async function ShelfPage({ params }: { params: Promise<{ slug: st
   const index = SHELVES.indexOf(shelf);
   const data = await getShelf(shelf.slug);
   const refreshed = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
-  const searchHref = `/search?q=${encodeURIComponent(shelf.query)}`;
+  const searchHref = `/?q=${encodeURIComponent(shelf.query)}`;
 
   return (
     <main className="relative isolate min-h-screen">
