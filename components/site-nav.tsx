@@ -38,7 +38,7 @@ function NavAuthButton() {
 }
 
 const LINKS = [
-  { href: "/search", label: "Search" },
+  { href: "/", label: "Search" },
   { href: "/shelves", label: "Shelves" },
   { href: "/catalog", label: "Aisles" },
   { href: "/brands", label: "Brands" },

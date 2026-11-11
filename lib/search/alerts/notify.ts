@@ -48,7 +48,7 @@ export async function emailAlertTriggers(triggers: AlertTrigger[]): Promise<void
           text: [
             `Scout found ${t.new_matches} new ${t.new_matches === 1 ? "product" : "products"} for “${t.query}”.`,
             ``,
-            `Open your saved search: ${site}/search?q=${encodeURIComponent(t.query)}`,
+            `Open your saved search: ${site}/?q=${encodeURIComponent(t.query)}`,
             `Manage alerts: ${site}/profile`,
           ].join("\n"),
         }),

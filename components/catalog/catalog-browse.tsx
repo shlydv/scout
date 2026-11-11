@@ -110,7 +110,7 @@ export function CatalogBrowse({ initialMeta }: { initialMeta?: CatalogMetaRespon
             {loading && !items.length ? "Loading…" : `${total.toLocaleString("en-IN")} products, scored from the back label`}
           </p>
         </div>
-        <form role="search" onSubmit={e => { e.preventDefault(); if (q.trim().length >= 2) router.push(`/search?q=${encodeURIComponent(q.trim())}`); }} className="relative w-full md:w-96">
+        <form role="search" onSubmit={e => { e.preventDefault(); if (q.trim().length >= 2) router.push(`/?q=${encodeURIComponent(q.trim())}`); }} className="relative w-full md:w-96">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-(--color-fg-dim)" aria-hidden />
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Ask Scout anything…" aria-label="Search Scout"
             className="h-11 w-full rounded-full border border-(--color-line-strong) bg-(--color-panel) pl-10 pr-4 text-[15px] outline-none placeholder:text-(--color-fg-dim) focus:border-(--color-fg-muted)" />

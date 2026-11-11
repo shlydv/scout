@@ -8,7 +8,7 @@ Live: [oasis-phi-one.vercel.app](https://oasis-phi-one.vercel.app)
 
 | Page | What it does |
 | --- | --- |
-| `/search` | Free-form search. DeepSeek turns the question into a plan, SQL runs it over product facts, and goal queries are verified against the label. See [docs/planned-search.md](docs/planned-search.md). |
+| `/` | Home and search in one page. The hero's box is the search box: scrolling or searching docks it under the nav, and results (`/?q=`) replace the home sections below it. DeepSeek turns the question into a plan, SQL runs it over product facts, and goal queries are verified against the label. See [docs/planned-search.md](docs/planned-search.md). Old `/search` links redirect here. |
 | `/catalog` | Browse every aisle, sorted by score, verdict or price. |
 | `/shelves` | Twelve goal shortlists (high-protein snacks, kids' tiffin…), re-run daily. |
 | `/brands` | Brands ranked by average score; each brand page lists its best, worst and any pack claims its label contradicts. |

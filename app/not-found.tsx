@@ -6,7 +6,7 @@ export default function NotFound() {
       <h1 className="font-display text-6xl text-(--color-fg-muted)">404</h1>
       <p className="mt-4 text-(--color-fg-muted)">This page doesn&apos;t exist.</p>
       <Link
-        href="/search"
+        href="/"
         className="mt-6 inline-block rounded-xl bg-(--color-fg) px-6 py-2.5 text-sm font-medium text-(--color-bg)"
       >
         Search catalog

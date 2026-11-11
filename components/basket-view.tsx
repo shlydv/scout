@@ -293,7 +293,7 @@ export function BasketView() {
           Clear cart
         </button>
         <Link
-          href="/search"
+          href="/"
           className="text-sm font-medium text-(--color-accent) hover:opacity-80"
         >
           Add more items
@@ -523,7 +523,7 @@ function EmptyCart({
           title="Your basket's empty"
           action={
             <Link
-              href="/search"
+              href="/"
               className="u-press inline-flex rounded-full bg-(--color-fg) px-5 py-2.5 text-sm font-medium text-(--color-bg) transition hover:opacity-90"
             >
               Browse the catalog
@@ -595,7 +595,7 @@ function EmptyCart({
             Add items from the catalog — we&apos;ll score your cart and suggest swaps here.
           </p>
           <Link
-            href="/search"
+            href="/"
             className="mt-8 inline-flex rounded-full bg-(--color-fg) px-5 py-2.5 text-sm font-medium text-(--color-bg) hover:opacity-90"
           >
             Browse catalog

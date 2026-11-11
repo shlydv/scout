@@ -269,7 +269,7 @@ export default function ProfilePage() {
                     .map((n) => (
                       <li key={n.id} className="text-[13px] text-(--color-fg-muted)">
                         <Link
-                          href={`/search?q=${encodeURIComponent(n.query)}`}
+                          href={`/?q=${encodeURIComponent(n.query)}`}
                           className="font-medium text-(--color-fg) hover:text-(--color-accent)"
                         >
                           {n.query}
@@ -406,7 +406,7 @@ export default function ProfilePage() {
           ) : savedSearches.length === 0 ? (
             <div className="mt-4 rounded-xl border border-(--color-line) bg-(--color-panel) py-8 text-center">
               <p className="text-sm text-(--color-fg-muted)">No saved searches yet.</p>
-              <Link href="/search" className="mt-2 inline-block text-[13px] font-medium text-(--color-accent) hover:underline">
+              <Link href="/" className="mt-2 inline-block text-[13px] font-medium text-(--color-accent) hover:underline">
                 Search and save a query →
               </Link>
             </div>
@@ -416,7 +416,7 @@ export default function ProfilePage() {
                 <div key={s.id} className="group flex items-center gap-3 px-4 py-3">
                   <div className="min-w-0 flex-1">
                     <Link
-                      href={`/search?q=${encodeURIComponent(s.query)}`}
+                      href={`/?q=${encodeURIComponent(s.query)}`}
                       className="block truncate text-[14px] font-medium text-(--color-fg) hover:text-(--color-accent)"
                     >
                       {s.label || s.query}

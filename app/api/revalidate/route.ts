@@ -12,9 +12,9 @@ export async function GET(req: NextRequest) {
   try {
     revalidateTag("catalog-search", "max");
     revalidateTag("catalog-meta", "max");
-    revalidatePath("/search", "layout");
+    revalidatePath("/", "page");
     revalidatePath("/product/[slug]", "page");
-    return NextResponse.json({ ok: true, purged: ["catalog-search", "catalog-meta", "/search", "/product/[slug]"] });
+    return NextResponse.json({ ok: true, purged: ["catalog-search", "catalog-meta", "/", "/product/[slug]"] });
   } catch (e) {
     return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
   }
