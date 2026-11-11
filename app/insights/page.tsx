@@ -82,7 +82,7 @@ export default async function InsightsPage() {
         <Section
           eyebrow="Front of pack vs back of pack"
           title={oneIn ? `1 in ${oneIn} “free-from” claims doesn’t survive the ingredient list.` : "Claims that don't survive the ingredient list."}
-          intro={`${d.claimers.toLocaleString("en-IN")} products make a claim like “sugar free”, “no palm oil” or “gluten free”. For ${d.conflictedProducts}, their own ingredient list says otherwise. Each one below is checked twice: by our label reader and by a second, stricter review that drops anything debatable.`}
+          intro={`${d.claimers.toLocaleString("en-IN")} products make a claim like “sugar free”, “no palm oil” or “gluten free”. For ${d.conflictedProducts}, their own ingredient list says otherwise. Each one below is checked three times: by our label reader, by a stricter second pass, and by a final review against the printed ingredient list that drops anything debatable.`}
           action={<Link href="/insights/claims" className="inline-flex items-center gap-1 text-sm font-medium text-(--color-accent) hover:underline">See all {d.conflictedProducts}<ArrowUpRight className="h-3.5 w-3.5" /></Link>}
         >
           <div className="mb-6 flex flex-wrap gap-2">

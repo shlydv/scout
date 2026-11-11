@@ -1,5 +1,5 @@
 /**
- * Insights computed from product facts (lib/facts) and verified label conflicts.
+ * Insights computed from product facts (lib/facts) and hand-checked label conflicts (lib/insights/reviewed-claims.ts).
  * Every number is a plain count over visible products, so it can be traced back
  * to individual labels. Cached for a day; one card per pack-size group.
  */
@@ -7,6 +7,7 @@ import { unstable_cache } from "next/cache";
 import { singleFlight } from "@/lib/cache/single-flight";
 import { searchSql } from "@/lib/search/planned/db";
 import { normalizeProductImageUrls } from "@/lib/products/catalog-hero-image";
+import { CLAIM_REVIEWS_VERSION, reviewedConflicts } from "@/lib/insights/reviewed-claims";
 
 export type InsightProduct = {
   id: string;
@@ -67,7 +68,7 @@ async function load(): Promise<InsightsData> {
     select count(*)::int total,
       count(*) filter (where f.ingredient_status = 'complete')::int complete,
       count(*) filter (where f.claims && ${FREE_FROM_CLAIMS}::text[])::int claimers,
-      (select count(distinct product_id)::int from label_conflicts) conflicted,
+      (select count(distinct product_id)::int from ${reviewedConflicts(sql)} lc) conflicted,
       ${sql.unsafe(STAT_CONCEPTS.map(([c]) => `count(*) filter (where f.ingredient_status = 'complete' and '${c}' = any(f.present))::int as "${c}"`).join(", "))}
     from products p join product_facts f on f.product_id = p.id
     where p.catalog_visible`;
@@ -76,7 +77,7 @@ async function load(): Promise<InsightsData> {
     select p.id, p.slug, p.name, p.brand, p.image_urls, p.ocr_image_url, p.price_inr, p.net_weight, coalesce(cs.absolute_score, cs.score) score,
            lc.claim, lc.reality, lc.kind, lc.severity, f.variant_key,
            (select count(*) from products b where b.brand = p.brand and b.catalog_visible)::int brand_size
-    from label_conflicts lc
+    from ${reviewedConflicts(sql)} lc
     join products p on p.id = lc.product_id and p.catalog_visible
     join product_facts f on f.product_id = p.id
     left join product_search_index si on si.product_id = p.id
@@ -106,7 +107,7 @@ async function load(): Promise<InsightsData> {
     for (const k of kinds) { const c = byKind.get(k)![i]; if (c) conflicts.push(c); }
   }
   const conflictsByKind = await sql<{ kind: string; count: number }[]>`
-    select kind, count(distinct product_id)::int count from label_conflicts lc
+    select kind, count(distinct product_id)::int count from ${reviewedConflicts(sql)} lc
     join products p on p.id = lc.product_id and p.catalog_visible group by kind order by count desc`;
 
   const byAisle = async (concept: string): Promise<AisleStat[]> => {
@@ -160,7 +161,7 @@ async function load(): Promise<InsightsData> {
   };
 }
 
-export const getInsights = unstable_cache(singleFlight(load), ["insights-facts-v1"], { revalidate: 86_400, tags: ["insights"] });
+export const getInsights = unstable_cache(singleFlight(load), ["insights-facts-v1", CLAIM_REVIEWS_VERSION], { revalidate: 86_400, tags: ["insights"] });
 
 export const CONFLICT_KIND_LABELS: Record<string, string> = {
   sugar: "Sugar", gluten: "Gluten", palm_oil: "Palm oil", preservative: "Preservatives", colour: "Colours",

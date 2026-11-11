@@ -29,7 +29,7 @@ planner never has to know catalog vocabulary beyond a closed list of concepts.
 | Plan cache | `lib/search/planned/plan-cache.ts`, `search_plan_cache` (0047) | In-process + shared across instances; keyed by query, preferences and a fingerprint of the planner prompt + catalog vocabulary. Repeat queries skip the planner. |
 | Presentation | `lib/search/planned/present.ts` | One card per product (pack sizes attached), plan chips ("Under ₹100", "No palm oil"), plain-language relaxation notes, separate unconfirmed list. |
 | Pack sizes | `lib/facts/variant-key.ts`, `lib/products/variants.ts` | `product_facts.variant_key` groups sizes/packaging, never flavours. Used by search, catalog, home and insights. |
-| Label conflicts | `scripts/facts-conflicts.ts`, `label_conflicts` (0048) | Claim-vs-ingredient contradictions, re-verified so only clear cases are published (home, `/insights`, `/insights/claims`). |
+| Label conflicts | `scripts/facts-conflicts.ts`, `label_conflicts` (0048), `lib/insights/reviewed-claims.json` | Claim-vs-ingredient contradictions, re-verified into candidates; only hand-checked ones are published (home, `/insights`, `/insights/claims`, brand pages). See docs/claims-review.md. |
 | Goal shelves | `lib/shelves.ts`, `/shelves/[slug]` | Saved planned-search queries rendered as pages, regenerated daily. |
 
 ## Constraint semantics
@@ -49,6 +49,7 @@ planner never has to know catalog vocabulary beyond a closed list of concepts.
 | Audit nutrition | `pnpm facts:nutrition-audit [-- --ids ...]` | LLM sanity check on statistical outliers only (~3.9k products, ≈ $0.15). |
 | Audit completeness | `pnpm facts:completeness-audit [-- --ids ...]` | Finds lists missing a main component (OCR dropped "wheat flour"); only the concepts that component carries become unknown. |
 | Verify label conflicts | `pnpm facts:conflicts [-- --all]` | Re-verifies changed products' claim conflicts into `label_conflicts`. |
+| Review label conflicts | `pnpm claims:review pull <dir>` / `apply` | The hand-check before a conflict is published; new and changed ones stay hidden until reviewed (docs/claims-review.md). |
 | Try queries locally | `pnpm search:try "query" …` | Full path with stage timings. |
 | Unit tests | `pnpm search:test` | Offline contract tests (runs in CI). |
 | Eval | `pnpm search:eval [-- --hammer]` | 84 cases (`eval/search-cases.json`) + 294 adversarial queries (`eval/hammer-queries.json`) → `.cache/eval/hammer.md`. |

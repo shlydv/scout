@@ -1,0 +1,2333 @@
+[
+ {
+  "product_id": "56833a61-dbd0-4bf2-9e53-801277f42a9b",
+  "claim": "zero palm oil",
+  "source_hash": "ba7d1e21ea04649b",
+  "verdict": "keep",
+  "reality": "Lists edible vegetable oil (palm & sesame)",
+  "reason": "Palm is named in the oil ingredient.",
+  "product": "4700BC · 4700BC Himalayan Salt Caramel Popcorn Pouch"
+ },
+ {
+  "product_id": "b5808631-71b6-40cd-97c6-1b7e5379eb37",
+  "claim": "Zero Sugar",
+  "source_hash": "b14aee4f0adb5969",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Zero Sugar product with no sweetener listed and a garbled preservative; the list reads like regular 7 Up's, so it is likely the wrong variant's label.",
+  "product": "7 Up · 7 Up Lemon Zero Sugar Soft Drink Can | Carbonated Beverage"
+ },
+ {
+  "product_id": "0577b775-9cbc-4b76-b3bf-a2ffd3def253",
+  "claim": "NO ADDED COLOUR, FLAVOR AND PRESERVATIVE",
+  "source_hash": "05682e2d241c2349",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "'FLAVOR AND Preservative' in the list is the pack's 'no added colour, flavor and preservative' text bleeding in, not a real ingredient.",
+  "product": "A2B · A2B Gulab Jamun Tin | Authentic Indian Sweet"
+ },
+ {
+  "product_id": "e51967cd-3f98-4e4a-8d53-cce6969299c0",
+  "claim": "no added colour, flavor and preservative",
+  "source_hash": "619944f738792a72",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "'FLAVOR AND Preservative' is the claim text bleeding into the list, not a named ingredient.",
+  "product": "A2B · A2B Rasgulla Tin | Soft & Delicious"
+ },
+ {
+  "product_id": "6ff4f2ee-f734-469a-9c8b-fbd388b77f19",
+  "claim": "no preservatives",
+  "source_hash": "0a512441055230c2",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "'Preservatives or Flavours' looks like the garbled 'no preservatives or flavours' statement and names no preservative.",
+  "product": "Abbie's · Abbie's Chick Peas"
+ },
+ {
+  "product_id": "41502935-b045-4455-a1c5-8c1de8bf0faa",
+  "claim": "no preservatives",
+  "source_hash": "bc176978ff3b1587",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "'Preservatives or Flavours' looks like the garbled 'no preservatives or flavours' statement and names no preservative.",
+  "product": "Abbie's · Abbie's Red Kidney Beans"
+ },
+ {
+  "product_id": "ea3b357e-6d90-4393-82c1-86f00d023669",
+  "claim": "TRANS FAT FREE",
+  "source_hash": "b5c77a4883a5a470",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Only hydrogenated oil is listed, not partially hydrogenated, so it fails the rule.",
+  "product": "Act II · Act II Microwave Popcorn | Original, Big Pack, Hot & Fresh in 3 mins"
+ },
+ {
+  "product_id": "b0e85787-5ffa-4a43-bf35-f40e7ed6ed97",
+  "claim": "No Added Sugar",
+  "source_hash": "600e9eed5ce36c75",
+  "verdict": "keep",
+  "reality": "Lists sugar as an ingredient",
+  "reason": "Brand's own 'No Added Sugar' claim; sugar is a listed ingredient.",
+  "product": "Alt Co. · Alt Co Soy Milk Tetrapack"
+ },
+ {
+  "product_id": "e8590a6c-1e94-4e27-852d-ddca7adb06e1",
+  "claim": "No added sugar",
+  "source_hash": "dbbb058a097f1f80",
+  "verdict": "keep",
+  "reality": "Lists sugar as an ingredient",
+  "reason": "Brand's own 'No added sugar' claim; sugar is a listed ingredient.",
+  "product": "American Style · American Style Imported Peach Basil Seed Drink"
+ },
+ {
+  "product_id": "a7f28748-2cb1-4fec-98e4-5d3b9ec6541d",
+  "claim": "sucrose-free",
+  "source_hash": "0acc87c957860d6d",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "'Sucrose-free' is not a sugar-free claim, and fructose, maltodextrin and dextrose are not sucrose.",
+  "product": "Amore Gelato · Amore Gelato Madagasgar Dark Chocolate Ice Cream Cup"
+ },
+ {
+  "product_id": "e72b4a73-810f-423c-910a-9a6628c6a87d",
+  "claim": "SugarFree",
+  "source_hash": "671863ae41b29592",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Claim comes only from the title with no pack OCR support, and the list looks like the regular camel milk chocolate, not a sugar-free variant.",
+  "product": "Amul · Amul Camel Milk Chocolate - SugarFree"
+ },
+ {
+  "product_id": "c37e3316-3837-4432-865e-8a7e9f62d494",
+  "claim": "Sugar Free",
+  "source_hash": "c196c0ff0f5c9ac7",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Claim comes only from the title with no pack OCR support, and the list (sugar, sugar syrup, three colours) looks like the regular Shahi Anjir cup.",
+  "product": "Amul · Amul Sugar Free Shahi Anjir Ice Cream Cup"
+ },
+ {
+  "product_id": "82b5075e-e134-434a-b124-d77c0d348219",
+  "claim": "no added sugar",
+  "source_hash": "18290b16ab9dbb67",
+  "verdict": "keep",
+  "reality": "Lists jaggery as an ingredient",
+  "reason": "Brand's own 'no added sugar' claim; jaggery is a listed sweetener under the rubric.",
+  "product": "Anand Sweet · Jaggery Ragi Bites By Anand | No Added Sugar"
+ },
+ {
+  "product_id": "8262efb6-22a1-45f5-905a-2917c71e2752",
+  "claim": "No Added Sugar",
+  "source_hash": "cbabf15704853fbc",
+  "verdict": "keep",
+  "reality": "Lists invert syrup, sugar and honey",
+  "reason": "Brand's own 'No Added Sugar' claim; invert syrup, sugar and honey are listed.",
+  "product": "Bagrry's · Bagrry's Crunchy Muesli with Almonds, Raisins & Honey(40% Oat Clusters)"
+ },
+ {
+  "product_id": "5d30856c-3b06-4ea9-8470-4a3667590cd2",
+  "claim": "gluten free",
+  "source_hash": "f2a6168ce6de83e1",
+  "verdict": "keep",
+  "reality": "Lists wheat flour as an ingredient",
+  "reason": "Wheat flour is listed against a 'gluten free' claim that the retailer listing also shows.",
+  "product": "Bagrry's · Bagrry's Makhana Foxnut Jar Mint & Pudhina Flavour"
+ },
+ {
+  "product_id": "a9482896-4394-479e-a7a1-4a2f175a61c9",
+  "claim": "No Preservatives",
+  "source_hash": "ffb3ac840162559d",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Bare 'Sulphite' sits right before the licence number and looks like an allergen declaration, not a clear ingredient.",
+  "product": "Baked Creations - Fresh · Nutty Cashew Cookies by Sunfeast Baked Creations"
+ },
+ {
+  "product_id": "3707bfe8-d748-4ff6-9d3b-efaa3d9b8956",
+  "claim": "Zero Preservatives",
+  "source_hash": "744fb1a9369b0eb1",
+  "verdict": "keep",
+  "reality": "Lists preservatives INS 282 and INS 200",
+  "reason": "Preservatives (282, 200) are explicitly listed against 'zero preservatives'.",
+  "product": "Baker's Loaf · Baker's Loaf Brioche Buns"
+ },
+ {
+  "product_id": "309e349b-131e-4b75-9acc-cd34a424e099",
+  "claim": "Zero Preservatives",
+  "source_hash": "2d370873fa3a33aa",
+  "verdict": "keep",
+  "reality": "Lists preservatives INS 282 and INS 200",
+  "reason": "Preservatives (282, 200) are explicitly listed against 'zero preservatives'.",
+  "product": "Baker's Loaf · Baker's Loaf Oatmeal Bread"
+ },
+ {
+  "product_id": "d863eb06-7941-4f50-bf00-8f496581bb19",
+  "claim": "0% added sugar",
+  "source_hash": "2298431c59b9b4ed",
+  "verdict": "keep",
+  "reality": "Lists sugar as the second ingredient",
+  "reason": "Brand's own '0% added sugar' claim on pack; sugar is plainly listed.",
+  "product": "Baskin Robbins · Baskin Robbins Dark Chocolate Milkshake"
+ },
+ {
+  "product_id": "fe5b6a54-83c3-4ed8-9486-920325fd3a59",
+  "claim": "No Added Sugar",
+  "source_hash": "2ed753ea34e02031",
+  "verdict": "keep",
+  "reality": "Lists sugar as the second ingredient",
+  "reason": "Brand's own 'No Added Sugar' claim on pack; sugar is plainly listed.",
+  "product": "Baskin Robbins · Baskin Robbins Hazelnut Chocolate Milkshake"
+ },
+ {
+  "product_id": "8ec7ed86-feab-42b1-afff-0c2373beca3f",
+  "claim": "No Artificial Colours & Flavours",
+  "source_hash": "1a63acb2d2c0eac9",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "The 'Artificial Colours & Flavours' ingredient is word-for-word the front-of-pack 'No ...' claim, so it is probably a misread 'No' phrase rather than a real ingredient.",
+  "product": "Bayar's Coffee · Bayar's coffee delight liquid filter coffee"
+ },
+ {
+  "product_id": "f5ebc713-d6b3-4eef-bb58-4e39805558ef",
+  "claim": "0g trans fat",
+  "source_hash": "6635eee0dda4e947",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Only hydrogenated soya oil is listed, not partially hydrogenated, so it fails the rule.",
+  "product": "Be.anut · Be.anut Chocolate Peanut Butter Creamy"
+ },
+ {
+  "product_id": "7e4e8b47-9fae-4a5b-8e88-b7c292ae404c",
+  "claim": "Zero Sugar",
+  "source_hash": "dcf835e28bc95477",
+  "verdict": "keep",
+  "reality": "Lists honey as an ingredient",
+  "reason": "Brand's own 'Zero Sugar' claim; honey is a listed sweetener (apple juice concentrate alone would not count).",
+  "product": "Be.anut · Be.anut Diet Muesli"
+ },
+ {
+  "product_id": "17fb6c29-b42d-4f9c-94bc-5d05c129d2a7",
+  "claim": "zero trans fat",
+  "source_hash": "fd7e5c30d2cde591",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Only hydrogenated fat is listed, not partially hydrogenated, so it fails the rule.",
+  "product": "Be.anut · Be.anut Regular Peanut Butter Crunchy"
+ },
+ {
+  "product_id": "3d7af3af-6fd4-43b3-9852-188e30a3267c",
+  "claim": "Zero Preservatives",
+  "source_hash": "873ee013225169ce",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "INS 223 is only a bare number under 'dough conditioner', not labelled a preservative, so it is a judgement call.",
+  "product": "Beanly · Beanly Choco Hazelnut Spread with Breadsticks"
+ },
+ {
+  "product_id": "e7768823-77c0-4063-a16d-7305aeec1297",
+  "claim": "Zero Preservatives",
+  "source_hash": "f868748f0ec8bcf7",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "INS 223 is only a bare number under 'dough conditioner', not labelled a preservative, so it is a judgement call.",
+  "product": "Beanly · Beanly Dark Choco Hazelnut Spread with Breadsticks"
+ },
+ {
+  "product_id": "cdc24c31-d5aa-4162-b7b6-3da82575d86d",
+  "claim": "0% Sugar",
+  "source_hash": "b2dd46d0d4fddde9",
+  "verdict": "keep",
+  "reality": "Lists jaggery and raw unrefined sugar",
+  "reason": "Brand's own '0% Sugar' claim; jaggery and raw sugar are listed.",
+  "product": "Bebe Burp · Bebe Burp Millet Banana Choco Chip Pancake Mix | Eggless | No Sugar"
+ },
+ {
+  "product_id": "cdc24c31-d5aa-4162-b7b6-3da82575d86d",
+  "claim": "Gluten Free",
+  "source_hash": "b2dd46d0d4fddde9",
+  "verdict": "keep",
+  "reality": "Lists malt as an ingredient",
+  "reason": "Malt is a listed ingredient against 'Gluten Free', and the retailer listing also says gluten free.",
+  "product": "Bebe Burp · Bebe Burp Millet Banana Choco Chip Pancake Mix | Eggless | No Sugar"
+ },
+ {
+  "product_id": "e408372c-23aa-4a0e-9432-dd80b1d984d9",
+  "claim": "NO PALM OIL",
+  "source_hash": "753c26cd294a457c",
+  "verdict": "keep",
+  "reality": "Lists edible vegetable oil (palmolein)",
+  "reason": "Palmolein is named in the oil ingredient.",
+  "product": "Bikaji · Bikaji Mint Masala Makhana"
+ },
+ {
+  "product_id": "7381b0b1-5784-48da-997c-24b5ab91509b",
+  "claim": "no added preservatives",
+  "source_hash": "8ac9d938d922d65d",
+  "verdict": "keep",
+  "reality": "Lists preservatives E 202 and E 210",
+  "reason": "Sorbate and benzoic acid are listed as preservatives.",
+  "product": "Bolas · Bolas Kaju Katli | Sweet & Delicious"
+ },
+ {
+  "product_id": "af1bf1a3-3fbe-435b-82e9-386cfc1d665e",
+  "claim": "No palm oil",
+  "source_hash": "d892ac38d2cc8508",
+  "verdict": "keep",
+  "reality": "Lists refined palm oil",
+  "reason": "Refined Palm Oil is plainly listed.",
+  "product": "Bonn · Bonn Zero Maida Whole Wheat Bread"
+ },
+ {
+  "product_id": "c5da60ec-c9ea-4d3d-a50a-35f9804f91d8",
+  "claim": "Zero Sugar",
+  "source_hash": "c6f51b47c31ca6e4",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Cane sugar in kombucha is the fermentation substrate, so zero sugar for the finished drink is a judgement call, not a clear contradiction.",
+  "product": "Borécha · Borecha Fiji Fruit Punch Zero Sugar Kombucha Seltzer"
+ },
+ {
+  "product_id": "cb37615a-ddd3-48e4-aa9d-a31b46ff561d",
+  "claim": "zero added sugar",
+  "source_hash": "35a207a0c3885c5c",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "The list contains no sugar, only maltodextrin and sweeteners (INS 965, 955), so the reality line is wrong and nothing qualifies.",
+  "product": "Britannia · Britannia Nutrichoice Ragi Millet Cookies | Diabetic Friendly | Maida-free and Sugar-free"
+ },
+ {
+  "product_id": "888dbd0e-b112-4993-ae55-e822dd9787e8",
+  "claim": "No palm oil",
+  "source_hash": "1c8ac447cd97556c",
+  "verdict": "keep",
+  "reality": "Lists refined palmolein oil",
+  "reason": "Refined Palmolein Oil is plainly listed.",
+  "product": "Britannia Breads · Britannia Breakfast Slice White Bread"
+ },
+ {
+  "product_id": "a663528a-f3d6-4614-b111-3d71455679d8",
+  "claim": "No Maida",
+  "source_hash": "2caffabf2e5d6f45",
+  "verdict": "keep",
+  "reality": "Lists refined wheat flour (maida) as an ingredient",
+  "reason": "'Refined WHEAT FLOUR (maida)' is explicitly listed against 'No Maida'.",
+  "product": "Britannia Breads · Britannia Brown Bread"
+ },
+ {
+  "product_id": "2ceea5d7-6bb0-4e93-b79d-25c22dad5182",
+  "claim": "No Palm Oil",
+  "source_hash": "77765fc313fa77f5",
+  "verdict": "keep",
+  "reality": "Lists refined palm oil",
+  "reason": "Refined Palm Oil is plainly listed.",
+  "product": "Britannia Breads · Britannia Fruit Bun"
+ },
+ {
+  "product_id": "5acd8b8d-e266-4002-97ca-b0231ea06b43",
+  "claim": "no palm oil",
+  "source_hash": "a23378461c5ff39b",
+  "verdict": "keep",
+  "reality": "Lists refined palmolein, a palm oil fraction",
+  "reason": "Label spells it 'Palmolien' but it is clearly palmolein.",
+  "product": "Britannia Breads · Britannia Vita Rich Sandwich Premium White Bread"
+ },
+ {
+  "product_id": "38f8f0bd-c85b-47a9-b0d6-964cc8b34042",
+  "claim": "zero maida",
+  "source_hash": "935bdd3d82c7ec23",
+  "verdict": "keep",
+  "reality": "Lists refined wheat flour (maida) as first ingredient",
+  "reason": "Maida is the first ingredient against 'zero maida'.",
+  "product": "CakeZone · Cakezone Fruit Cake Rusk"
+ },
+ {
+  "product_id": "e60411ad-869e-42bb-876f-f540ef6caf58",
+  "claim": "No Preservatives",
+  "source_hash": "1c5134b4b43db4ae",
+  "verdict": "keep",
+  "reality": "Lists calcium propionate (INS 282) as preservative",
+  "reason": "Calcium propionate is explicitly listed as a preservative.",
+  "product": "CakeZone · Cakezone Milk Rusk"
+ },
+ {
+  "product_id": "e60411ad-869e-42bb-876f-f540ef6caf58",
+  "claim": "Zero Maida",
+  "source_hash": "1c5134b4b43db4ae",
+  "verdict": "keep",
+  "reality": "Lists refined wheat flour as first ingredient",
+  "reason": "Refined wheat flour is the first ingredient against 'Zero Maida'.",
+  "product": "CakeZone · Cakezone Milk Rusk"
+ },
+ {
+  "product_id": "0df89358-6d1a-48d5-a65e-6e55d1f0f304",
+  "claim": "No Added Preservatives",
+  "source_hash": "c2927bd99f849652",
+  "verdict": "keep",
+  "reality": "Lists sodium benzoate (INS 211) in its pastes",
+  "reason": "INS 211 is listed in the chilli and ginger paste sub-ingredients.",
+  "product": "Chillfill · Chillfill Aloo Tikki"
+ },
+ {
+  "product_id": "e6a29bdb-2a01-472c-90d5-0e8aa949c7bc",
+  "claim": "NO ADDED PRESERVATIVES",
+  "source_hash": "e58954bac909d805",
+  "verdict": "keep",
+  "reality": "Lists sodium benzoate (INS 211) in its garlic paste",
+  "reason": "INS 211 is listed in the garlic paste sub-ingredient.",
+  "product": "Chillfill · Chillfill Chilly Garlic Potato Bites"
+ },
+ {
+  "product_id": "1d63f34f-fee3-4c85-995b-37892bad81e4",
+  "claim": "NO ADDED PRESERVATIVES",
+  "source_hash": "e473d44b58935639",
+  "verdict": "keep",
+  "reality": "Lists sorbic acid (INS 200) in its processed cheese",
+  "reason": "Preservative INS 200 is listed in the processed cheese sub-ingredient.",
+  "product": "Chillfill · Chillfill Potato Cheese Shots"
+ },
+ {
+  "product_id": "540118b9-7c1b-4592-82ed-fbf55283062b",
+  "claim": "NO Added Refined Sugar",
+  "source_hash": "dbaad8c3d2a15bf4",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Claim is 'no added refined sugar'; the list names only jaggery and liquid glucose, which the rubric says do not contradict it.",
+  "product": "CookieMan · CookieMan Ragi Millet Jaggery Cookies | Wholesome & Crunchy"
+ },
+ {
+  "product_id": "540118b9-7c1b-4592-82ed-fbf55283062b",
+  "claim": "NO MAIDA",
+  "source_hash": "dbaad8c3d2a15bf4",
+  "verdict": "keep",
+  "reality": "Lists refined wheat flour (maida) as first ingredient",
+  "reason": "Maida is the first ingredient against 'NO MAIDA'.",
+  "product": "CookieMan · CookieMan Ragi Millet Jaggery Cookies | Wholesome & Crunchy"
+ },
+ {
+  "product_id": "540118b9-7c1b-4592-82ed-fbf55283062b",
+  "claim": "SUGAR FREE",
+  "source_hash": "dbaad8c3d2a15bf4",
+  "verdict": "keep",
+  "reality": "Lists jaggery and liquid glucose",
+  "reason": "Brand's own 'SUGAR FREE' claim on pack; jaggery (12%) and liquid glucose are listed.",
+  "product": "CookieMan · CookieMan Ragi Millet Jaggery Cookies | Wholesome & Crunchy"
+ },
+ {
+  "product_id": "9bf6697e-090c-41c5-bf9a-1b8047b9d931",
+  "claim": "NO ADDED SUGAR",
+  "source_hash": "688f25b5ba87c4b4",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "A sugar-free product whose list shows sugar and no sweetener: likely the regular variant's label.",
+  "product": "Cream Bell · Cream Bell Sugarfree Butterscotch Ice Cream Cup"
+ },
+ {
+  "product_id": "5eb17c41-bbe8-4a7f-896e-631bf3f8194d",
+  "claim": "zero maida",
+  "source_hash": "a94bb4a08a8c6478",
+  "verdict": "keep",
+  "reality": "Lists refined wheat flour as first ingredient",
+  "reason": "Refined wheat flour is the first ingredient of a cookie named 'Zero Maida'.",
+  "product": "Cremica · Cremica Coconut Zero Maida Cookies"
+ },
+ {
+  "product_id": "c49715fc-956c-4ab2-965f-418aae000c23",
+  "claim": "zero added sugar",
+  "source_hash": "734086ed6a845349",
+  "verdict": "keep",
+  "reality": "Lists sugar as an ingredient",
+  "reason": "Brand's own 'zero added sugar' claim; sugar is a listed ingredient.",
+  "product": "Curryit · Curryit Paneer And Chicken Butter Masala"
+ },
+ {
+  "product_id": "a98ab062-acab-4386-a66a-fd43bf669bac",
+  "claim": "No added sugar",
+  "source_hash": "c3c6b80bdb9f736d",
+  "verdict": "keep",
+  "reality": "Lists sugar in the seasoning sauce",
+  "reason": "Brand's own 'No added sugar' claim; sugar is listed in the seasoning sauce.",
+  "product": "Daebak · Daebak Korean Ghost Pepper Cheese Spicy Chicken Flavour Dry Black Instant Noodles Cup Non Veg"
+ },
+ {
+  "product_id": "16abb3f5-1342-46e3-8567-2a9fbe79f491",
+  "claim": "No artificial flavour",
+  "source_hash": "517a3de1c2b7e0c6",
+  "verdict": "keep",
+  "reality": "Lists artificial flavouring substances (orange)",
+  "reason": "Artificial flavouring substances are explicitly listed against 'No artificial flavour'.",
+  "product": "Del Monte · Del Monte Four Season Mixed Fruit Juice Drink"
+ },
+ {
+  "product_id": "4c653e22-6ed7-470a-a3d2-efe71ff9a619",
+  "claim": "no preservatives",
+  "source_hash": "8fc42287d8552f85",
+  "verdict": "keep",
+  "reality": "Lists sodium nitrite (INS 250) as colour fixative",
+  "reason": "INS 250 is sodium nitrite, a rubric preservative; the original line wrongly leaned on the antioxidant.",
+  "product": "Deli Chic · Deli Chic Chicken Sandwich Ham Slices"
+ },
+ {
+  "product_id": "875e350e-8ca9-42d9-8442-a337da72de2a",
+  "claim": "No Preservatives",
+  "source_hash": "0a0e1ae3f876ed93",
+  "verdict": "keep",
+  "reality": "Lists sodium nitrite (INS 250) as colour fixative",
+  "reason": "INS 250 is sodium nitrite, a rubric preservative; the antioxidant 316 is ignored.",
+  "product": "Deli Chic · Deli Chic Chicken Tandoori Smoked Breast"
+ },
+ {
+  "product_id": "b525ff63-a50e-47ec-b339-c66aa61ad685",
+  "claim": "zero added sugar",
+  "source_hash": "a36e6a78ac83815e",
+  "verdict": "keep",
+  "reality": "Lists honey as an ingredient",
+  "reason": "Brand's own 'zero added sugar' claim; honey is a listed sweetener (dates alone would not count).",
+  "product": "Delulu · Delufling 13G Protein Bar (Dark Choco Cranberry)"
+ },
+ {
+  "product_id": "6aa9d294-a4a7-4902-bbdf-da00dbe2993b",
+  "claim": "Gluten Free",
+  "source_hash": "8bfc33c9916d3edd",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Same unreliable ingredient list as n=21 (no coffee in a cappuccino cookie), so wheat flour cannot be trusted.",
+  "product": "Ditch The Guilt · Ditch The Guilt Cappuccino Cookies"
+ },
+ {
+  "product_id": "6aa9d294-a4a7-4902-bbdf-da00dbe2993b",
+  "claim": "No Maida",
+  "source_hash": "8bfc33c9916d3edd",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "The list is unreliable (see n=21) and says only 'Wheat Flour', not clearly maida.",
+  "product": "Ditch The Guilt · Ditch The Guilt Cappuccino Cookies"
+ },
+ {
+  "product_id": "6aa9d294-a4a7-4902-bbdf-da00dbe2993b",
+  "claim": "No Wheat",
+  "source_hash": "8bfc33c9916d3edd",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "The ingredient list has no coffee for a cappuccino cookie and looks incomplete or wrong, so wheat flour on a keto, no-wheat, almond-flour cookie is unreliable.",
+  "product": "Ditch The Guilt · Ditch The Guilt Cappuccino Cookies"
+ },
+ {
+  "product_id": "23975443-b960-46bc-bea4-c1564ed7edbc",
+  "claim": "gluten free",
+  "source_hash": "3498d1f38a7a53dc",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Wheat is not listed; soy sauce is only assumed to contain wheat.",
+  "product": "DOKi · DOKi Karnataka Nati Chicken Jerky"
+ },
+ {
+  "product_id": "566683c1-57c9-4a03-aecb-d1e30898daa2",
+  "claim": "Gluten Free",
+  "source_hash": "a57bb65d3ccf518e",
+  "verdict": "keep",
+  "reality": "Lists wheat in its soy sauce and rice wine",
+  "reason": "Wheat is explicitly listed within the teriyaki sauce components against 'Gluten Free'.",
+  "product": "DOKi · DOKi Tokyo Teriyaki Buffalo Jerky"
+ },
+ {
+  "product_id": "18d36096-307f-4ff7-821f-01e76cc07d21",
+  "claim": "No Palm Oil",
+  "source_hash": "296fb7f8260d1790",
+  "verdict": "keep",
+  "reality": "Lists edible vegetable oil (palm)",
+  "reason": "Claim is in the product name and palm is named in the oil.",
+  "product": "English Oven · English Oven Premium White bread| No Palm Oil"
+ },
+ {
+  "product_id": "64892ffa-2bd9-4fa9-b113-929afa6aebcc",
+  "claim": "no sugar added",
+  "source_hash": "e15ed99f5ec17209",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Editor: tabletop sweetener, dextrose is its bulking agent.",
+  "product": "Equal · Equal Stevia Plant Based Natural Sweetener Truly Natural Sweetness From Stevia Zero Calorie (Jar)"
+ },
+ {
+  "product_id": "d99be1a2-9c74-4cd2-b090-6a2e4b463868",
+  "claim": "No Artificial Flavours",
+  "source_hash": "0afeb735cd5fe26d",
+  "verdict": "keep",
+  "reality": "Lists artificial flavouring substance (kewra)",
+  "reason": "'Artificial Flavouring Substance (kewra)' is explicitly listed against 'No Artificial Flavours'.",
+  "product": "Everest · Everest Eazy Chef Chicken Biryani Mix"
+ },
+ {
+  "product_id": "f97678fa-d07a-4658-89d7-30863e2f68e4",
+  "claim": "NO Added Refined Sugar",
+  "source_hash": "db1a184607f32e15",
+  "verdict": "keep",
+  "reality": "Lists sugar as an ingredient",
+  "reason": "Brand's own 'No Added Refined Sugar' claim; the list names plain sugar.",
+  "product": "Everyday · Everyday Zero Maida Multi Grain Bread"
+ },
+ {
+  "product_id": "cef04585-a75f-477f-a9c2-7e6983a61b54",
+  "claim": "No Preservatives",
+  "source_hash": "64181313f479c739",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "INS 330 and 296 are acid regulators under the rubric, even though the label groups them under 'Preservatives'.",
+  "product": "Farmley · Farmley Apple Spice Roasted Cashews (Kaju) Snacks"
+ },
+ {
+  "product_id": "07f16ce3-cf10-4fc5-bf19-e73ae68a857b",
+  "claim": "No Artificial Colour",
+  "source_hash": "c3206db1ec965ae8",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "A sugar-free product whose list shows sugar and no sweetener: likely the regular variant's label.",
+  "product": "Fast&up · Fast&Up Reload Zero Sugar Mango Flavor Energy Drink with Electrolytes"
+ },
+ {
+  "product_id": "07f16ce3-cf10-4fc5-bf19-e73ae68a857b",
+  "claim": "Zero Sugar",
+  "source_hash": "c3206db1ec965ae8",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Zero Sugar / 'without the calories' pack with sugar second and no sweetener at all; the list looks like a different variant's, so it is unreliable.",
+  "product": "Fast&up · Fast&Up Reload Zero Sugar Mango Flavor Energy Drink with Electrolytes"
+ },
+ {
+  "product_id": "b32edbf8-d99c-44b2-b7b8-e7899aa1e864",
+  "claim": "no palm oil",
+  "source_hash": "818d94578bca3217",
+  "verdict": "keep",
+  "reality": "Lists palm kernel oil (6.1%)",
+  "reason": "Palm kernel oil is a listed ingredient and counts under the rubric.",
+  "product": "Fit & Flex · Fit & Flex Granola Happy Berries"
+ },
+ {
+  "product_id": "48a17f68-61c5-41b7-b599-144fe02f417d",
+  "claim": "NO ARTIFICIAL COLOURING",
+  "source_hash": "5339dd1805782101",
+  "verdict": "keep",
+  "reality": "Lists colourant ponceau 4R (synthetic)",
+  "reason": "Ponceau 4R is a synthetic colour and is listed as a colourant, against 'No Artificial Colouring'.",
+  "product": "Fruit-Tella Imported · Fruit-Tella 2 In 1 Strawberry & Banana Flavour Chewy Candy"
+ },
+ {
+  "product_id": "c3c5a823-4719-4973-bf1d-e2b59db7d466",
+  "claim": "zero sugar",
+  "source_hash": "74c3b3920c9eb6b5",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Zero Sugar pack whose list shows sugar (5.4%) and dextrose with no sweetener, matching a regular Gatorade formula, so likely the wrong variant's label.",
+  "product": "Gatorade · Gatorade Blue Bolt Zero Sugar Energy Drink"
+ },
+ {
+  "product_id": "58de786f-bf08-4581-a269-eb9e400ff778",
+  "claim": "Zero Sugar",
+  "source_hash": "d1a18ea291e1fce2",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Pack claims 'Non-Caloric Sweeteners' yet the list names none and shows sugar, so the list is inconsistent with this pack.",
+  "product": "Gatorade · Gatorade Blue Bolt Zero Sugar Energy Drink"
+ },
+ {
+  "product_id": "6345ef56-3e0b-47b5-874c-6cc6056151e5",
+  "claim": "zero sugar",
+  "source_hash": "54c19f65c683aff0",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Zero Sugar pack whose list shows sugar and dextrose with no sweetener, matching a regular Gatorade formula, so likely the wrong variant's label.",
+  "product": "Gatorade · Gatorade Lemon Zero Sugar Energy Drink | Refreshing & Convenient"
+ },
+ {
+  "product_id": "aac38702-163f-4e71-83b8-c121ce0d9fce",
+  "claim": "Gluten Free",
+  "source_hash": "35de4d7b9d3fa62b",
+  "verdict": "keep",
+  "reality": "Lists sooji (semolina) as its first ingredient",
+  "reason": "Sooji is a wheat semolina and is the first ingredient, against 'Gluten Free'.",
+  "product": "Gladful · Gladful Ghee and Millets Upma | Nutritious"
+ },
+ {
+  "product_id": "4b780ccc-43ff-4d50-a4c1-9e58f437d80b",
+  "claim": "No added flavour",
+  "source_hash": "95786e2502e2574e",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Only nature-identical flavouring substances are listed, which the flavour rule says to drop.",
+  "product": "Glucon D · Glucon-D Tangy Orange with 3 Benefits of Energy, Recovery, and Immunity"
+ },
+ {
+  "product_id": "3d474830-f2df-451a-821e-d944160e953f",
+  "claim": "No Added Sugar",
+  "source_hash": "cf0424802b8aa577",
+  "verdict": "keep",
+  "reality": "Lists sugar powder as an ingredient",
+  "reason": "Brand's own 'No Added Sugar' claim; sugar powder is a listed ingredient.",
+  "product": "GM Foods · GM Foods Rice Puff"
+ },
+ {
+  "product_id": "39ce6d68-b7ba-41b2-82fc-a50b857f48f9",
+  "claim": "No Added Preservatives",
+  "source_hash": "6833af4edd58e4d0",
+  "verdict": "keep",
+  "reality": "Lists preservatives INS 211 and INS 202",
+  "reason": "Benzoate and sorbate are listed as preservatives.",
+  "product": "GO Desi · Badam Katli 61% Almond| Burfi | Sweet by GO DESi"
+ },
+ {
+  "product_id": "5fb44bc8-fb9f-4f55-ac14-1e83dad53372",
+  "claim": "gluten free",
+  "source_hash": "f500c2f1b26e4480",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Wheat fibre is a processed wheat derivative that can meet gluten-free limits, so this is a judgement call.",
+  "product": "GO Desi · Go Desi Desi POPz Chilli Guava POPz"
+ },
+ {
+  "product_id": "d647f803-b95d-4d76-8743-ee742c69b9c8",
+  "claim": "Gluten Free",
+  "source_hash": "c1a79a5c9c817d34",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Wheat fibre is a processed wheat derivative that can meet gluten-free limits, so this is a judgement call.",
+  "product": "GO Desi · Go Desi Desi POPz Chilli Orange POPz Candy"
+ },
+ {
+  "product_id": "204ac454-fd1d-4f4f-ae49-cd6403eba5bf",
+  "claim": "Sugar Free",
+  "source_hash": "7913a4bb08e9e9ff",
+  "verdict": "keep",
+  "reality": "Lists jaggery and liquid glucose",
+  "reason": "Brand's own 'Sugar Free' claim; jaggery and liquid glucose are listed.",
+  "product": "GO Desi · Kaju Kishmish Coconut Barfi, 8 Pcs | Burfi | Sweets | By GO DESi"
+ },
+ {
+  "product_id": "4b9246e4-49c4-4061-99fb-44916502aec8",
+  "claim": "NO REFINED SUGAR",
+  "source_hash": "85a2017e18d29987",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Claim is 'no refined sugar'; jaggery powder and date powder alone do not contradict it.",
+  "product": "Goat Life · GOAT Life Choco Hazelnut High-Protein Overnight Oats"
+ },
+ {
+  "product_id": "9ad01fb2-6a40-4a49-87d4-77daaa1a8179",
+  "claim": "no added preservatives",
+  "source_hash": "ad8b18221f7806cc",
+  "verdict": "keep",
+  "reality": "Lists preservative INS 282 in the bread crumb",
+  "reason": "Preservative INS 282 is listed in the bread crumb sub-ingredient.",
+  "product": "Godrej Yummiez · Godrej Yummiez Chicken Seekh Kabab"
+ },
+ {
+  "product_id": "c635651d-5813-4e52-a52e-695bbe279fee",
+  "claim": "No added preservatives",
+  "source_hash": "a737eea54cf7b2a2",
+  "verdict": "keep",
+  "reality": "Lists added Class II preservative (E282)",
+  "reason": "The label itself says 'Added Class II Preservative' against 'no added preservatives'.",
+  "product": "Goeld · Goeld Vegetable Spring Roll | Crispy Snack | No Added Preservatives"
+ },
+ {
+  "product_id": "61a3c080-3e79-44bb-96fd-663f6ba9dc3e",
+  "claim": "No preservatives",
+  "source_hash": "35a8d12221b06bae",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "TBHQ is treated as an antioxidant under the rubric, not a preservative.",
+  "product": "Gold Winner · Gold Winner Refined Rice Bran Oil | Pouch"
+ },
+ {
+  "product_id": "123a3e9f-0b62-40af-993e-07d975ff8920",
+  "claim": "No Palm Oil",
+  "source_hash": "a425414d7b87fc5b",
+  "verdict": "keep",
+  "reality": "Lists palmolein among its edible vegetable oils",
+  "reason": "Palmolein is named in the oil blend.",
+  "product": "Granamma · Granamma Thattai Nippattu | South Indian Crunch"
+ },
+ {
+  "product_id": "e0dc7484-4645-42a5-be09-c3cf95a01567",
+  "claim": "No Added Preservative",
+  "source_hash": "af7e8263a992372d",
+  "verdict": "keep",
+  "reality": "Lists an unnamed 'Preservative' among its ingredients",
+  "reason": "A generic 'Preservative' sits in a clean ingredient list and counts like a bare Class II listing.",
+  "product": "Haldiram's · Haldiram's Malabari Paratha"
+ },
+ {
+  "product_id": "2e709e39-a705-4b86-b28d-35c49ab7cced",
+  "claim": "no added flavouring substance",
+  "source_hash": "2eca204a0c863664",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "The 'no added colour and flavouring' statement sits inside the ice cream part of a garbled list and may not cover the cone that has the artificial vanilla.",
+  "product": "Hangyo · Hangyo Belgian Chocolate Cone | Smooth & Creamy"
+ },
+ {
+  "product_id": "c6804071-0d10-4942-aee6-e609bfafe7a8",
+  "claim": "NO ADDED SUGAR",
+  "source_hash": "0c390823ff5907b0",
+  "verdict": "keep",
+  "reality": "Lists honey as an ingredient",
+  "reason": "Brand's own 'NO ADDED SUGAR' claim; honey is a listed sweetener.",
+  "product": "Happilo · Happilo Celebration Date Bites Tin"
+ },
+ {
+  "product_id": "a4b538a7-b8c2-4be1-9997-2a7986cdaf4d",
+  "claim": "NO ADDED SUGAR",
+  "source_hash": "546b3b498f98cd43",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "List (sugar, liquid glucose, ghee, colours, preservative, no dates) does not fit a pack claiming 'sweetened with dates' and 'no added oils', so it is likely another product's label.",
+  "product": "Happilo · Happilo Pista Dry Fruit | Sweet Tin"
+ },
+ {
+  "product_id": "a4b538a7-b8c2-4be1-9997-2a7986cdaf4d",
+  "claim": "NO CHEMICAL PRESERVATIVES",
+  "source_hash": "546b3b498f98cd43",
+  "verdict": "keep",
+  "reality": "Lists added preservative INS 202 (potassium sorbate)",
+  "reason": "Potassium sorbate is a chemical preservative and is explicitly listed as 'Added Preservative'.",
+  "product": "Happilo · Happilo Pista Dry Fruit | Sweet Tin"
+ },
+ {
+  "product_id": "4d4dd9e9-d40d-46c8-954c-573b32e70325",
+  "claim": "0% TRANS FAT",
+  "source_hash": "67233b5da592152f",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Only hydrogenated vegetable fat is listed, not partially hydrogenated, so it fails the rule.",
+  "product": "Happilo · Happilo Premium Almond Chocolate Krunch Box"
+ },
+ {
+  "product_id": "e91579cc-345c-4d98-839c-14d103022d1a",
+  "claim": "NO ADDED SUGAR",
+  "source_hash": "8377aa8f956c74d8",
+  "verdict": "keep",
+  "reality": "Lists honey as an ingredient",
+  "reason": "Brand's own 'NO ADDED SUGAR' claim; honey is a listed sweetener.",
+  "product": "Happilo · Happilo Premium Date Bites Cranberry Tin"
+ },
+ {
+  "product_id": "515549a4-8113-4058-a6e9-38265ea5a7b1",
+  "claim": "Gluten Free",
+  "source_hash": "73c3eec991dee157",
+  "verdict": "keep",
+  "reality": "Lists refined wheat flour (maida) as an ingredient",
+  "reason": "Refined wheat flour is listed twice against 'Gluten Free'.",
+  "product": "Happilo · Happilo Premium International Party Snack"
+ },
+ {
+  "product_id": "5a781755-dd22-4d6e-abbf-6be9e2b91fbd",
+  "claim": "zero preservatives",
+  "source_hash": "e294f35ad582bd39",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "No INS 282 or INS 200 appears in the ingredient list, so the reality line is wrong.",
+  "product": "Harvest Gold · Harvest Gold - Good Zero- Pure Atta Bread (Zero Preservatives, Zero Palm Oil, Zero Addtives)"
+ },
+ {
+  "product_id": "3a9b1de1-b9e4-4fc0-9e86-3204ba0497a4",
+  "claim": "No Palm Oil",
+  "source_hash": "28d4619700da67b7",
+  "verdict": "keep",
+  "reality": "Lists refined palmolein oil",
+  "reason": "Refined Palmolein Oil is listed (rest of the OCR is just duplicated text).",
+  "product": "Harvest Gold · Harvest Gold White Bread"
+ },
+ {
+  "product_id": "91b5d10b-02f4-4353-8ead-67b35c95fd73",
+  "claim": "NO PALM OIL",
+  "source_hash": "08459a4d4bff4299",
+  "verdict": "keep",
+  "reality": "Lists refined palmolein oil",
+  "reason": "Refined Palmolein Oil is listed in the vegetable oil blend.",
+  "product": "Harvest Gold · Harvest Gold White Bread"
+ },
+ {
+  "product_id": "09985d2e-a38c-421a-9719-957adedcc37f",
+  "claim": "No Palm Oil",
+  "source_hash": "0c6c8a1ea3be3137",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "No palm oil appears in the ingredient list (only sunflower oil), so the reality line is wrong.",
+  "product": "Healthy Master · Healthy Master Jowar Chips"
+ },
+ {
+  "product_id": "b30669bb-3707-4ce7-a319-2e0cc4dd9135",
+  "claim": "gluten free",
+  "source_hash": "58e1d2284254803a",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "'Wheat & Soya' sits at the end of the list and looks like an allergen note rather than an ingredient.",
+  "product": "Healthy Master · Healthy Master Oats Chips"
+ },
+ {
+  "product_id": "a042229b-68a8-4df3-a182-cea8c76f1b42",
+  "claim": "Sugar Free",
+  "source_hash": "f92e5386249e6812",
+  "verdict": "keep",
+  "reality": "Lists sugar as an ingredient",
+  "reason": "Brand's own 'Sugar Free' claim; sugar is a listed ingredient.",
+  "product": "Heka Bites · Heka Bites Roasted Jowar Puffs Cheesy Salsa | Low Calorie & Healthy Snacks"
+ },
+ {
+  "product_id": "7bd3fb05-6931-4d88-9550-519761f2ad2c",
+  "claim": "NO MSG",
+  "source_hash": "95b69c6fafa09686",
+  "verdict": "keep",
+  "reality": "Lists flavour enhancer E621 (monosodium glutamate)",
+  "reason": "E621 is MSG and is listed against 'NO MSG'.",
+  "product": "IFB Fresh Catch · IFB Fresh Catch Fish Finger"
+ },
+ {
+  "product_id": "6b23af33-4b53-40ce-a17c-fd46e6a6b033",
+  "claim": "no artificial coloring",
+  "source_hash": "9895684f750c83f0",
+  "verdict": "keep",
+  "reality": "Lists colour E133 (brilliant blue)",
+  "reason": "E133 brilliant blue is a synthetic colour listed against 'no artificial coloring'.",
+  "product": "Impact Mint · Impact Fresh Spearmint"
+ },
+ {
+  "product_id": "a4141691-42d4-4819-a1b2-17e62ca8c604",
+  "claim": "No added preservatives",
+  "source_hash": "cb01233e19f82710",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "'Milk, Soy, Sulphite and Nut' is an allergen declaration, not an ingredient.",
+  "product": "ITC Master Chef Frozen · ITC Master Chef Chilli Garlic Potato Shots Nuggets | 52 pieces |Party Snack"
+ },
+ {
+  "product_id": "96a40fbe-743b-434b-aa05-13deacf8d505",
+  "claim": "NO ADDED PRESERVATIVES",
+  "source_hash": "8d207cdf8cd7fe31",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "'Milk, Soy and Sulphite' is an allergen declaration, not an ingredient.",
+  "product": "ITC Master Chef Frozen · ITC Master Chef Hara Bhara Kebab | No Added Preservatives | Tawa Cook"
+ },
+ {
+  "product_id": "93452923-a8fe-4978-a264-87903b52d062",
+  "claim": "NO ADDED preservatives",
+  "source_hash": "bb656e3c49e79011",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "'Milk, Soy & Sulphite' is an allergen declaration, not an ingredient.",
+  "product": "ITC Master Chef Frozen · ITC Master Chef Sabudana Tikki | No Onion | No Garlic | 8 pieces"
+ },
+ {
+  "product_id": "74581503-89b6-4cf5-b202-8c8a78609256",
+  "claim": "no artificial flavours",
+  "source_hash": "0e1ee37c756aacd7",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Only natural and nature-identical flavours are listed, not artificial ones.",
+  "product": "Jimmy's · Jimmy's Cocktails Cosmopolitan Mixer | Ready & Convenient"
+ },
+ {
+  "product_id": "ea012cdc-d21c-4828-867e-f9966ab81998",
+  "claim": "Zero Sugar",
+  "source_hash": "6222d9c47ce3c0e5",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Named as regular Indian Tonic Water, while the pack OCR says zero calories and zero carbs; list and claims clearly come from different variants.",
+  "product": "Jimmy's · Jimmy's Indian Tonic Water"
+ },
+ {
+  "product_id": "adea794d-ba42-42c5-8e1e-f56d1937e7b1",
+  "claim": "Zero Sugar",
+  "source_hash": "2d833d6fd73d0d98",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Zero Calories / Zero Carbs tonic with sugar as the only sweetener is implausible and the list is identical to the regular tonic's, so likely the wrong variant's label.",
+  "product": "Jimmy's · Jimmy's Zero Sugar Tonic Water"
+ },
+ {
+  "product_id": "5a8e257a-5068-4b9b-b9b9-8cd3611f0bee",
+  "claim": "Sugar Free",
+  "source_hash": "c4b0709944c9cd58",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "A sugar-free product whose list shows sugar and no sweetener: likely the regular variant's label.",
+  "product": "Jivo · Jivo Fizzy Flavoured Soda Lemon"
+ },
+ {
+  "product_id": "52233c87-9e33-42ce-9c76-9acca4489fb2",
+  "claim": "no added preservatives",
+  "source_hash": "a996a4bbb8dc6665",
+  "verdict": "keep",
+  "reality": "Lists preservatives E202 and E211 in blueberry pulp",
+  "reason": "Sorbate and benzoate codes are listed in the pulp sub-ingredient.",
+  "product": "Joi Farm · Joi Farm Blueberry Probiotic Yogurt Smoothie"
+ },
+ {
+  "product_id": "f4b0381d-c315-478a-a9a5-6b6e6ca7a3c1",
+  "claim": "NO ADDED PRESERVATIVES",
+  "source_hash": "cc76517e2ff41523",
+  "verdict": "keep",
+  "reality": "Lists preservative INS 202 in the mango pulp",
+  "reason": "INS 202 (potassium sorbate) is listed in the mango pulp sub-ingredient.",
+  "product": "Joi Farm · Joi Farm Mango Lassi"
+ },
+ {
+  "product_id": "52638e60-2658-41d9-9a80-0afdbcc60284",
+  "claim": "GLUTEN FREE",
+  "source_hash": "9815e7575da4769f",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "'Nuts, Sesame, Mustard, Wheat, Milk Solids' looks like an allergen declaration and not a true ingredient list.",
+  "product": "K-Pra · K-Pra Nachni Bhakri Peeth"
+ },
+ {
+  "product_id": "c05cd5ce-fef1-48c1-b190-300c6f11bab6",
+  "claim": "No artificial flavours, colours & preservatives",
+  "source_hash": "b05b8c3e4f912af1",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "'Colours & Preservatives' is unnamed and probably the claim text bleeding in; the claim says 'artificial'.",
+  "product": "Kaleva · Kaleva Premium Besan Ladoo"
+ },
+ {
+  "product_id": "a1d4d1c1-0b0b-4be1-afee-81d8cfce71e5",
+  "claim": "NO ARTIFICIAL FLAVOURS, COLOURS & PRESERVATIVES",
+  "source_hash": "24c8b915fe1fdf1b",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "'Colours & Preservatives' is unnamed and probably the claim text bleeding in; the claim says 'artificial'.",
+  "product": "Kaleva · Kaleva Til Besan Laddoo"
+ },
+ {
+  "product_id": "d37715ff-f391-4b68-a937-9c6215a180e6",
+  "claim": "No Added Flavour",
+  "source_hash": "e46f8c060fdda71d",
+  "verdict": "keep",
+  "reality": "Lists added artificial flavouring substances (pistachio, vanilla)",
+  "reason": "'No Added Flavour' is contradicted by an explicit 'Contains Added Flavours (... Artificial Flavouring Substances)' line.",
+  "product": "Karachi Bakery · Kunafa Pistachio Chocolate Bar"
+ },
+ {
+  "product_id": "39fb4590-1dbc-4a05-9cf8-d1fcec08f582",
+  "claim": "No Palm Oil",
+  "source_hash": "708d4e2390f1c906",
+  "verdict": "keep",
+  "reality": "Lists edible vegetable oil (palmolein)",
+  "reason": "Claim is in the name and palmolein is named in the oil.",
+  "product": "Kellogg's · Kellogg's Crunchy Almond Berry Crumble Granola |12-In-1 Power Breakfast | No Maida No Palm Oil"
+ },
+ {
+  "product_id": "270b0ed8-31fe-4bc8-9a53-e6261da104d6",
+  "claim": "No Maida",
+  "source_hash": "2ea579e8c7fded2d",
+  "verdict": "keep",
+  "reality": "Lists refined wheat flour (maida) in its multigrain mix",
+  "reason": "Maida is explicitly listed against 'No Maida', which is in the product name.",
+  "product": "Kellogg's · Kellogg's Millet Muesli  with 84% Fruit, Seed and Multigrain|Power Breakfast|No Maida No Palm Oil"
+ },
+ {
+  "product_id": "b87cf0b9-9b2a-4a25-b221-5d994f554eeb",
+  "claim": "No Maida",
+  "source_hash": "bcee833f5055c613",
+  "verdict": "keep",
+  "reality": "Lists refined wheat flour (maida) at 24.6%",
+  "reason": "Maida is explicitly listed at 24.6% against 'No Maida'.",
+  "product": "Kellogg's · Kellogg's Multigrain Chocos Moons & Stars"
+ },
+ {
+  "product_id": "aeccb80b-88dd-431c-88cd-89093e876ae2",
+  "claim": "No added MSG",
+  "source_hash": "1e9c9fcaa9e885c5",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "E635 is a ribonucleotide and not MSG, so the MSG rule says to drop.",
+  "product": "Kettle Studio · Kettle Studio Lime & Chilli Air Fried Potato Chips"
+ },
+ {
+  "product_id": "c3df1df3-1c81-4698-9e72-4e5a26f4fe97",
+  "claim": "No Added Sugar",
+  "source_hash": "2353d63755cffb5c",
+  "verdict": "keep",
+  "reality": "Lists cane sugar as an ingredient",
+  "reason": "Brand's own 'No Added Sugar' claim; cane sugar is a listed ingredient.",
+  "product": "Khari Foods · Khari Foods Blueberry Dried"
+ },
+ {
+  "product_id": "41099662-6cea-46b9-a809-dfecc0fa9486",
+  "claim": "no refined sugar",
+  "source_hash": "5abd5463ea392ff9",
+  "verdict": "keep",
+  "reality": "Lists sugar as an ingredient",
+  "reason": "Brand's own 'no refined sugar' claim; the list names plain sugar.",
+  "product": "Khari Foods · Khari Foods Dried Strawberries | Premium Berries | On the go Snack"
+ },
+ {
+  "product_id": "2950dba4-dcb4-4ebc-a134-464b4fbb909d",
+  "claim": "No Added Sugar",
+  "source_hash": "d0fd41a876dc229b",
+  "verdict": "keep",
+  "reality": "Lists sugar as an ingredient",
+  "reason": "Brand's own 'No Added Sugar' claim; sugar is a listed ingredient.",
+  "product": "Khari Foods · Khari Foods Premium Berries Dried Trail Mix | Cranberry, Blueberries, Black Raisins, Strawberries"
+ },
+ {
+  "product_id": "879d1820-6ce3-4fce-8269-5a416be9cca0",
+  "claim": "No Added Sugar",
+  "source_hash": "79205bd91ddba946",
+  "verdict": "keep",
+  "reality": "Lists cane sugar as an ingredient",
+  "reason": "Brand's own 'No Added Sugar' claim; cane sugar is a listed ingredient.",
+  "product": "Khari Foods · Khari Foods Premium Blueberries Dried | Antioxidants Rich | Sweet & Delicious"
+ },
+ {
+  "product_id": "2a69a34b-9a1c-4d5d-88b1-91dfaabda572",
+  "claim": "No Added Sugar",
+  "source_hash": "171bcb85ab1bc256",
+  "verdict": "keep",
+  "reality": "Lists cane sugar as an ingredient",
+  "reason": "Brand's own 'No Added Sugar' claim; cane sugar is a listed ingredient.",
+  "product": "Khari Foods · Khari Foods Premium Dried Cranberries | Antioxidants | Juicy & Delicious for Kids & Adults"
+ },
+ {
+  "product_id": "94d0025a-86f0-4857-8a9e-b05a26b4a5d2",
+  "claim": "No Refined Sugar",
+  "source_hash": "cc0a8b135bab0d80",
+  "verdict": "keep",
+  "reality": "Lists sugar (5%-8%) as an ingredient",
+  "reason": "Brand's own 'No Refined Sugar' claim; the list names plain sugar.",
+  "product": "Khari Foods · Khari Foods Premium Mango Dried Fruit | On the go Snack"
+ },
+ {
+  "product_id": "2af86896-acfe-4788-8cad-9bb0e00f6ddd",
+  "claim": "no added sugar",
+  "source_hash": "722a3192b87ece9b",
+  "verdict": "keep",
+  "reality": "Lists sugar as an ingredient",
+  "reason": "Brand's own 'no added sugar' claim; sugar is a listed ingredient.",
+  "product": "Kissan · Kissan Chatpati Hari Chutney Doy"
+ },
+ {
+  "product_id": "cae60377-3383-4387-b726-17c37485a2d1",
+  "claim": "NO PRESERVATIVES",
+  "source_hash": "4d2cfc632f1b0688",
+  "verdict": "keep",
+  "reality": "Lists preservative INS 211 (sodium benzoate)",
+  "reason": "Preservative (INS 211) is explicitly listed.",
+  "product": "Kitchen Secret · Kitchen Secret Aglio e Olio"
+ },
+ {
+  "product_id": "d77649c6-5002-4b04-be43-2a00342dd250",
+  "claim": "Gluten free",
+  "source_hash": "bd5385bc490c31a6",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "'Gluten free' appears only in the retailer field and not in the brand's own claims.",
+  "product": "KLAW · Klaw Korean Kick | Sprouted Moong & Jowar Sticks | Baked | No Palm Oil | High Protein"
+ },
+ {
+  "product_id": "b713958a-da8d-4631-aefb-1cf1f7373087",
+  "claim": "no added msg",
+  "source_hash": "31a17b1769934fd5",
+  "verdict": "keep",
+  "reality": "Lists flavour enhancer E621 (monosodium glutamate)",
+  "reason": "E621 is MSG and is listed against 'no added msg'.",
+  "product": "KOKA · KOKA Oriental Instant Noodles Chicken"
+ },
+ {
+  "product_id": "84d22ed8-3c53-4d92-84c1-d11668f11758",
+  "claim": "No MSG",
+  "source_hash": "394338e1c80ae889",
+  "verdict": "keep",
+  "reality": "Lists flavour enhancer E621 (monosodium glutamate)",
+  "reason": "E621 is MSG and is listed against 'No MSG'.",
+  "product": "KOKA · KOKA Oriental Instant Noodles Spicy Stir Fried"
+ },
+ {
+  "product_id": "a03f7d8c-007e-4aad-991e-926e2fb346cf",
+  "claim": "NO SYNTHETIC COLOURS",
+  "source_hash": "23f64a967015b8dd",
+  "verdict": "keep",
+  "reality": "Lists colours INS 102, 110, 122, 132 and 133",
+  "reason": "Several synthetic colours are listed against 'No Synthetic Colours'.",
+  "product": "Kwality · Kwality Fruitrings - Fruit Flavored Rings With Exciting Flavor Of Mango"
+ },
+ {
+  "product_id": "22981f06-00d5-4d81-8c24-6f29673b4cbd",
+  "claim": "0% Maida",
+  "source_hash": "a06f06f9e9994f8e",
+  "verdict": "keep",
+  "reality": "Lists refined wheat flour as an ingredient",
+  "reason": "Refined wheat flour is explicitly listed against '0% Maida'.",
+  "product": "Let's try · Let'S Try Fruits Cake Rusk"
+ },
+ {
+  "product_id": "2380712b-81ab-4588-9a3b-11303d543321",
+  "claim": "no added sugar",
+  "source_hash": "091f247615432951",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Single OCR claim on a standard sugar-first Lindt list; likely a misread or other-variant claim, too doubtful to name Lindt.",
+  "product": "Lindt · Lindt Extra Creamy Dark Tablet"
+ },
+ {
+  "product_id": "24d94a4e-90a7-4419-a485-776f404796e7",
+  "claim": "No Artificial Sweetener",
+  "source_hash": "d9fdd669a0bfb680",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "INS 960 is a steviol glycoside, a plant-derived sweetener that is not clearly an artificial one.",
+  "product": "Liquid I.V. · Liquid I.V. Hydration Multiplier - Brazilian Orange|3 Sticks - 1.5 Ltrs|Hydration Drink Mix"
+ },
+ {
+  "product_id": "262cb4d6-31a8-45cd-ae98-7c3792cead79",
+  "claim": "No Artificial Sweeteners",
+  "source_hash": "973e3511b7414aa3",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "INS 960 is a steviol glycoside, a plant-derived sweetener that is not clearly an artificial one.",
+  "product": "Liquid I.V. · Liquid I.V.Hydration Multiplier - Lemon Lime|3 Sticks - 1.5 Ltrs| Hydration Drink Mix"
+ },
+ {
+  "product_id": "e8140d46-99c8-40be-bc4d-8236645cbeb7",
+  "claim": "All natural",
+  "source_hash": "aaee3f9cc9a8795b",
+  "verdict": "keep",
+  "reality": "Lists synthetic colour INS 102 and preservative INS 211",
+  "reason": "'All natural' is contradicted by an explicitly declared permitted synthetic food colour and a Class II preservative.",
+  "product": "Local Soda · Local All Natutal Orange Soda"
+ },
+ {
+  "product_id": "c5d05182-5aa5-4789-ae2f-a7ce3ba3216b",
+  "claim": "no added sugar",
+  "source_hash": "1c6078223e77dc5b",
+  "verdict": "keep",
+  "reality": "Lists sugar as an ingredient",
+  "reason": "Brand's own 'no added sugar' claim; sugar is listed twice.",
+  "product": "Mamie Yova · Mamie Yova Deliciously French Fruit Yogurt- Mango"
+ },
+ {
+  "product_id": "ef45448f-9cd1-448f-87f0-ebd907c20dc1",
+  "claim": "No Added Sugar",
+  "source_hash": "5b40ba9a5f763930",
+  "verdict": "keep",
+  "reality": "Lists sugar as an ingredient",
+  "reason": "Brand's own 'No Added Sugar' claim; sugar is listed twice.",
+  "product": "Mamie Yova · Mamie Yova French Yogurt- Blueberry"
+ },
+ {
+  "product_id": "c6d9a0ae-f7fc-475e-a807-b1d55c04c1f3",
+  "claim": "NO ADDED SUGAR",
+  "source_hash": "2a4ada1ba4be7873",
+  "verdict": "keep",
+  "reality": "Lists sugar as an ingredient",
+  "reason": "Brand's own 'NO ADDED SUGAR' claim; sugar is a listed ingredient.",
+  "product": "Mamie Yova · Mamie Yova Yo Pop yogurt Drink Mango"
+ },
+ {
+  "product_id": "99f7b546-78e1-4bfa-aab7-a3424cf46f1b",
+  "claim": "No Palm Oil",
+  "source_hash": "7b8ca8a22711e9ed",
+  "verdict": "keep",
+  "reality": "Lists palm oil in the noodles",
+  "reason": "Palm Oil is plainly listed in the noodle ingredients.",
+  "product": "MasterChow · MasterChow Chilli Garlic Cup Noodles"
+ },
+ {
+  "product_id": "cd4e3b98-250d-42a0-b811-5ee8eca456b8",
+  "claim": "No Preservatives",
+  "source_hash": "6c3fddb6da0162f1",
+  "verdict": "keep",
+  "reality": "Lists potassium sorbate (INS 202) in fig and date paste",
+  "reason": "Potassium Sorbate is named in the paste sub-ingredient.",
+  "product": "Max Protein · Rite Bite Fig & Date Fruitfill Fiber Energy Bar"
+ },
+ {
+  "product_id": "dfcf2ea7-7cba-4e3c-8a4e-576b3981a077",
+  "claim": "Zero Added Sugar",
+  "source_hash": "078e78e573aaa0ef",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "List splices several assorted-pack flavours, so it is unclear which bar carries the claim; maltitol and no-added-sugar compound do not count.",
+  "product": "Max Protein · RiteBite Max Protein 10g Protein Bar Daily Assorted (Pack Of 6)"
+ },
+ {
+  "product_id": "c5add992-132d-418e-abe6-bfc6365d66b4",
+  "claim": "Zero Added Sugar",
+  "source_hash": "6bb3eaf40f4b6875",
+  "verdict": "keep",
+  "reality": "Lists sugar in the dark compound chocolate",
+  "reason": "Brand's own 'Zero Added Sugar' claim; sugar is a listed ingredient of the compound chocolate.",
+  "product": "Max Protein · Ritebite Max Protein 5g Protein Bar Choco Almond Bytes"
+ },
+ {
+  "product_id": "bda34144-9067-4d18-afa0-f07faec3f4f2",
+  "claim": "no added sugar",
+  "source_hash": "7aa90c6fe908bc13",
+  "verdict": "keep",
+  "reality": "Lists sugar and invert syrup as ingredients",
+  "reason": "Claims no added sugar but sugar and invert syrup are listed.",
+  "product": "Max Protein · Ritebite Max Protein Premium Biscuit Cookies Assorted Pack Of 6"
+ },
+ {
+  "product_id": "901007d8-d837-4431-8271-aad3fffa1ea9",
+  "claim": "No added Preservatives",
+  "source_hash": "0b018c303591b3d8",
+  "verdict": "keep",
+  "reality": "Lists preservative INS 211 in its tomato ketchup",
+  "reason": "Preservative INS 211 is listed in the ketchup sub-ingredient.",
+  "product": "McCain · McCain Cheese Pizza Mini Samosa | Crispy Snack"
+ },
+ {
+  "product_id": "35e36f93-a890-45a5-9931-dc0f9e57b494",
+  "claim": "No added Sugar",
+  "source_hash": "c063082af121289f",
+  "verdict": "keep",
+  "reality": "Lists dextrose and sugar as ingredients",
+  "reason": "Claims no added sugar but dextrose (breadcrumb) and sugar (batter) are listed.",
+  "product": "McCain · McCain Crispy Onion Rings | Ready To Cook"
+ },
+ {
+  "product_id": "6c60473d-bb47-4c7c-98bd-3e11ad65756a",
+  "claim": "PALM OIL FREE",
+  "source_hash": "51bd53be46b4470c",
+  "verdict": "keep",
+  "reality": "Lists palmolein oil among its vegetable oils",
+  "reason": "'Palm oil free' is the same claim and palmolein is named.",
+  "product": "Mega Chips · Mega Chips Extreme Thai Pepper Potato Chips"
+ },
+ {
+  "product_id": "bf703ee9-974d-47bd-b89c-134195d63bd7",
+  "claim": "colours sourced from nature",
+  "source_hash": "8db992b832bd72e0",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "The extracted claim only says 'colours sourced from nature' and the colour listed (INS 162) is natural, so claim and reality do not match.",
+  "product": "Mercelys Ice Cream · Mercely's Fruit Bar Strawberry Ice Candy Stick"
+ },
+ {
+  "product_id": "2f91bfdf-79df-4d2e-8e46-f09ccfe04dea",
+  "claim": "Gluten Free",
+  "source_hash": "d6d7f841acd04d70",
+  "verdict": "keep",
+  "reality": "Lists malt as an ingredient",
+  "reason": "Malt is a listed ingredient against 'Gluten Free', which is also in the name and the retailer listing.",
+  "product": "Mille · Mille Healthy Millet Breakfast Flakes No Corn High Fibre, High Protein Gluten Free, Healthy Breakfast Millet Cornflakes"
+ },
+ {
+  "product_id": "cc335e5f-47d7-4539-bd3d-5bebbf90cc95",
+  "claim": "100% gluten free",
+  "source_hash": "d037cd13b6488043",
+  "verdict": "keep",
+  "reality": "Lists refined wheat flour in the biscuit",
+  "reason": "Refined wheat flour is listed against '100% gluten free'.",
+  "product": "MINUS THIRTY · MINUS THIRTY Chocolate Roasted Hazelnut Ice Cream Sandwich (Vegan)"
+ },
+ {
+  "product_id": "2d9102f3-2464-45e4-a7cb-545790e47eda",
+  "claim": "no added preservatives",
+  "source_hash": "9cafbb11ed08ecc9",
+  "verdict": "keep",
+  "reality": "Lists preservative INS 211 (sodium benzoate)",
+  "reason": "Preservative (INS 211) is explicitly listed.",
+  "product": "Mother's Recipe · Mother's Recipe Bhel Puri Chutney"
+ },
+ {
+  "product_id": "e8263a70-21a8-4e4f-a088-1add1ac0aa25",
+  "claim": "No Added Preservatives",
+  "source_hash": "49a5a7112c40b582",
+  "verdict": "keep",
+  "reality": "Lists preservative INS 211 (sodium benzoate)",
+  "reason": "Preservative (INS 211) is explicitly listed.",
+  "product": "Mother's Recipe · Mother's Recipe Tamrind Date Chutney"
+ },
+ {
+  "product_id": "8aa1209d-deae-4f47-9103-3e68779effc1",
+  "claim": "Gluten Free",
+  "source_hash": "47c16b83b0ccca9a",
+  "verdict": "keep",
+  "reality": "Lists wheat flour in its seasoning",
+  "reason": "Wheat flour is listed in the seasoning against 'Gluten Free'.",
+  "product": "Mr Makhana · Mr Makhana Cheesy Peezy"
+ },
+ {
+  "product_id": "c76b4c32-c242-4011-bac1-dee1788b666e",
+  "claim": "No Maida",
+  "source_hash": "b61eba1e03a1c15f",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Only 'wheat flour' is listed and the list does not clearly mean refined flour.",
+  "product": "Mr. Munchies · Mr. Munchies Lasooni Soya Chaap"
+ },
+ {
+  "product_id": "a6092841-ed69-4cec-9510-c300ffb1a988",
+  "claim": "No Artificial Preservatives",
+  "source_hash": "669f3d576408c7f3",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Claim is 'no artificial preservatives' and the label calls E282 a Class I preservative, so it is not clear-cut.",
+  "product": "Mr. Munchies · Mr. Munchies Paneer Cheese Corn Roll | Crunchy"
+ },
+ {
+  "product_id": "4b76cc4c-0ba3-4b8b-82ea-035f1c32bde2",
+  "claim": "no artificial flavors",
+  "source_hash": "b36bd12224225664",
+  "verdict": "keep",
+  "reality": "Lists artificial flavour (milk)",
+  "reason": "'Artificial Flavour (milk)' is explicitly listed against 'no artificial flavors'.",
+  "product": "Namaskaram · Namaskaram Jowar Puff Cheese"
+ },
+ {
+  "product_id": "97a09748-a602-4e37-b17e-bbc4a1c94473",
+  "claim": "no palm oil",
+  "source_hash": "05d4079f97355109",
+  "verdict": "keep",
+  "reality": "Lists palmolein oil",
+  "reason": "Palmolein Oil is plainly listed.",
+  "product": "No Cap · Nocap Mix Veg Classic Masala Chips"
+ },
+ {
+  "product_id": "f746187a-a9b9-4adf-a5cb-2a6b24f42a6a",
+  "claim": "sugar free",
+  "source_hash": "f5cd69098e217af3",
+  "verdict": "keep",
+  "reality": "Lists sugar as an ingredient",
+  "reason": "Claims sugar free but sugar is explicitly listed.",
+  "product": "NOTO · Noto Malai Kulfi Ice Cream Tub"
+ },
+ {
+  "product_id": "a951f057-e8e4-4f01-bc36-d5a3894ef0d9",
+  "claim": "No Added Sugar",
+  "source_hash": "a81bd4044209ad98",
+  "verdict": "keep",
+  "reality": "Lists honey as an ingredient",
+  "reason": "Claims no added sugar but honey (6%) is listed.",
+  "product": "Nutraj · Nutraj Date Bite Dry Fruit Barfi"
+ },
+ {
+  "product_id": "1406d376-670e-40e4-9518-3ab6d0b0d55c",
+  "claim": "free from added sugar",
+  "source_hash": "f6bf61b1ff7c65a3",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Ingredient text is garbled OCR ('suga', 'Hooey', 'Liquid /Ze'), so the sweeteners cannot be verified.",
+  "product": "Nutraj · Nutraj For Good Tangy Almond Nut Bar"
+ },
+ {
+  "product_id": "fdf01420-0ee0-4517-aa70-1ee9ddfa94a8",
+  "claim": "Zero Trans Fat",
+  "source_hash": "72b58e124f5a9afd",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Only hydrogenated vegetable fat is listed, not partially hydrogenated, so it fails the rule.",
+  "product": "Nutrisum · Nutrisum Whole Wheat Toasty Bites - Mexican Herbs"
+ },
+ {
+  "product_id": "8681ccde-68fc-4bcb-8774-fd30027ac666",
+  "claim": "No Added Sugar",
+  "source_hash": "71d06b6e5c4e779c",
+  "verdict": "keep",
+  "reality": "Lists sugar as an ingredient",
+  "reason": "Claims no added sugar but sugar is listed after the dried berries.",
+  "product": "Nutty Gritties · Nutty Gritties Premium Mix Berries - 4 in 1 Fibre-Rich Snack"
+ },
+ {
+  "product_id": "c9c50d50-dd75-4648-859f-2db74b29a222",
+  "claim": "no preservatives",
+  "source_hash": "9702a77545d09293",
+  "verdict": "keep",
+  "reality": "Lists preservative INS 202 (potassium sorbate)",
+  "reason": "Preservative (INS 202) is the only additive listed.",
+  "product": "Nutty Gritties · Nutty Gritties Premium Soft & Juicy Pitted Prunes"
+ },
+ {
+  "product_id": "13dc27b0-8090-472e-a173-3770933d8d01",
+  "claim": "NO PRESERVATIVES",
+  "source_hash": "25ea65ece71ed156",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "'Sulphites, Fish, Nuts and Mustard' is an allergen declaration, not an ingredient.",
+  "product": "Oleev Kitchen · Green Sliced Olives"
+ },
+ {
+  "product_id": "e665434b-1ae1-4eea-8a3d-9145c4ce3541",
+  "claim": "no preservatives",
+  "source_hash": "0d216943a84ee405",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "'Sulphites, Fish, Nuts and Mustard' is an allergen declaration, not an ingredient.",
+  "product": "Oleev Kitchen · Oleev Kitchen Green Pitted Olives"
+ },
+ {
+  "product_id": "e6724fec-6d50-4a60-b9f2-f28df560772e",
+  "claim": "no added maida",
+  "source_hash": "cca4ec17d8d9cfd9",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Wheat flour appears only inside the rice crispy sub-ingredient and does not clearly mean refined flour.",
+  "product": "Open Secret PF · Open Secret Gift Box Dryfruit Chocolate Nutty Cookies With Almonds Cashew & Peanuts"
+ },
+ {
+  "product_id": "6ef65326-61b4-4121-a1a0-c62b4fa1fa44",
+  "claim": "no refined sugar",
+  "source_hash": "68464d9978261e5f",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Claim is no refined sugar and only jaggery powder is listed, which does not contradict it.",
+  "product": "Open Secret PF · Open Secret Zero Maida Butter Biscuits | Healthy Snacks with No Refined Sugar & No Palm Oil"
+ },
+ {
+  "product_id": "b23f7d37-2eb3-4998-9ea2-740a21a73ca2",
+  "claim": "No Refined Sugar",
+  "source_hash": "7ced14b715020edd",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Claim is no refined sugar; only jaggery and maltodextrin are listed, neither of which contradicts it.",
+  "product": "Open Secret PF · Open Secret Zero Maida Jeera Biscuits | Healthy Snacks with No Refined Sugar & No Palm Oil"
+ },
+ {
+  "product_id": "4cd44d91-fb3e-4da2-9434-809c82e9c73c",
+  "claim": "No Artificial Colours",
+  "source_hash": "b17d6688c5625ecf",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "INS 141(ii) (chlorophyllin) is not on the synthetic-colour list and calling it artificial is a judgement call.",
+  "product": "Orika · Orika Mint Seasoning"
+ },
+ {
+  "product_id": "1d0eb894-3574-4361-aa7f-a4e70c16d773",
+  "claim": "Gluten Free",
+  "source_hash": "e78983242e11d8cd",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "The ingredient text is garbled OCR, and the proposed maida and wheat flour claim is not readable from it.",
+  "product": "Pansari · Pansari Jowar Atta - Sorghum Millet"
+ },
+ {
+  "product_id": "f8159980-8d30-408e-a4c2-bf691ff21d75",
+  "claim": "NO ARTIFICIAL COLOURS",
+  "source_hash": "460a1848a1ebf2e8",
+  "verdict": "keep",
+  "reality": "Lists synthetic food colour INS 110 (sunset yellow)",
+  "reason": "The list explicitly names a permitted synthetic food colour against 'No Artificial Colours'.",
+  "product": "Paras · Paras Besan Laddu"
+ },
+ {
+  "product_id": "e2b84b86-9470-47cf-88ea-8b8ae8cb7c02",
+  "claim": "zero white sugar",
+  "source_hash": "87481693c3c5f49a",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Claim is zero white sugar and jaggery is not white sugar.",
+  "product": "Paushtaa · Paushtaa Classic Whole Wheat Bread"
+ },
+ {
+  "product_id": "0ef8ea00-1a65-441f-b6f1-21f9b6251495",
+  "claim": "No artificial sweeteners",
+  "source_hash": "6b13af8ed6de88af",
+  "verdict": "keep",
+  "reality": "Lists artificial sweetener (INS 955)",
+  "reason": "Claims no artificial sweeteners but the list itself says Artificial Sweetener (INS 955).",
+  "product": "Phab · Phab Double Chocolate 10g Protein Milkshake"
+ },
+ {
+  "product_id": "3239bbd1-46c1-4126-8fe8-983582056428",
+  "claim": "0% refined sugar",
+  "source_hash": "04e1e4fd62590f47",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Claim is 0% refined sugar and only organic brown sugar is listed, not sugar by name, so it is a judgement call.",
+  "product": "Pintola · Pintola 25G High Protein Oats | Caffe Mocha - No Refined Sugar - With Almonds & Raisins"
+ },
+ {
+  "product_id": "dc172205-d88f-4604-b91a-18817d9b5f48",
+  "claim": "no palm oil",
+  "source_hash": "e351b671e8f129d7",
+  "verdict": "keep",
+  "reality": "Lists edible vegetable oil (palm)",
+  "reason": "Palm is named in the oil ingredient.",
+  "product": "Pintola · Pintola High Protein Masala Oats | 26 g Protein Magic Masala High Fiber Breakfast Cereal"
+ },
+ {
+  "product_id": "f904291f-432c-4376-a246-867fd02e2587",
+  "claim": "Sweetened with Jaggery",
+  "source_hash": "0410270c3e355003",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "The jaggery claim may come from a sibling variant, since the OCR claims mix 24% and 19% protein, so it is unsafe.",
+  "product": "Pintola · Pintola Peanut Butter Chocolate Flavour Creamy - 18.6G Protein & 5.2G Dietary Fiber"
+ },
+ {
+  "product_id": "c00171fc-3a88-4b0b-ab2a-d1e26591864f",
+  "claim": "SWEETENED WITH JAGGERY",
+  "source_hash": "907990338bd65d7c",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "The jaggery claim may come from a sibling variant, since the OCR claims mix 24% and 19% protein, so it is unsafe.",
+  "product": "Pintola · Pintola Peanut Butter Chocolate Flavour Crunchy - 18.6G Protein & 5.2G Dietary Fiber"
+ },
+ {
+  "product_id": "25114067-40e9-4406-b4a3-d4021ca6bef2",
+  "claim": "No Artificial Sweetener",
+  "source_hash": "4897ab923f7179cf",
+  "verdict": "keep",
+  "reality": "Lists sweetener INS 955 (sucralose)",
+  "reason": "Claims no artificial sweetener but INS 955, sucralose, is listed.",
+  "product": "Plix The Plant Fix · Plix Strawberry Lime Bomb Fizzy Soft Drink Can|Low Calorie & Zero Sugar|Prebiotics with 6g Fibre"
+ },
+ {
+  "product_id": "506f8406-e988-47e9-9a13-36cbc417658c",
+  "claim": "Gluten Free",
+  "source_hash": "792630a7fb242e19",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Wheat is not listed; soy sauce is only assumed to be wheat-based.",
+  "product": "Pluckk · Pluckk Gluten Free Manchow Soup | Serves 2"
+ },
+ {
+  "product_id": "6223d59c-8168-42eb-ad6d-26978ef654b6",
+  "claim": "no palm oil",
+  "source_hash": "57e847368b03ac8d",
+  "verdict": "keep",
+  "reality": "Lists edible vegetable oil (palmolein oil)",
+  "reason": "Palmolein is named in the oil ingredient.",
+  "product": "Popular Fit Eats · Popular Roasties Crunchy Peanut Pops | Masala Munch"
+ },
+ {
+  "product_id": "d3b08a08-7855-4d75-b20f-341e32e07311",
+  "claim": "No MSG or Preservatives",
+  "source_hash": "395229b60f969395",
+  "verdict": "keep",
+  "reality": "Lists sodium nitrite (INS 250) as colour fixative",
+  "reason": "Claim is in the name and INS 250 (sodium nitrite) is listed.",
+  "product": "Prasuma · Prasuma Chicken Cheese & Chilli Sausage High Protein 250g | No MSG or Preservatives"
+ },
+ {
+  "product_id": "4f5dc42e-6f2e-42ec-8c59-e2e93dc4d537",
+  "claim": "no preservatives",
+  "source_hash": "368515bfab86dd76",
+  "verdict": "keep",
+  "reality": "Lists sodium nitrite (INS 250) as colour fixative",
+  "reason": "Brand's own 'no preservatives' claim; INS 250 nitrite is a listed ingredient.",
+  "product": "Prasuma · Prasuma Chicken Chilli Salami High Protein 200g | No Preservatives | Only Best Cuts | Fresh Chicken"
+ },
+ {
+  "product_id": "659e6fbd-e742-4cda-a7a0-050fb2012868",
+  "claim": "No Preservatives",
+  "source_hash": "faffa60a98f61184",
+  "verdict": "keep",
+  "reality": "Lists sodium nitrite (INS 250) as colour fixative",
+  "reason": "Brand's own 'No Preservatives' claim; INS 250 nitrite is a listed ingredient.",
+  "product": "Prasuma · Prasuma Chicken Ham (Smoked) High Protein 200g | No Trans Fat | Only Best Cuts | Fresh Chicken"
+ },
+ {
+  "product_id": "ea224298-004d-46be-8085-8e0203c7706b",
+  "claim": "No Preservatives",
+  "source_hash": "15b5f35547cac13e",
+  "verdict": "keep",
+  "reality": "Lists sodium nitrite (INS 250) as colour fixative",
+  "reason": "Brand's own 'No Preservatives' claim; INS 250 nitrite is a listed ingredient.",
+  "product": "Prasuma · Prasuma Chicken Pepperoni Salami | Smoked & Cured Tangy Flavour | Fresh Chicken, No Soya"
+ },
+ {
+  "product_id": "6c06937e-5789-478a-8144-52da3842751e",
+  "claim": "No preservatives",
+  "source_hash": "44999fe8d3830b9f",
+  "verdict": "keep",
+  "reality": "Lists sodium nitrite (INS 250) as colour fixative",
+  "reason": "Brand's own 'No preservatives' claim; INS 250 nitrite is a listed ingredient.",
+  "product": "Prasuma · Prasuma Pork Ham (Smoked) 200g | German Recipe | Premium Pork | High Meat Content"
+ },
+ {
+  "product_id": "4c623cce-9ddc-4b02-9cf8-4039d8f28344",
+  "claim": "No Trans Fat",
+  "source_hash": "1ab8b642d8bb6257",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Card's claim is 'No Trans Fat', which the antioxidant and colour fixative listing does not contradict; claim and reality do not match.",
+  "product": "Prasuma · Prasuma Pork Sausage High Protein 250g | No Trans Fat or Preservatives | German Recipe"
+ },
+ {
+  "product_id": "d385322d-7023-4625-ad6b-c698cc90b70b",
+  "claim": "no added sugar",
+  "source_hash": "a2634240abe0f0f5",
+  "verdict": "keep",
+  "reality": "Lists sugar in its fruit preparation",
+  "reason": "Claims no added sugar but the fruit preparation lists sugar as its first ingredient.",
+  "product": "Pride Of Cows · Pride of Cows Greek Yogurt | Pineapple Real Fruit"
+ },
+ {
+  "product_id": "87dd1ddf-889e-425d-8bfd-9b03f7fa4453",
+  "claim": "0% Added Sugar",
+  "source_hash": "7bba676190162cb2",
+  "verdict": "keep",
+  "reality": "Lists jaggery powder and jaggery syrup",
+  "reason": "Claims 0% added sugar but two jaggery sweeteners are listed.",
+  "product": "Pro.Fitness · Pro.Fitness 27g High Protein Oats - Dark Chocolate with Nuts and Seeds | From MyFitness PB"
+ },
+ {
+  "product_id": "be4f59b9-43f1-4edf-adaf-ea7552732fca",
+  "claim": "No added sugar",
+  "source_hash": "f023585aff261d8c",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Editor: not shown (dried cranberries).",
+  "product": "Prov · Prov Premium-Cranberry"
+ },
+ {
+  "product_id": "5105b100-eb9a-495a-a745-47281b89a96b",
+  "claim": "No preservatives",
+  "source_hash": "af8f7ffd2359509d",
+  "verdict": "keep",
+  "reality": "Lists sulphite INS 224 (potassium metabisulphite)",
+  "reason": "Brand's own 'No preservatives' claim; INS 224 is a sulphite in the 220-228 range.",
+  "product": "Raw Pressery · Raw Pressery Nimbu Pani | Ready to Drink Beverage"
+ },
+ {
+  "product_id": "ba041810-00f8-4062-9982-de1f446efa9f",
+  "claim": "No added sugar",
+  "source_hash": "e2a7f59e9b3b17c1",
+  "verdict": "keep",
+  "reality": "Lists honey and fructose as ingredients",
+  "reason": "Claims no added sugar but honey and fructose are listed as sweeteners.",
+  "product": "Raw Pressery · Raw Pressery Shikanji Masala Lemon Juice"
+ },
+ {
+  "product_id": "ec7123c7-d283-49e3-8b83-b314305e20a1",
+  "claim": "0 DYES",
+  "source_hash": "c169e608bca473bf",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "The ingredient list names a 'Predato' mixed fruit flavour, so it appears to belong to a different variant than this Lemon drink.",
+  "product": "Raze · Raze Lemon Energy Drink"
+ },
+ {
+  "product_id": "ec7123c7-d283-49e3-8b83-b314305e20a1",
+  "claim": "ZERO SUGAR",
+  "source_hash": "c169e608bca473bf",
+  "verdict": "keep",
+  "reality": "Lists sucrose as an ingredient",
+  "reason": "Claims zero sugar but sucrose is listed.",
+  "product": "Raze · Raze Lemon Energy Drink"
+ },
+ {
+  "product_id": "86b399b6-1221-4742-aad9-72a5750b0657",
+  "claim": "No added sugar",
+  "source_hash": "f4c3334c49a878b4",
+  "verdict": "keep",
+  "reality": "Lists sugar as an ingredient",
+  "reason": "Claims no added sugar but sugar is the second ingredient.",
+  "product": "Real · Real Cheers Ginger Ale | Cocktail Mixer | Ready & Convenient"
+ },
+ {
+  "product_id": "1bd428c2-e1ac-4613-881c-fa8745221514",
+  "claim": "No added preservatives",
+  "source_hash": "d1c55fc2563c23e5",
+  "verdict": "keep",
+  "reality": "Lists preservative INS 211 (sodium benzoate)",
+  "reason": "Brand's own 'No added preservatives' claim; label lists Preservative (INS 211).",
+  "product": "Real · Real Fruit Power Litchi Juice | Pack of 10"
+ },
+ {
+  "product_id": "fac3c75a-9631-48c8-82a6-5274b4b1223d",
+  "claim": "no added sugar",
+  "source_hash": "204e8da7c3720718",
+  "verdict": "keep",
+  "reality": "Lists coconut sugar as an ingredient",
+  "reason": "Claims no added sugar (and sugar free) but coconut sugar is listed in the chocolate.",
+  "product": "Rize · Rize Dream Bites In Milk Chocolate"
+ },
+ {
+  "product_id": "92eea2d5-7a07-47bd-8ee7-694fad6e5bdd",
+  "claim": "no added sugar",
+  "source_hash": "84817a6e69f7c478",
+  "verdict": "keep",
+  "reality": "Lists coconut sugar as an ingredient",
+  "reason": "Claims no added sugar but coconut sugar is listed in the white chocolate.",
+  "product": "Rize · Rize Dream Bites In White Chocolate"
+ },
+ {
+  "product_id": "303ae435-67bc-4950-85b6-ec66b4f35d8e",
+  "claim": "NO ADDED SUGAR",
+  "source_hash": "26682e9097933f48",
+  "verdict": "keep",
+  "reality": "Lists honey, liquid glucose and brown rice syrup",
+  "reason": "Claims no added sugar but three sugar syrups are listed.",
+  "product": "Rize · Rize Energy Bar In Caramel Crunch"
+ },
+ {
+  "product_id": "8c8fcaac-75c4-49c5-a1c0-5f3ba0636623",
+  "claim": "NO ADDED SUGAR",
+  "source_hash": "c762c274db9af955",
+  "verdict": "keep",
+  "reality": "Lists honey, liquid glucose and brown rice syrup",
+  "reason": "Claims no added sugar but three sugar syrups are listed.",
+  "product": "Rize · Rize Energy Bar In Tiramisu"
+ },
+ {
+  "product_id": "58411160-946d-4673-af51-c4c43ff7380c",
+  "claim": "No Added Sugar",
+  "source_hash": "e90b50e88c39d6ff",
+  "verdict": "keep",
+  "reality": "Lists honey, liquid glucose and brown rice syrup",
+  "reason": "Claims no added sugar but three sugar syrups are listed.",
+  "product": "Rize · Rize Energy Bar Pack Of 6- Caramel Crunch"
+ },
+ {
+  "product_id": "52792bf9-f2f3-4aaf-8193-3b1313e6bf5c",
+  "claim": "NO ADDED SUGAR",
+  "source_hash": "1769a8d56c4ec5ae",
+  "verdict": "keep",
+  "reality": "Lists honey, liquid glucose and brown rice syrup",
+  "reason": "Claims no added sugar but three sugar syrups are listed.",
+  "product": "Rize · Rize Energy Bar Pack Of 6- Tiramisu"
+ },
+ {
+  "product_id": "4aa6caf6-36e1-4ae0-818b-b4d4bca67a87",
+  "claim": "no added sugar",
+  "source_hash": "e73f7691b247d437",
+  "verdict": "keep",
+  "reality": "Lists honey, liquid glucose and brown rice syrup",
+  "reason": "Claims no added sugar but three sugar syrups are listed.",
+  "product": "Rize · Rize Pack Of 4 In- Berry Blast"
+ },
+ {
+  "product_id": "b06d9ffb-2075-4aae-af63-a9c13c0d445d",
+  "claim": "NO ADDED SUGAR",
+  "source_hash": "88dc6d45decd1c8f",
+  "verdict": "keep",
+  "reality": "Lists honey, liquid glucose and brown rice syrup",
+  "reason": "Claims no added sugar but three sugar syrups are listed.",
+  "product": "Rize · Rize Pack Of 4 In-Caramel Crunch"
+ },
+ {
+  "product_id": "afc2cd12-a5c4-444f-a4b7-1b2e07b4c47d",
+  "claim": "no added sugar",
+  "source_hash": "8c7c8fbc46e6ed05",
+  "verdict": "keep",
+  "reality": "Lists honey, liquid glucose and brown rice syrup",
+  "reason": "Claims no added sugar but three sugar syrups are listed.",
+  "product": "Rize · Rize Pack Of 4- In Tiramisu"
+ },
+ {
+  "product_id": "e50aff02-8b1c-4060-adac-8dee888cfba1",
+  "claim": "no added sugar",
+  "source_hash": "90cf83312f76f168",
+  "verdict": "keep",
+  "reality": "Lists honey as an ingredient",
+  "reason": "Claims no added sugar but honey is listed as a separate ingredient.",
+  "product": "Skyrrup · Skyrrup Greek Yogurt-Mixed Berries Flavour"
+ },
+ {
+  "product_id": "e0cf1588-7725-4cbc-acae-de76e8bef0fb",
+  "claim": "0g Added Sugar",
+  "source_hash": "456e5b429a67872c",
+  "verdict": "keep",
+  "reality": "Lists sugar as an ingredient",
+  "reason": "Claims 0g added sugar but sugar is the second ingredient.",
+  "product": "Sleepy Owl · Sleepy Owl Mango Iced Matcha Latte Can"
+ },
+ {
+  "product_id": "c9990daf-9f5c-4966-b631-25abcc6685c9",
+  "claim": "No Processed Sugar",
+  "source_hash": "529cfbec0bd5e3ba",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Claim is no processed sugar and raw khandsari sugar is a judgement call, not a clear contradiction.",
+  "product": "Snack-A-Doodle · Snack-A-Doodle Butter Cookies"
+ },
+ {
+  "product_id": "9b180582-7bda-47a2-a280-05c8a888d5f7",
+  "claim": "no added sugar",
+  "source_hash": "e893e48e1543aee9",
+  "verdict": "keep",
+  "reality": "Lists sugar in its seasoning",
+  "reason": "Claims no added sugar but sugar is listed in the seasoning ingredients.",
+  "product": "SNACKADUM · Snackadum Ragi Crisps - Zesty Cheese"
+ },
+ {
+  "product_id": "c6138dee-a578-4f73-82f0-5952720c134e",
+  "claim": "NO MAIDA",
+  "source_hash": "ce3353559feb61d6",
+  "verdict": "keep",
+  "reality": "Lists refined flour alongside wheat flour",
+  "reason": "'Refined flour' is explicitly listed against 'NO MAIDA'.",
+  "product": "‎Snackible · Snackible Coffee Cookies"
+ },
+ {
+  "product_id": "4f4951e1-11e8-42ee-bbf2-6701b2e6a4e6",
+  "claim": "Zero Preservatives",
+  "source_hash": "ea85601779cf99ba",
+  "verdict": "keep",
+  "reality": "Lists sodium benzoate and potassium sorbate",
+  "reason": "Brand's own 'Zero Preservatives' claim; both are listed ingredients.",
+  "product": "SOBER · Sober Non-Alchoholic Rum"
+ },
+ {
+  "product_id": "a7ed24e1-a313-418b-be76-1735a09f6a08",
+  "claim": "sugar free",
+  "source_hash": "387d0d09a860fac8",
+  "verdict": "keep",
+  "reality": "Lists dextrose as an ingredient",
+  "reason": "Claims sugar free but dextrose, a simple sugar, is listed.",
+  "product": "Sobisco · Sobisco Cream Cracker Biscuits"
+ },
+ {
+  "product_id": "49aa8be5-05ce-4072-84dc-cb7bf7f101f8",
+  "claim": "no preservatives",
+  "source_hash": "e00ae953a68efa86",
+  "verdict": "keep",
+  "reality": "Lists sorbic acid in the glazing agent",
+  "reason": "Brand's own 'no preservatives' claim on pack; sorbic acid is a listed ingredient.",
+  "product": "Specially For You · Specially For You Milk Hazelnut Dragees"
+ },
+ {
+  "product_id": "809d79b7-957f-4621-aa13-5f43d752e451",
+  "claim": "no added sugar",
+  "source_hash": "a593dde5df82e973",
+  "verdict": "keep",
+  "reality": "Lists honey as an ingredient",
+  "reason": "Claims no added sugar but honey is listed.",
+  "product": "Stroom · Stroom Berry White Chocolate 10G Protein Bar"
+ },
+ {
+  "product_id": "0719f292-6de0-43ea-a396-c9229c96028e",
+  "claim": "No added sugar",
+  "source_hash": "57374f253cc75f4d",
+  "verdict": "keep",
+  "reality": "Lists honey as an ingredient",
+  "reason": "Claims no added sugar but honey is listed.",
+  "product": "Stroom · Stroom Choco Almond Bliss 20g Protein Bars"
+ },
+ {
+  "product_id": "6e987130-ac2e-47a0-b592-be5bbe6ff076",
+  "claim": "no added sugar",
+  "source_hash": "3b755ac76301a5a6",
+  "verdict": "keep",
+  "reality": "Lists honey as an ingredient",
+  "reason": "Claims no added sugar but honey is listed.",
+  "product": "Stroom · Stroom Choco Almond Bliss Protein Bars"
+ },
+ {
+  "product_id": "1fbe5496-27cb-42bb-8401-2a7ef0e1c194",
+  "claim": "No added sugar",
+  "source_hash": "8c746cbb6bab3484",
+  "verdict": "keep",
+  "reality": "Lists honey as an ingredient",
+  "reason": "Claims no added sugar but honey is listed.",
+  "product": "Stroom · Stroom Choco Orange Dream Protein Bars"
+ },
+ {
+  "product_id": "72cc7956-34df-49d1-9825-d3956d160442",
+  "claim": "gluten free",
+  "source_hash": "d497a2d1943b063e",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "The list says only 'Oreo Bits' and never names wheat.",
+  "product": "Stroom · Stroom Cookie Crunch Delight 10G Protein Bars"
+ },
+ {
+  "product_id": "aeeb8c60-99aa-4a38-b95d-771913a3c9dd",
+  "claim": "No added sugar",
+  "source_hash": "6d761b401c086f6e",
+  "verdict": "keep",
+  "reality": "Lists honey as an ingredient",
+  "reason": "Claims no added sugar but honey is listed.",
+  "product": "Stroom · Stroom Cookie Crunch Delight 20g protein Bars"
+ },
+ {
+  "product_id": "0c849216-8908-4255-816e-597f43ea009e",
+  "claim": "NO ADDED SUGAR",
+  "source_hash": "dd3878fb8d4a3828",
+  "verdict": "keep",
+  "reality": "Lists honey as an ingredient",
+  "reason": "Claims no added sugar but honey is listed.",
+  "product": "Stroom · Stroom Milk Chocolate Peanut Butter Energy Bars"
+ },
+ {
+  "product_id": "0254c97f-3d2e-4623-8d71-c62a61f79e27",
+  "claim": "Zero Transfat",
+  "source_hash": "fb29293cf8b563ee",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Only hydrogenated vegetable oil is listed, not partially hydrogenated, so it fails the rule.",
+  "product": "Sundrop · Sundrop Peanut Butter | Crunchy | With 26% Protein | Premium Roasted Peanuts | No Preservatives"
+ },
+ {
+  "product_id": "06b57240-117d-4ba4-ad11-2234148fe092",
+  "claim": "No added sugar & salt",
+  "source_hash": "af6291734683f16c",
+  "verdict": "keep",
+  "reality": "Lists sugar and iodized salt as ingredients",
+  "reason": "Claims no added sugar and salt but both are listed.",
+  "product": "Sundrop · Sundrop Peanut Butter Natural | Crunchy | With 28% Protein"
+ },
+ {
+  "product_id": "a6020c18-4c3c-4e6e-8c91-5b0120845d9c",
+  "claim": "zero transfat",
+  "source_hash": "ecfeaf5204a6024f",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Only hydrogenated vegetable oil is listed, not partially hydrogenated, so it fails the rule.",
+  "product": "Sundrop · Sundrop Peanut Butter with Honey | Crunchy | 23% Protein |Premium Roasted Peanuts|No Preservatives"
+ },
+ {
+  "product_id": "93ddcea8-4f7f-4543-8ca9-1cee0060cea4",
+  "claim": "zero transfat",
+  "source_hash": "5ca186f281453b5d",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Only hydrogenated vegetable oil is listed, not partially hydrogenated, so it fails the rule.",
+  "product": "Sundrop · Sundrop Peanut Butter with Jaggery | Creamy | With 25% Protein | No refined sugar"
+ },
+ {
+  "product_id": "e936912d-1bff-4504-aa51-3e21692b5707",
+  "claim": "No Maida",
+  "source_hash": "a581aa1b0769ecd9",
+  "verdict": "keep",
+  "reality": "Pasta seasoning lists refined wheat flour (maida)",
+  "reason": "The noodle powder in the seasoning explicitly lists refined wheat flour (maida) against 'No Maida'.",
+  "product": "Sunfeast · Sunfeast YiPPee! Tricolor Masala Instant Pasta"
+ },
+ {
+  "product_id": "d854780e-a129-46a2-9cc9-251d14aac75f",
+  "claim": "no maida",
+  "source_hash": "2675e7367c55289d",
+  "verdict": "keep",
+  "reality": "Pasta seasoning lists refined wheat flour (maida)",
+  "reason": "The noodle powder in the seasoning explicitly lists refined wheat flour (maida) against 'no maida'.",
+  "product": "Sunfeast · YiPPee! Masala Instant Pasta"
+ },
+ {
+  "product_id": "3061e290-c374-41d1-9486-5528ca7381b7",
+  "claim": "No Palm Oil",
+  "source_hash": "31c293a3b73395d3",
+  "verdict": "keep",
+  "reality": "Lists palmolein oil",
+  "reason": "Palmolein Oil is the named frying oil.",
+  "product": "Sweet Karam Coffee · Sweet Karam Coffee | No Palm Oil Potato Chips | Tuticorin Rock Salt"
+ },
+ {
+  "product_id": "f8d4b905-1b34-4e5e-804e-5262ddbd1dc3",
+  "claim": "no added white sugar",
+  "source_hash": "48ed885622c34b8e",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Claim is no added white sugar and jaggery is not white sugar.",
+  "product": "Sweet Karam Coffee · Sweet Karam Coffee Millet Sweet Pongal Mix"
+ },
+ {
+  "product_id": "442282fc-5bcf-44b9-aed6-6d46c3ad4c98",
+  "claim": "NO PRESERVATIVES",
+  "source_hash": "661e2f29994196b1",
+  "verdict": "keep",
+  "reality": "Lists curing salt as preservative (INS 250)",
+  "reason": "Brand's own 'NO PRESERVATIVES' claim; label itself calls INS 250 a preservative.",
+  "product": "Tata Sampann · Tata Sampann Yumside Spicy Chicken Tikka Sausage"
+ },
+ {
+  "product_id": "43b4ed18-de68-4e31-a3a0-a9f96eb0b752",
+  "claim": "gluten free",
+  "source_hash": "f55fe5c5c464269a",
+  "verdict": "keep",
+  "reality": "Lists pearl barley as an ingredient",
+  "reason": "Barley is a gluten grain and is listed against 'gluten free', which the retailer listing also shows.",
+  "product": "Teafit · Teafit Unsweetened Barley Iced Tea"
+ },
+ {
+  "product_id": "d7d74522-943d-46d7-8ba4-b653aad3d06b",
+  "claim": "zero maida",
+  "source_hash": "5e62772568a1a068",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "The claim is 'zero maida (vanilla cake)' and the maida is listed in the orange cake, so it is not contradicted.",
+  "product": "The Baker's Dozen · The Baker's Dozen Cake Celebrations Gift Box (Eggless)"
+ },
+ {
+  "product_id": "a613e212-d701-44c3-8dfa-cf3945d912fb",
+  "claim": "ZERO ADDED COLOURS OR FLAVOURS",
+  "source_hash": "1a614b61ca0a251a",
+  "verdict": "keep",
+  "reality": "Lists added artificial flavouring substance (vanilla)",
+  "reason": "'Zero added flavours' is contradicted by an explicit added artificial flavouring substance.",
+  "product": "The Baker's Dozen · The Baker's Dozen Choco Chip Cake | Chocolate Cake | Eggless Cake | Tea Cake | Pound Cake"
+ },
+ {
+  "product_id": "c042049f-bb72-4941-99c3-bd3cca769bf3",
+  "claim": "ZERO MAIDA",
+  "source_hash": "14fc80583df41915",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "This is a multi-cake hamper and it is unclear which cake the 'ZERO MAIDA' claim covers; the maida is in the chocolate cake.",
+  "product": "The Baker's Dozen · The Baker's Dozen Gift Hamper"
+ },
+ {
+  "product_id": "582a9ffb-f10a-4610-b2ab-fc542c1aa565",
+  "claim": "No Added Sugar",
+  "source_hash": "0c61809281921ffa",
+  "verdict": "keep",
+  "reality": "Lists sugar as an ingredient",
+  "reason": "Claims no added sugar but sugar is the third ingredient.",
+  "product": "The Belgian Waffle Co · The Belgian Waffle Co Almond Flour Pancake and Waffle Mix"
+ },
+ {
+  "product_id": "0a5f1c28-91f2-4eb5-8bdd-b96bc94add45",
+  "claim": "No added sugar",
+  "source_hash": "13236e929ae80612",
+  "verdict": "keep",
+  "reality": "Lists brown sugar and sugar as ingredients",
+  "reason": "Claims no added sugar but brown sugar and sugar are listed.",
+  "product": "The Belgian Waffle Co · The Belgian Waffle Co Choco Oats Pancake and Waffle Mix"
+ },
+ {
+  "product_id": "d3f7e88f-bb49-457e-ab87-8d9967c8e807",
+  "claim": "no added sugar",
+  "source_hash": "f1470a528cd02c92",
+  "verdict": "keep",
+  "reality": "Lists sugar as an ingredient",
+  "reason": "Claims no added sugar but sugar is the second ingredient.",
+  "product": "The Belgian Waffle Co · The Belgian Waffle Co Cookie & Cream Waffle Crisps | Crunchy Dessert Treat"
+ },
+ {
+  "product_id": "9c16625d-da2d-42c4-94a4-a82891b8df86",
+  "claim": "Zero Maida",
+  "source_hash": "47258a534d5c8da7",
+  "verdict": "keep",
+  "reality": "Lists refined wheat flour as first ingredient",
+  "reason": "Refined wheat flour is the first ingredient against 'Zero Maida'.",
+  "product": "The Health Factory · The Health Factory Multi Protein Bread | Clean Label, Not Brown"
+ },
+ {
+  "product_id": "9cae365e-2437-4e26-a396-df9bd3f8a5ed",
+  "claim": "zero maida",
+  "source_hash": "a42be0360db56573",
+  "verdict": "keep",
+  "reality": "Lists refined wheat flour as first ingredient",
+  "reason": "Refined wheat flour is the first ingredient against 'zero maida'.",
+  "product": "The Health Factory · The Health Factory Vegan Protein Bread | Clean Label, Not Brown"
+ },
+ {
+  "product_id": "84e0c973-b0b3-4f91-b137-da77d6751b8a",
+  "claim": "NO PRESERVATIVES",
+  "source_hash": "c3a85baa36d77188",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Claim appears only in retailer_free_from, not on the pack or in the name; ingredient text is a garbled 'Flavours AND Preservatives' fragment.",
+  "product": "The Select Aisle · The Select Aisle Natural Vanilla Custard Powder"
+ },
+ {
+  "product_id": "ec8c06ce-3b1b-4664-90ac-7380c55bfa33",
+  "claim": "NO PALM OIL",
+  "source_hash": "6de3d00e3a126be1",
+  "verdict": "keep",
+  "reality": "Lists edible vegetable oil (palmolein)",
+  "reason": "Palmolein is named in the oil ingredient.",
+  "product": "The Theatre Project · TTP Cheese Blockbuster Nachos with jalapeno Cheesy & salsa Dip"
+ },
+ {
+  "product_id": "9595849d-2259-4b54-b518-eaa4d8c5e863",
+  "claim": "no preservatives",
+  "source_hash": "4046dcb4972e2a3f",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Only a bare, garbled 'Preservatives & SPICE Extracts' fragment with no named preservative; OCR integrity is too doubtful to name the brand.",
+  "product": "Three Mango · Three Mango Dry Mango Powder"
+ },
+ {
+  "product_id": "3b7c2856-496e-4a83-9c66-b4b5f7a6bfab",
+  "claim": "NO PALM OIL",
+  "source_hash": "4285b5a71e4a2e67",
+  "verdict": "keep",
+  "reality": "Lists palmolein oil",
+  "reason": "Palmolein Oil is plainly listed.",
+  "product": "To Be Honest · To Be Honest Ripe Jackfruit with Chilli Mango"
+ },
+ {
+  "product_id": "d50f8669-3df4-4a01-ba10-eeb7e40ed34d",
+  "claim": "NO PALM OIL",
+  "source_hash": "5504e2074c4acbe8",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Front pack also claims '100% rice bran oil', which conflicts with the palmolein on the back read, so the photos may not match.",
+  "product": "Too Yumm! · Too Yumm! Tasty Nuts | No Palm Oil | Protein Goodness"
+ },
+ {
+  "product_id": "a9c2f9b0-38ae-45a9-a135-105b5806a40f",
+  "claim": "Trans Fat Free",
+  "source_hash": "96ed9c52f9e20465",
+  "verdict": "keep",
+  "reality": "Lists partially hydrogenated oil as an ingredient",
+  "reason": "Claims trans fat free but lists edible vegetable fat (partially hydrogenated oil).",
+  "product": "Town Bus · Town Bus Snacks Thattai"
+ },
+ {
+  "product_id": "14cecd8d-b009-41ce-a4f7-8d3f165fa2a1",
+  "claim": "No Added Sugar",
+  "source_hash": "df9786c92393e6f6",
+  "verdict": "keep",
+  "reality": "Lists sugar as an ingredient",
+  "reason": "Claims no added sugar but sugar is listed in the ingredients.",
+  "product": "Tribe Kombucha · Tribe Kombucha Gingerade Probiotic Drink | Supports Gut Health | Gluten-Free | Naturally Fermented"
+ },
+ {
+  "product_id": "fcfd3f6a-9588-46bf-819f-69bec4d675b6",
+  "claim": "No Added Sugar",
+  "source_hash": "08fafd20b773c065",
+  "verdict": "keep",
+  "reality": "Lists sugar and erythritol as ingredients",
+  "reason": "Claims no added sugar but sugar is listed in the ingredients.",
+  "product": "Tribe Kombucha · Tribe Kombucha Lavender Probiotic Drink | Supports Gut Health | Gluten-Free | Naturally Fermented"
+ },
+ {
+  "product_id": "9536ec94-0468-49fa-bf2b-133ea4aa1a2a",
+  "claim": "no added sugar",
+  "source_hash": "e87c6df30f55bb96",
+  "verdict": "keep",
+  "reality": "Lists raw honey, jaggery and sugar (in cranberries)",
+  "reason": "Claims no added sugar but honey and jaggery are listed, plus sugar in the cranberries.",
+  "product": "True Elements · True Elements Crunchy Dark Chocolate Granola For Breakfast"
+ },
+ {
+  "product_id": "25a1831c-e28a-419c-bcf2-6b81e44f638b",
+  "claim": "No Sugar & Salt",
+  "source_hash": "8542c5eea6135680",
+  "verdict": "keep",
+  "reality": "Lists jaggery as an ingredient",
+  "reason": "Claims no sugar and jaggery, a sugar named in the rubric, is listed as the sweetener.",
+  "product": "Tummyfriendly Foods · Tummy Friendly Millet Cookies OATS CHOCOLATE | Healthy Biscuits | Organic Farm Ragi No Junk No Secret"
+ },
+ {
+  "product_id": "020dc275-6eeb-4639-95a3-7718deb79451",
+  "claim": "0% Maida",
+  "source_hash": "064d0e35014b4d1a",
+  "verdict": "keep",
+  "reality": "Lists refined wheat flour (maida) as first ingredient",
+  "reason": "Maida is explicitly the first ingredient against '0% Maida'.",
+  "product": "Unibic · UNIBIC Oats Digestive Cookies"
+ },
+ {
+  "product_id": "591447e3-5e8d-43b9-b763-fccfeadfa65e",
+  "claim": "No Added Maida & Starch",
+  "source_hash": "54c9f07d0a0281e8",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "Only 'Wheat Flour' is listed and the list does not clearly mean refined flour.",
+  "product": "Urban Platter · Urban Platter - Soya Chaap In Brine Tin"
+ },
+ {
+  "product_id": "a38b2959-31e3-4c15-92af-9bd192011968",
+  "claim": "no added colour or preservatives",
+  "source_hash": "1c5031843acbfe3a",
+  "verdict": "keep",
+  "reality": "Lists preservative E202 and food colour E150d",
+  "reason": "Brand's own 'no added colour or preservatives' claim; label states Preservative: E202 and a food colour (E150D).",
+  "product": "Valentino · Valentino Red Grape Non Alcoholic Drink"
+ },
+ {
+  "product_id": "8909bc11-252f-472c-b333-f32c5c6d75ae",
+  "claim": "No Added Preservatives",
+  "source_hash": "883ceb6ad3654ef4",
+  "verdict": "keep",
+  "reality": "Lists preservative INS 211 (sodium benzoate)",
+  "reason": "Brand's own 'No Added Preservatives' claim; label lists Preservative (INS211).",
+  "product": "Veeba · Veeba Tomato Ketchup - Chef's Special"
+ },
+ {
+  "product_id": "2bb904f0-6bd7-4bbf-b98f-0757b75fe0eb",
+  "claim": "Gluten Free",
+  "source_hash": "65905c86b2966ed2",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "A 'Gluten Free' claim on a durum wheat pasta is implausible, has no retailer corroboration and may be a misread or another variant's photo.",
+  "product": "Wickedgud · Wickedgud Macaroni Pasta Made With Durum Wheat"
+ },
+ {
+  "product_id": "d5dd8a8b-2906-4ecd-bcb7-d40ea48d6b64",
+  "claim": "0% Preservatives",
+  "source_hash": "c380b904984827f9",
+  "verdict": "keep",
+  "reality": "Lists bio-preservative INS 234 (nisin)",
+  "reason": "Brand's own '0% Preservatives' claim; nisin (INS 234) is a listed ingredient.",
+  "product": "Wow Coco · Wow Coco Organic Tender Coconut Water"
+ },
+ {
+  "product_id": "d9257de8-eb9d-42b2-94c1-a349f9172fd9",
+  "claim": "No added preservatives",
+  "source_hash": "15183eecd0d30034",
+  "verdict": "keep",
+  "reality": "Lists preservatives (INS 211, sodium benzoate)",
+  "reason": "Brand's own 'No added preservatives' claim; label lists Preservatives (INS 211).",
+  "product": "Wow! Momo · Wow! Momo Korean Momos Chicken"
+ },
+ {
+  "product_id": "fba7aef1-c52e-46ca-b813-e077f0b0b57a",
+  "claim": "no added msg",
+  "source_hash": "9953f715ea9dc905",
+  "verdict": "keep",
+  "reality": "Lists flavour enhancer INS 621 (monosodium glutamate)",
+  "reason": "Claim is on pack and INS 621 is listed as an ingredient.",
+  "product": "Wow! Momo · Wow! Spicy Chicken Super Saver  Momo I Party Pack I Frozen Snack"
+ },
+ {
+  "product_id": "c8c6f331-88ad-40e1-b5a2-b2445a2c60d5",
+  "claim": "no added sugar",
+  "source_hash": "29071c95c9a8d63f",
+  "verdict": "keep",
+  "reality": "Lists sugar in its dark chocolate",
+  "reason": "Claims no added sugar but the dark chocolate component lists sugar.",
+  "product": "Yoga Bar · Yoga Bar 10G Protein Wafer Chocolate"
+ },
+ {
+  "product_id": "71440ae7-56c1-4838-b028-abfd2b75ae1c",
+  "claim": "no added sugar",
+  "source_hash": "704ceffdc076a8db",
+  "verdict": "keep",
+  "reality": "Lists jaggery powder as an ingredient",
+  "reason": "Claims no added sugar but jaggery powder is listed.",
+  "product": "Yoga Bar · Yoga Bar High Protein Muesli,Fruits & Nut,Packed With Apple, Almonds & Super Seeds"
+ },
+ {
+  "product_id": "cb4631bd-b070-43df-8744-1eab5918176a",
+  "claim": "No Added Sugar",
+  "source_hash": "e956f05a3a66a79b",
+  "verdict": "keep",
+  "reality": "Lists sugar, honey and fructose",
+  "reason": "Claims no added sugar but sugar, honey and fructose are all listed.",
+  "product": "Yoga Bar · Yoga Bar Protein Shake, with 10g Protein, No Added Sugar, Protein Milkshake"
+ },
+ {
+  "product_id": "7937bf0f-37f3-457c-8b87-374991588072",
+  "claim": "0% Maida",
+  "source_hash": "eeb2a59d41904f7a",
+  "verdict": "keep",
+  "reality": "Lists refined wheat flour (maida) as an ingredient",
+  "reason": "Maida is explicitly listed against '0% Maida'.",
+  "product": "Yoga Bar · Yoga Bar Protein Wafer with 10g Protein | Strawberry Pop | 0% Maida"
+ },
+ {
+  "product_id": "626b3960-74a5-47be-8fba-1c1599917624",
+  "claim": "no refined sugar",
+  "source_hash": "5f619b0b3d55ef53",
+  "verdict": "keep",
+  "reality": "Lists sugar and liquid glucose",
+  "reason": "Claims no refined sugar and the list names sugar in the choco covering plus liquid glucose.",
+  "product": "Yoga Bar · Yogabar Protein Biscuit Chocodip | Made with Sattu, Aata and Jaggery"
+ },
+ {
+  "product_id": "7bbfda0a-60c2-44f9-809c-5b1cebdddb67",
+  "claim": "Gluten Free",
+  "source_hash": "7b431e468b4f8662",
+  "verdict": "drop",
+  "reality": null,
+  "reason": "'Gluten Free' appears only in the retailer field and not in the brand's own claims.",
+  "product": "Yours Freshly · Yours Freshly Multi Millet Roti"
+ },
+ {
+  "product_id": "f8b1ad2c-ba89-46fb-8ec8-d2da8fd4fc11",
+  "claim": "No Palm Oil",
+  "source_hash": "d2c325928ca9179e",
+  "verdict": "keep",
+  "reality": "Lists palm oil",
+  "reason": "Palm Oil is plainly listed.",
+  "product": "Yu Foods · Yu Zingy Cheese Instant Cup Noodles"
+ }
+]
