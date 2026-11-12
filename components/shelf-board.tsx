@@ -36,20 +36,14 @@ function topPicks(items: SearchCard[]): SearchCard[] {
   }).slice(0, 3);
 }
 
-/** Shelf number as printed on the board ("No. 03"). */
-export function shelfNo(index: number): string {
-  return `No. ${String(index + 1).padStart(2, "0")}`;
-}
-
-/** Leaderboard board for one goal shelf: number, title, and its top three picks. */
-export function ShelfBoard({ shelf, index, items, total }: { shelf: Shelf; index: number; items: SearchCard[]; total: number }) {
+/** Leaderboard board for one goal shelf: its title, and its top three picks. */
+export function ShelfBoard({ shelf, items, total }: { shelf: Shelf; items: SearchCard[]; total: number }) {
   const href = `/shelves/${shelf.slug}`;
   return (
     <div className="rounded-xl border border-(--color-line) bg-(--color-panel) p-3.5">
       <div className="mb-2.5 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-(--color-accent)">{shelfNo(index)}</p>
-          <Link href={href} className="font-display mt-0.5 block text-[1.35rem] leading-tight text-(--color-fg) hover:text-(--color-accent)">{shelf.title}</Link>
+          <Link href={href} className="font-display block text-[1.35rem] leading-tight text-(--color-fg) hover:text-(--color-accent)">{shelf.title}</Link>
           <p className="mt-0.5 text-[11.5px] text-(--color-fg-dim)">{shelf.blurb}</p>
         </div>
         <Link href={href} className="shrink-0 pt-0.5 text-[10.5px] text-(--color-fg-dim) hover:text-(--color-fg)">{total ? `All ${total} →` : "Open →"}</Link>

@@ -4,7 +4,6 @@ import { ArrowUpRight } from "lucide-react";
 import { HomeRailCard } from "@/components/home-rail-card";
 import { HomeBoards } from "@/components/home-boards";
 import { RingGlyph } from "@/components/ring-motif";
-import { ShelfBoard } from "@/components/shelf-board";
 import { CountUp, Reveal } from "@/components/reveal";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
@@ -87,7 +86,7 @@ export default async function Home() {
 }
 
 
-/** Everything under the search box while nothing is searched: the leaderboards, then the shelves. */
+/** Everything under the search box while nothing is searched: the boards and shelves, a proof, the staples. */
 function HomeSections({ landing, facts, goalShelves, proof, staples }: {
   landing: LandingInsights | null;
   facts: InsightsData | null;
@@ -97,27 +96,7 @@ function HomeSections({ landing, facts, goalShelves, proof, staples }: {
 }) {
   return (
     <>
-      <HomeBoards landing={landing} insights={facts} />
-
-      {/* ── Start from a goal: every shelf's top three, as on /shelves ───── */}
-      <section className="border-y border-(--color-line)">
-        <Reveal className="mx-auto max-w-6xl px-4 py-14 md:px-6 md:py-20">
-          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-(--color-accent)">Goal shelves</p>
-              <h2 className="font-display mt-3 text-3xl leading-tight md:text-[2.5rem]">Twelve shelves, <span className="italic">kept honest.</span></h2>
-            </div>
-            <Link href="/shelves" className="inline-flex items-center gap-1.5 text-sm font-medium text-(--color-fg-muted) transition hover:text-(--color-fg)">
-              All shelves <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {SHELVES.map((s, i) => (
-              <ShelfBoard key={s.slug} shelf={s} index={i} items={goalShelves[i]?.items ?? []} total={goalShelves[i]?.items.length ?? 0} />
-            ))}
-          </div>
-        </Reveal>
-      </section>
+      <HomeBoards landing={landing} insights={facts} goalShelves={goalShelves} />
 
       {/* ── One proof, told with confidence: a number inside the score ring ── */}
       {proof && (

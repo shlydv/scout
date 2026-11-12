@@ -1,13 +1,19 @@
 import Image from "next/image";
 import Link from "@/components/navigation-link";
-import { ConflictCard } from "@/components/insights/conflict-card";
+import { HomeConflicts } from "@/components/home-conflicts";
 import { LineTag } from "@/components/line-tag";
 import { Reveal } from "@/components/reveal";
+import { ShelfBoard } from "@/components/shelf-board";
 import { variantKey } from "@/lib/facts/variant-key";
 import type { InsightsData } from "@/lib/insights/data";
+import { sampleConflicts } from "@/lib/insights/sample-conflicts";
 import type { LandingInsights } from "@/lib/products/landing-insights";
+import type { SearchResponse } from "@/lib/search/planned/present";
+import { SHELVES } from "@/lib/shelves";
 
 const COUNT = 6;
+// Conflicts sent to the page; each visit shows a random six of them (components/home-conflicts).
+const CONFLICT_POOL = 48;
 
 /** One entry per pack-size group (the 200g and 1kg of the same dal are one pick). */
 function oneSize<T extends { brand: string | null; name: string }>(list: T[]): T[] {
@@ -42,12 +48,18 @@ function Heading({ eyebrow, tone, title, action }: { eyebrow: string; tone: stri
 
 const actionCls = "shrink-0 text-[11px] text-(--color-fg-dim) hover:text-(--color-fg)";
 
-/** The leaderboards right under the home search box: best in each aisle, claims that fail the label, labels that check out. */
-export function HomeBoards({ landing, insights }: { landing: LandingInsights | null; insights: InsightsData | null }) {
+/**
+ * Everything under the home search box, one rhythm for all: best in each aisle, claims that fail
+ * the label, labels that check out, then the twelve goal shelves.
+ */
+export function HomeBoards({ landing, insights, goalShelves }: {
+  landing: LandingInsights | null;
+  insights: InsightsData | null;
+  goalShelves: (SearchResponse | null)[];
+}) {
   const aisles = todays((landing?.bestInClass ?? []).map(c => ({ ...c, products: oneSize(c.products) })), 0);
-  const conflicts = todays(insights?.conflicts ?? [], 1);
+  const conflictPool = sampleConflicts(insights?.conflicts ?? [], CONFLICT_POOL);
   const worthIt = todays(oneSize(landing?.worthItList ?? []), 2);
-  if (!aisles.length && !conflicts.length && !worthIt.length) return null;
 
   return (
     <div className="mx-auto max-w-6xl space-y-12 px-4 pb-16 pt-8 md:px-6 md:pb-20 md:pt-10">
@@ -91,19 +103,17 @@ export function HomeBoards({ landing, insights }: { landing: LandingInsights | n
         </Reveal>
       )}
 
-      {conflicts.length > 0 && (
+      {conflictPool.length > 0 && (
         <Reveal as="section">
           <Heading eyebrow="Scout warning" tone="var(--color-bad)" title="The marketing's a lie." action={<Link href="/insights/claims" className={actionCls}>All {insights?.conflictedProducts} →</Link>} />
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {conflicts.map(c => <ConflictCard key={`${c.id}-${c.claim}`} c={c} />)}
-          </div>
+          <HomeConflicts pool={conflictPool} count={COUNT} />
         </Reveal>
       )}
 
       {worthIt.length > 0 && (
         <Reveal as="section">
           <Heading eyebrow="Scout verified" tone="var(--color-good)" title="The label checks out." action={<Link href="/catalog?verdict=daily_staple" className={actionCls}>Daily staples →</Link>} />
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {worthIt.map(p => (
               <Link key={p.slug} href={`/product/${p.slug}`} className="u-lift group rounded-xl border border-(--color-good)/20 bg-(--color-panel) p-3 hover:border-(--color-good)/45">
                 <div className="flex items-start gap-2.5">
@@ -124,6 +134,16 @@ export function HomeBoards({ landing, insights }: { landing: LandingInsights | n
           </div>
         </Reveal>
       )}
+
+      {/* /#shelves lands here (the old /shelves index redirects to it). */}
+      <Reveal as="section" id="shelves" className="scroll-mt-6">
+        <Heading eyebrow="Goal shelves" tone="var(--color-accent)" title="Twelve shelves, kept honest." />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {SHELVES.map((s, i) => (
+            <ShelfBoard key={s.slug} shelf={s} items={goalShelves[i]?.items ?? []} total={goalShelves[i]?.items.length ?? 0} />
+          ))}
+        </div>
+      </Reveal>
     </div>
   );
 }

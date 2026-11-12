@@ -378,9 +378,13 @@ html.dark .thumb {
 @media (min-width: 768px) {
   :root { --home-dock-h: 4.75rem; }
 }
+/* Snap points and anchors (/#shelves) land under the nav and the docked box. On the server
+   render too, so a hash link scrolls right before the dock hook mounts. */
+html:has(.home-dock) {
+  scroll-padding-top: calc(3.5rem + var(--home-dock-h));
+}
 html.home-snap {
   scroll-snap-type: y mandatory;
-  scroll-padding-top: calc(3.5rem + var(--home-dock-h));
 }
 html.home-snap.home-gliding {
   scroll-snap-type: none;

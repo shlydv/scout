@@ -38,6 +38,8 @@ const nextConfig: NextConfig = {
         permanent: true,
       })),
       { source: "/search", destination: "/", permanent: true },
+      // The shelves index is the home page's shelves section; each shelf keeps its own page.
+      { source: "/shelves", destination: "/#shelves", permanent: true },
     ];
   },
   images: {
