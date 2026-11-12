@@ -111,6 +111,7 @@ export type PlannedSearchOptions = { preferences?: Preferences; limit?: number; 
 
 export async function plannedSearch(query: string, opts: PlannedSearchOptions = {}): Promise<PlannedSearchResult> {
   const deadline = createDeadline(opts.timeoutMs ?? 50_000, opts.signal);
+  const dbgT0 = Date.now(); const dbg = (step: string) => console.log("[search-debug]", query.slice(0, 24), step, Date.now() - dbgT0);
   const signal = deadline.signal;
   const embeddingScope = createDeadline(undefined, signal);
   let embedding: Promise<{ e: number[] | null; ms: number }> = Promise.resolve({ e: null, ms: 0 });
@@ -136,13 +137,16 @@ export async function plannedSearch(query: string, opts: PlannedSearchOptions = 
       : Promise.resolve({ e: null as number[] | null, ms: 0 });
 
     const vocabStarted = Date.now();
+    dbg("vocab");
     const vocab = await loadVocabulary(sql, signal);
+    dbg("vocab done");
     throwIfAborted(signal);
     const vocabMs = Date.now() - vocabStarted;
     const key = planCacheKey(query, prefs, plannerFingerprint(vocab));
     let plan: SearchPlan, dropped: string[], planMs = 0, planCached = false;
     const planCacheStarted = Date.now();
     const cached = await getCachedPlan(sql, key, signal);
+    dbg(`plan cache ${cached ? "hit" : "miss"}`);
     throwIfAborted(signal);
     const planCacheMs = Date.now() - planCacheStarted;
     if (cached) {
@@ -151,6 +155,7 @@ export async function plannedSearch(query: string, opts: PlannedSearchOptions = 
     } else {
       try {
         const r = await planQuery(query, vocab, prefs, signal);
+        dbg("planned");
         throwIfAborted(signal);
         addUsage(r.usage);
         ({ plan, dropped } = r);
@@ -197,12 +202,15 @@ export async function plannedSearch(query: string, opts: PlannedSearchOptions = 
     const embeddingWaitStarted = Date.now();
     const grace = setTimeout(() => embeddingScope.abort(new DOMException("Embedding grace period ended", "TimeoutError")), EMBED_GRACE_MS);
     let embedded: { e: number[] | null; ms: number };
+    dbg("await embedding");
     try { embedded = await embedding; }
     finally { clearTimeout(grace); }
     throwIfAborted(signal);
     const { e: vector, ms: embedMs } = embedded;
     const embeddingWaitMs = Date.now() - embeddingWaitStarted;
+    dbg("execute");
     const exec = await executePlan(sql, plan, vector, { limit: offset + limit, vocab, signal });
+    dbg("executed");
     throwIfAborted(signal);
 
     let confirmed: PlannedSearchItem[] = collapseVariants(exec.items.filter(i => i.confirmation === "confirmed"));
@@ -217,7 +225,9 @@ export async function plannedSearch(query: string, opts: PlannedSearchOptions = 
     confirmed = page;
     if (verify && page.length) {
       // Verify everything that can be shown, in parallel batches; never append an unverified tail.
+      dbg("verify");
       const v = await verifyInChunks(query, plan, page, signal);
+      dbg("verified");
       throwIfAborted(signal);
       v.usages.forEach(addUsage);
       verifyMs = v.ms;
@@ -242,6 +252,7 @@ export async function plannedSearch(query: string, opts: PlannedSearchOptions = 
       return [...shown, ...extra];
     });
     const attachSizesMs = Date.now() - attachSizesStarted;
+    dbg("sizes attached");
     throwIfAborted(signal);
     const items = withSizes.slice(0, shown.length);
     const summary = items.length
@@ -264,9 +275,11 @@ export async function plannedSearch(query: string, opts: PlannedSearchOptions = 
   } finally {
     // Abort optional speculation, then wait for cleanup.
     // The shelf queue must not start more work while a timed-out SQL query runs.
+    dbg("finally");
     deadline.abort();
     embeddingScope.abort();
     await Promise.allSettled([embedding]);
+    dbg("finally done");
     embeddingScope.dispose();
     deadline.dispose();
   }
