@@ -21,9 +21,10 @@ import type { SearchResponse } from "@/lib/search/planned/present";
 
 export const revalidate = 600;
 export const maxDuration = 60;
-// Shelves come from their daily cache; one still generating shows as "Being restocked"
-// rather than holding the page (a cold cache means twelve planned searches).
-const SHELF_WAIT_MS = 25_000;
+// Shelves come from their daily cache. On a cold cache (after a deploy) wait as long as a
+// shelf search may take (its 40 s deadline), so home gets what /shelves gets; a search stuck
+// past that is cut off in lib/shelves-data and shows as "Being restocked".
+const SHELF_WAIT_MS = 45_000;
 // Searches are /?q= on this page; they all point Google at the bare home page.
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 
