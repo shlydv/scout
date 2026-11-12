@@ -20,7 +20,6 @@ export const metadata: Metadata = {
 
 export default async function ShelvesPage() {
   const results = await Promise.all(SHELVES.map(s => getShelf(s.slug)));
-  console.log("[shelf-debug] /shelves has all results", results.map(r => r?.items.length ?? null).join(","));
   const refreshed = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
 
   return (
