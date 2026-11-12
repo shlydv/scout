@@ -16,23 +16,25 @@ import type { LandingInsights } from "@/lib/products/landing-insights";
 import { getHomeShelves } from "@/lib/products/queries";
 import { collapseVariants } from "@/lib/products/variants";
 import { SHELVES } from "@/lib/shelves";
-import { getShelf } from "@/lib/shelves-data";
+import { getShelfWithin } from "@/lib/shelves-data";
 import type { SearchResponse } from "@/lib/search/planned/present";
 
 export const revalidate = 600;
-// A shelf whose daily cache is cold is generated inline (lib/shelves-data), as on /shelves.
 export const maxDuration = 60;
+// Shelves come from their daily cache; one still generating shows as "Being restocked"
+// rather than holding the page (a cold cache means twelve planned searches).
+const SHELF_WAIT_MS = 25_000;
 // Searches are /?q= on this page; they all point Google at the bare home page.
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export default async function Home() {
   const shelves = await getHomeShelves();
   const staples = await collapseVariants(shelves.dailyStaples);
-  // Loaded apart, so one source failing doesn't empty the other's sections. getShelf never throws.
+  // Loaded apart, so one source failing doesn't empty the other's sections. Shelves never throw.
   const [landing, facts, goalShelves] = await Promise.all([
     getCachedLandingInsights().catch((err) => { console.warn("[home] landing insights skipped:", err); return null; }),
     getInsights().catch((err) => { console.warn("[home] label facts skipped:", err); return null; }),
-    Promise.all(SHELVES.map(s => getShelf(s.slug))),
+    Promise.all(SHELVES.map(s => getShelfWithin(s.slug, SHELF_WAIT_MS))),
   ]);
   // One proof fact, told big: the share of packs with added sugar.
   const proof = facts?.ingredientStats.find(st => st.concept === "added_sugar") ?? facts?.ingredientStats[0] ?? null;

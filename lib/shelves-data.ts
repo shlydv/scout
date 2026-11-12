@@ -40,3 +40,18 @@ export async function getShelf(slug: string): Promise<SearchResponse | null> {
     return null;
   }
 }
+
+/**
+ * getShelf for a page that shows shelves on the side (the home page): null after `ms`, so a
+ * cold shelf never holds the page up. Its generation carries on and fills the cache for the
+ * page's next render.
+ */
+export async function getShelfWithin(slug: string, ms: number): Promise<SearchResponse | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<null>(resolve => { timer = setTimeout(() => resolve(null), ms); });
+  try {
+    return await Promise.race([getShelf(slug), late]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
