@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // /shelves waits for all twelve shelves; on a cold cache that is twelve planned searches,
+  // which can pass the default 60 s and fail the build.
+  staticPageGenerationTimeout: 180,
   async headers() {
     return [
       {

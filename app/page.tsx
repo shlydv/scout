@@ -4,7 +4,7 @@ import { ArrowUpRight } from "lucide-react";
 import { HomeRailCard } from "@/components/home-rail-card";
 import { HomeBoards } from "@/components/home-boards";
 import { RingGlyph } from "@/components/ring-motif";
-import { shelfNo } from "@/components/shelf-board";
+import { ShelfBoard } from "@/components/shelf-board";
 import { CountUp, Reveal } from "@/components/reveal";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
@@ -16,18 +16,25 @@ import type { LandingInsights } from "@/lib/products/landing-insights";
 import { getHomeShelves } from "@/lib/products/queries";
 import { collapseVariants } from "@/lib/products/variants";
 import { SHELVES } from "@/lib/shelves";
+import { getShelfWithin } from "@/lib/shelves-data";
+import type { SearchResponse } from "@/lib/search/planned/present";
 
 export const revalidate = 600;
+export const maxDuration = 60;
+// Shelves come from their daily cache; one still generating shows as "Being restocked"
+// rather than holding the page (a cold cache means twelve planned searches).
+const SHELF_WAIT_MS = 25_000;
 // Searches are /?q= on this page; they all point Google at the bare home page.
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export default async function Home() {
   const shelves = await getHomeShelves();
   const staples = await collapseVariants(shelves.dailyStaples);
-  // Loaded apart, so one source failing doesn't empty the other's sections.
-  const [landing, facts] = await Promise.all([
+  // Loaded apart, so one source failing doesn't empty the other's sections. Shelves never throw.
+  const [landing, facts, goalShelves] = await Promise.all([
     getCachedLandingInsights().catch((err) => { console.warn("[home] landing insights skipped:", err); return null; }),
     getInsights().catch((err) => { console.warn("[home] label facts skipped:", err); return null; }),
+    Promise.all(SHELVES.map(s => getShelfWithin(s.slug, SHELF_WAIT_MS))),
   ]);
   // One proof fact, told big: the share of packs with added sugar.
   const proof = facts?.ingredientStats.find(st => st.concept === "added_sugar") ?? facts?.ingredientStats[0] ?? null;
@@ -72,7 +79,7 @@ export default async function Home() {
           </p>
         )}
         footer={<SiteFooter />}
-        landing={<HomeSections landing={landing} facts={facts} proof={proof} staples={staples} />}
+        landing={<HomeSections landing={landing} facts={facts} goalShelves={goalShelves} proof={proof} staples={staples} />}
       />
     </main>
   );
@@ -80,9 +87,10 @@ export default async function Home() {
 
 
 /** Everything under the search box while nothing is searched: the leaderboards, then the shelves. */
-function HomeSections({ landing, facts, proof, staples }: {
+function HomeSections({ landing, facts, goalShelves, proof, staples }: {
   landing: LandingInsights | null;
   facts: InsightsData | null;
+  goalShelves: (SearchResponse | null)[];
   proof: InsightsData["ingredientStats"][number] | null;
   staples: Awaited<ReturnType<typeof getHomeShelves>>["dailyStaples"];
 }) {
@@ -90,10 +98,10 @@ function HomeSections({ landing, facts, proof, staples }: {
     <>
       <HomeBoards landing={landing} insights={facts} />
 
-      {/* ── Start from a goal ──────────────────────────────────────────── */}
+      {/* ── Start from a goal: every shelf's top three, as on /shelves ───── */}
       <section className="border-y border-(--color-line)">
-        <Reveal className="mx-auto max-w-7xl px-6 py-14 md:py-20">
-          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <Reveal className="mx-auto max-w-6xl px-4 py-14 md:px-6 md:py-20">
+          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-(--color-accent)">Goal shelves</p>
               <h2 className="font-display mt-3 text-3xl leading-tight md:text-[2.5rem]">Twelve shelves, <span className="italic">kept honest.</span></h2>
@@ -102,19 +110,11 @@ function HomeSections({ landing, facts, proof, staples }: {
               All shelves <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-          <ul className="grid grid-cols-1 gap-x-10 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {SHELVES.map((s, i) => (
-              <li key={s.slug} className="border-b border-(--color-line)">
-                <Link href={`/shelves/${s.slug}`} className="group flex items-baseline gap-3 py-3">
-                  <span className="w-12 shrink-0 text-[10px] font-semibold uppercase tracking-[0.14em] text-(--color-fg-dim)">{shelfNo(i)}</span>
-                  <span className="min-w-0">
-                    <span className="font-display block text-[1.25rem] leading-tight text-(--color-fg) group-hover:text-(--color-accent)">{s.title}</span>
-                    <span className="block truncate text-[12px] text-(--color-fg-dim)">{s.blurb}</span>
-                  </span>
-                </Link>
-              </li>
+              <ShelfBoard key={s.slug} shelf={s} index={i} items={goalShelves[i]?.items ?? []} total={goalShelves[i]?.items.length ?? 0} />
             ))}
-          </ul>
+          </div>
         </Reveal>
       </section>
 
@@ -164,7 +164,7 @@ function Rail({
   if (!items.length) return null;
   return (
     <section>
-      <Reveal className="mx-auto max-w-7xl px-6 py-16 md:py-24">
+      <Reveal className="mx-auto max-w-6xl px-4 py-16 md:px-6 md:py-24">
         <div className="mb-9 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-(--color-fg-dim)">

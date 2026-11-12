@@ -5,15 +5,26 @@ import { shelfBySlug } from "@/lib/shelves";
 import { KeyedWorkQueue, throwIfAborted } from "@/lib/search/planned/runtime";
 
 const SHELF_TIMEOUT_MS = 40_000;
+// After its deadline a search still waits for its SQL to settle before freeing its queue slot.
+// A render stops waiting here: one stuck connection must not hold a page (or a build) forever,
+// and Next waits for every pending cache refresh before it finishes a page.
+const SHELF_GIVE_UP_MS = SHELF_TIMEOUT_MS + 10_000;
 // Generation is expensive (SQL + planner + verifier). Bound misses within each
 // serverless instance; persistent Next cache hits do not enter this queue.
 const shelfGeneration = new KeyedWorkQueue<SearchResponse>(2, 12);
+
+/** `work`, or a rejection once `ms` pass; the work itself carries on. */
+function settleWithin<T>(work: Promise<T>, ms: number, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error(message)), ms); });
+  return Promise.race([work, late]).finally(() => clearTimeout(timer));
+}
 
 const cachedShelf = unstable_cache(
   async (slug: string): Promise<SearchResponse> => {
     const shelf = shelfBySlug(slug);
     if (!shelf) throw new Error(`unknown shelf ${slug}`);
-    return shelfGeneration.run(slug, async signal => {
+    return settleWithin(shelfGeneration.run(slug, async signal => {
       const result = await plannedSearch(shelf.query, { limit: 24, signal, timeoutMs: SHELF_TIMEOUT_MS });
       throwIfAborted(signal);
       const data = presentSearch(result);
@@ -21,7 +32,7 @@ const cachedShelf = unstable_cache(
       // Throwing keeps empty, cancelled or degraded results out of the daily cache.
       if (data.degraded || data.items.length === 0) throw new Error("shelf came back empty");
       return data;
-    }, { timeoutMs: SHELF_TIMEOUT_MS });
+    }, { timeoutMs: SHELF_TIMEOUT_MS }), SHELF_GIVE_UP_MS, "shelf search did not settle");
   },
   ["goal-shelf-v4-verdict"],
   { revalidate: 86400 },
@@ -39,4 +50,13 @@ export async function getShelf(slug: string): Promise<SearchResponse | null> {
     console.error("[shelf]", slug, e instanceof Error ? e.message : e);
     return null;
   }
+}
+
+/**
+ * getShelf for a page that shows shelves on the side (the home page): null after `ms`, so a
+ * cold shelf never holds the page up. Its generation carries on and fills the cache for the
+ * page's next render.
+ */
+export function getShelfWithin(slug: string, ms: number): Promise<SearchResponse | null> {
+  return settleWithin(getShelf(slug), ms, "shelf not ready").catch(() => null);
 }
