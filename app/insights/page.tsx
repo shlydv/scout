@@ -106,7 +106,7 @@ export default async function InsightsPage() {
           </Section>
         </div>
 
-        <Section eyebrow="The good news" title="The best thing in every big aisle" intro="The highest-scoring product in each of the largest aisles — a good place to start your next basket." action={<Link href="/shelves" className="inline-flex items-center gap-1 text-sm font-medium text-(--color-accent) hover:underline">Browse goal shelves<ArrowUpRight className="h-3.5 w-3.5" /></Link>}>
+        <Section eyebrow="The good news" title="The best thing in every big aisle" intro="The highest-scoring product in each of the largest aisles — a good place to start your next basket." action={<Link href="/#shelves" className="inline-flex items-center gap-1 text-sm font-medium text-(--color-accent) hover:underline">Browse goal shelves<ArrowUpRight className="h-3.5 w-3.5" /></Link>}>
           <ol className="grid grid-cols-1 gap-x-10 md:grid-cols-2">
             {d.bestByAisle.map((b, i) => (
               <li key={b.aisle} className="border-b border-(--color-line)">

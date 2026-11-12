@@ -37,11 +37,11 @@ function NavAuthButton() {
   );
 }
 
+// Search and the goal shelves live on the home page (the logo).
 const LINKS = [
-  { href: "/", label: "Search" },
-  { href: "/shelves", label: "Shelves" },
   { href: "/catalog", label: "Aisles" },
   { href: "/brands", label: "Brands" },
+  { href: "/compare", label: "Compare" },
   { href: "/insights", label: "Insights" },
 ];
 
