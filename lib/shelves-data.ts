@@ -13,8 +13,11 @@ const cachedShelf = unstable_cache(
   async (slug: string): Promise<SearchResponse> => {
     const shelf = shelfBySlug(slug);
     if (!shelf) throw new Error(`unknown shelf ${slug}`);
+    const t0 = Date.now(); console.log("[shelf-debug] gen start", slug);
     return shelfGeneration.run(slug, async signal => {
+      console.log("[shelf-debug] gen running", slug, Date.now() - t0);
       const result = await plannedSearch(shelf.query, { limit: 24, signal, timeoutMs: SHELF_TIMEOUT_MS });
+      console.log("[shelf-debug] gen searched", slug, Date.now() - t0, result.items.length);
       throwIfAborted(signal);
       const data = presentSearch(result);
       if (shelf.rankBy === "score") data.items.sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
@@ -33,8 +36,11 @@ const cachedShelf = unstable_cache(
  * page can still render.
  */
 export async function getShelf(slug: string): Promise<SearchResponse | null> {
+  const t0 = Date.now();
   try {
-    return await cachedShelf(slug);
+    const r = await cachedShelf(slug);
+    console.log("[shelf-debug] getShelf returned", slug, Date.now() - t0);
+    return r;
   } catch (e) {
     console.error("[shelf]", slug, e instanceof Error ? e.message : e);
     return null;
