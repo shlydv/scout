@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "@/components/navigation-link";
+import { variantKey } from "@/lib/facts/variant-key";
 import { catalogTierStyle } from "@/lib/scoring/verdict-display";
 import type { SearchCard } from "@/lib/search/planned/present";
 import type { Shelf } from "@/lib/shelves";
@@ -9,6 +10,30 @@ function metricLabel(card: SearchCard, metric: Shelf["metric"]): string | null {
   if (metric === "protein" && n.protein_g != null) return `${Math.round(n.protein_g)}g protein`;
   if (metric === "sugar" && n.sugar_g != null) return `${Math.round(n.sugar_g * 10) / 10}g sugar`;
   return null;
+}
+
+/**
+ * The product line a pick belongs to: its name without "(Creamy)"-style variants and without
+ * what follows the first "|" ("Whey Isolate | Unflavoured"), unless that leaves only the brand.
+ */
+function lineKey(p: SearchCard): string {
+  const name = p.name.replace(/\([^)]*\)/g, " ");
+  const key = variantKey(p.brand, name.split("|")[0]!);
+  return key.endsWith("|") ? variantKey(p.brand, name) : key;
+}
+
+/**
+ * The board's three picks are three different things: variants of one line count once, since
+ * their names truncate to the same text. The shelf page still lists them all.
+ */
+function topPicks(items: SearchCard[]): SearchCard[] {
+  const seen = new Set<string>();
+  return items.filter(p => {
+    const k = lineKey(p);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  }).slice(0, 3);
 }
 
 /** Shelf number as printed on the board ("No. 03"). */
@@ -31,8 +56,14 @@ export function ShelfBoard({ shelf, index, items, total }: { shelf: Shelf; index
       </div>
       {items.length > 0 ? (
         <ol className="space-y-1.5">
-          {items.slice(0, 3).map((p, i) => {
+          {topPicks(items).map((p, i) => {
             const metric = metricLabel(p, shelf.metric);
+            // Score, metric, price: whichever exist, dot-separated.
+            const meta = [
+              p.score != null ? { text: `${p.score}/100`, color: catalogTierStyle(p.score, p.verdict).fill } : null,
+              metric ? { text: metric } : null,
+              p.price_inr != null ? { text: `₹${Math.round(p.price_inr)}` } : null,
+            ].filter(m => m != null);
             return (
               <li key={p.id}>
                 <Link href={`/product/${p.slug}`} className="group flex items-center gap-2.5 rounded-lg border border-(--color-line) bg-(--color-bg) p-2 transition hover:border-(--color-fg-dim)">
@@ -43,9 +74,9 @@ export function ShelfBoard({ shelf, index, items, total }: { shelf: Shelf; index
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[11.5px] font-medium text-(--color-fg) group-hover:text-(--color-accent)">{p.name}</span>
                     <span className="flex gap-1.5 text-[10px] text-(--color-fg-dim)">
-                      {p.score != null && <span className="font-semibold" style={{ color: catalogTierStyle(p.score, p.verdict).fill }}>{p.score}/100</span>}
-                      {metric && <span>· {metric}</span>}
-                      {p.price_inr != null && <span>· ₹{Math.round(p.price_inr)}</span>}
+                      {meta.map((m, j) => (
+                        <span key={j} className={m.color ? "font-semibold" : undefined} style={m.color ? { color: m.color } : undefined}>{j > 0 && "· "}{m.text}</span>
+                      ))}
                     </span>
                   </span>
                 </Link>
