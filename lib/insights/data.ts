@@ -80,8 +80,7 @@ async function load(): Promise<InsightsData> {
     from ${reviewedConflicts(sql)} lc
     join products p on p.id = lc.product_id and p.catalog_visible
     join product_facts f on f.product_id = p.id
-    left join product_search_index si on si.product_id = p.id
-      left join core_scores cs on cs.product_id = p.id
+    left join core_scores cs on cs.product_id = p.id
     where cardinality(p.image_urls) > 0
     order by brand_size desc, p.name`;
   // One card per product line, at most two per brand, so no brand dominates the story.
@@ -110,6 +109,8 @@ async function load(): Promise<InsightsData> {
     select kind, count(distinct product_id)::int count from ${reviewedConflicts(sql)} lc
     join products p on p.id = lc.product_id and p.catalog_visible group by kind order by count desc`;
 
+  // Rank on narrow columns, then fetch display fields for the winners only: sorting whole
+  // product rows spilled to disk (work_mem is ~2 MB) and took seconds on a busy database.
   const byAisle = async (concept: string): Promise<AisleStat[]> => {
     const rows = await sql<(Row & { aisle: string; total: number; pct: number })[]>`
       with a as (
@@ -119,32 +120,40 @@ async function load(): Promise<InsightsData> {
         where p.catalog_visible and f.ingredient_status = 'complete' and p.subcategory is not null
         group by 1 having count(*) >= 25
       ), ex as (
-        select distinct on (p.subcategory) p.subcategory aisle, p.id, p.slug, p.name, p.brand, p.image_urls, p.ocr_image_url,
-               p.price_inr, p.net_weight, coalesce(cs.absolute_score, cs.score) score
+        select distinct on (p.subcategory) p.subcategory aisle, p.id
         from products p join product_facts f on f.product_id = p.id
-        left join product_search_index si on si.product_id = p.id
-      left join core_scores cs on cs.product_id = p.id
+        left join core_scores cs on cs.product_id = p.id
         where p.catalog_visible and ${concept} = any(f.present) and cardinality(p.image_urls) > 0
         order by p.subcategory, coalesce(cs.absolute_score, cs.score) desc nulls last
       )
-      select a.aisle, a.total, a.pct, ex.id, ex.slug, ex.name, ex.brand, ex.image_urls, ex.ocr_image_url, ex.price_inr, ex.net_weight, ex.score
+      select a.aisle, a.total, a.pct, p.id, p.slug, p.name, p.brand, p.image_urls, p.ocr_image_url, p.price_inr, p.net_weight,
+             coalesce(cs.absolute_score, cs.score) score
       from a left join ex on ex.aisle = a.aisle
+      left join products p on p.id = ex.id
+      left join core_scores cs on cs.product_id = p.id
       order by a.pct desc, a.total desc limit 10`;
     return rows.map(r => ({ aisle: r.aisle, total: r.total, pct: r.pct, example: r.id ? toProduct(r) : null }));
   };
 
   const bestRows = await sql<(Row & { aisle: string; total: number })[]>`
-    with ranked as (
-      select p.subcategory aisle, p.id, p.slug, p.name, p.brand, p.image_urls, p.ocr_image_url, p.price_inr, p.net_weight,
-             coalesce(cs.absolute_score, cs.score) score, count(*) over (partition by p.subcategory)::int total,
-             row_number() over (partition by p.subcategory order by coalesce(cs.absolute_score, cs.score) desc nulls last, p.price_inr) rn
-      from products p join product_search_index si on si.product_id = p.id
-      left join core_scores cs on cs.product_id = p.id
+    with scored as (
+      select p.id, p.subcategory aisle, p.price_inr, coalesce(cs.absolute_score, cs.score) score
+      from products p
+      join core_scores cs on cs.product_id = p.id
       left join product_facts f on f.product_id = p.id
-      where p.catalog_visible and coalesce(cs.absolute_score, cs.score) is not null and cardinality(p.image_urls) > 0
+      where p.catalog_visible and cardinality(p.image_urls) > 0
+        and coalesce(cs.absolute_score, cs.score) is not null
         and not coalesce(f.nutrition_suspect, false)
+        and exists (select 1 from product_search_index si where si.product_id = p.id)
+    ), ranked as (
+      select id, aisle, score, count(*) over (partition by aisle)::int total,
+             row_number() over (partition by aisle order by score desc nulls last, price_inr) rn
+      from scored
     )
-    select * from ranked where rn = 1 and total >= 40 order by total desc limit 12`;
+    select r.aisle, r.total, p.id, p.slug, p.name, p.brand, p.image_urls, p.ocr_image_url, p.price_inr, p.net_weight, r.score
+    from ranked r join products p on p.id = r.id
+    where r.rn = 1 and r.total >= 40
+    order by r.total desc limit 12`;
 
   return {
     total: counts!.total,
@@ -161,7 +170,7 @@ async function load(): Promise<InsightsData> {
   };
 }
 
-export const getInsights = unstable_cache(singleFlight(load), ["insights-facts-v1", CLAIM_REVIEWS_VERSION], { revalidate: 86_400, tags: ["insights"] });
+export const getInsights = unstable_cache(singleFlight(load), ["insights-facts-v2", CLAIM_REVIEWS_VERSION], { revalidate: 86_400, tags: ["insights"] });
 
 export const CONFLICT_KIND_LABELS: Record<string, string> = {
   sugar: "Sugar", gluten: "Gluten", palm_oil: "Palm oil", preservative: "Preservatives", colour: "Colours",
