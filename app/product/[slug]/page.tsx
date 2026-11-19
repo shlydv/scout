@@ -1,6 +1,6 @@
 import { productHref } from "@/lib/shopping/links";
 import { resolveShoppingContext, filterShoppingCandidates } from "@/lib/shopping/recommendations";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Suspense } from "react";
 import { IngredientPanel } from "@/components/ingredient-panel";
 import { PdpNutritionGlance } from "@/components/pdp-nutrition-glance";
@@ -38,6 +38,7 @@ import { loadIngredientIntelligenceForDisplay } from "@/lib/ingredients/load-int
 import { resolveZeptoBuyUrl } from "@/lib/products/zepto-product-url";
 import { findAlternatives, findSimilarProducts } from "@/lib/products/alternatives";
 import { getProductBySlug, getProductsForSwaps } from "@/lib/products/queries";
+import { currentProductSlug } from "@/lib/products/slug-redirects";
 import { displayPriceInr, showMrpStrike } from "@/lib/products/display-price";
 import type { Metadata } from "next";
 import Link from "@/components/navigation-link";
@@ -47,6 +48,12 @@ import { brandSlug } from "@/lib/brands/slug";
 export const revalidate = 300;
 export const maxDuration = 60;
 
+/** The product an old slug now points at, so a link preview still names it when proxy.ts didn't redirect. */
+async function productMovedFrom(slug: string) {
+  const current = await currentProductSlug(slug);
+  return current ? getProductBySlug(current) : null;
+}
+
 /** Share cards carry the verdict — the score IS the story. */
 export async function generateMetadata({
   params,
@@ -54,7 +61,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const product = await getProductBySlug(slug);
+  const product = (await getProductBySlug(slug)) ?? (await productMovedFrom(slug));
   if (!product) return { title: "Product not found · Scout" };
 
   const score = product.core_scores;
@@ -107,7 +114,17 @@ export default async function ProductPage({
   const goal = goalFromParam(goalParam);
   const diet = dietFromParam(dietParam);
   const product = await getProductBySlug(slug);
-  if (!product) notFound();
+  if (!product) {
+    // proxy.ts answers old slugs with a 308. If its lookup timed out or failed, send
+    // the visitor on from here instead (a meta refresh, since this page streams).
+    const current = await currentProductSlug(slug);
+    if (current) {
+      const query = new URLSearchParams();
+      for (const [key, value] of Object.entries(sp)) for (const v of [value].flat()) if (typeof v === "string") query.append(key, v);
+      permanentRedirect(`/product/${encodeURIComponent(current)}${query.size ? `?${query}` : ""}`);
+    }
+    notFound();
+  }
 
   const price = displayPriceInr(product);
   const zeptoBuyUrl = resolveZeptoBuyUrl(product);

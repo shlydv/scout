@@ -2,13 +2,16 @@ import { NextResponse, type NextRequest } from "next/server";
 import { currentProductSlug, mayBeOldSlug, redirectPrefixes } from "@/lib/products/slug-redirects";
 
 const prefixes = redirectPrefixes();
+/** Runs before every product page it matches, so it waits briefly; on a miss the page redirects. */
+const PROXY_LOOKUP_MS = 1500;
 
 /**
  * A product's old URL answers with a 308 to its current slug, query string included:
  * ?context= and ?q= carry the shopper's requirements onto the product page. The check
  * runs here because the page streams (a redirect thrown there reaches browsers and
  * crawlers as a 200 with a meta refresh) and layouts never see the query string.
- * Only slugs shaped like old ones (PRODUCT_SLUG_REDIRECT_PREFIXES) are looked up.
+ * Only slugs shaped like old ones (PRODUCT_SLUG_REDIRECT_PREFIXES) are looked up. If the
+ * lookup is slow or fails, the product page sends the visitor on itself.
  */
 export async function proxy(request: NextRequest) {
   let slug: string;
@@ -18,7 +21,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
   if (!mayBeOldSlug(slug, prefixes)) return NextResponse.next();
-  const current = await currentProductSlug(slug);
+  const current = await currentProductSlug(slug, PROXY_LOOKUP_MS);
   if (!current || current === slug) return NextResponse.next();
   const moved = request.nextUrl.clone();
   moved.pathname = `/product/${encodeURIComponent(current)}`;
