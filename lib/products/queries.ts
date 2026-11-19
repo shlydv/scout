@@ -29,6 +29,7 @@ import { requireSupabaseClient } from "@/lib/supabase/client";
 import type { CoreScore, Grade, Product, ProductNutrition, ScoreBand } from "@/lib/supabase/types";
 import { deepseekDisplayFromPayload } from "@/lib/ocr/deepseek-promote";
 import { normalizeProductImageUrls } from "@/lib/products/catalog-hero-image";
+import { currentProductSlugs } from "@/lib/products/slug-redirects";
 
 
 /** Server-side reads: service role when set, else anon (browser-safe) client. */
@@ -1345,7 +1346,27 @@ export async function getProductsForSwaps(
   return rows;
 }
 
-export async function getProductsBySlugs(slugs: string[]): Promise<ProductListItem[]> {
+/** A product found by slug. `renamed_from` lists requested slugs it has since moved away from. */
+export type ProductBySlug = ProductListItem & { renamed_from?: string[] };
+
+/** One row per product; slugs a product has moved away from resolve to it under its current slug. */
+export async function getProductsBySlugs(slugs: string[]): Promise<ProductBySlug[]> {
+  if (!slugs.length) return [];
+  const rows: ProductBySlug[] = await listRowsBySlug(slugs);
+  const found = new Set(rows.map((p) => p.slug));
+  const renamed = await currentProductSlugs(slugs.filter((s) => !found.has(s)));
+  if (!renamed.size) return rows;
+
+  rows.push(...(await listRowsBySlug([...new Set(renamed.values())].filter((s) => !found.has(s)))));
+  const bySlug = new Map(rows.map((p) => [p.slug, p]));
+  for (const [oldSlug, slug] of renamed) {
+    const product = bySlug.get(slug);
+    if (product) (product.renamed_from ??= []).push(oldSlug);
+  }
+  return rows;
+}
+
+async function listRowsBySlug(slugs: string[]): Promise<ProductListItem[]> {
   if (!slugs.length) return [];
   const supabase = db();
   const { data, error } = await supabase

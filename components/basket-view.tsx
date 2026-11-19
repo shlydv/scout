@@ -24,9 +24,11 @@ import {
   decrementBasket,
   readBasket,
   removeFromBasket,
+  renameBasketSlugs,
   replaceInBasket,
 } from "@/lib/basket/storage";
-import type { ProductListItem } from "@/lib/products/queries";
+import type { ProductBySlug, ProductListItem } from "@/lib/products/queries";
+import { slugRenames } from "@/lib/products/slug-renames";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/empty-state";
 
@@ -62,7 +64,9 @@ export function BasketView() {
       try {
         const res = await fetch(`/api/products?slugs=${slugs.map(encodeURIComponent).join(",")}`);
         if (!res.ok) throw new Error("fetch failed");
-        const data = (await res.json()) as ProductListItem[];
+        const data = (await res.json()) as ProductBySlug[];
+        // Lines saved under a slug the product has since left move to its current one.
+        renameBasketSlugs(slugRenames(data));
         if (!cancelled) setCatalog(data);
       } catch {
         if (!cancelled) {

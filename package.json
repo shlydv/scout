@@ -19,6 +19,7 @@
     "build:facets": "tsx scripts/build-catalog-facets.ts",
     "catalog:hero-image:test": "tsx scripts/catalog-hero-image-selftest.ts",
     "catalog:backfill-visible": "tsx scripts/backfill-catalog-visible.ts",
+    "catalog:rename-slugs": "tsx scripts/rename-product-slugs.ts",
     "catalog:migrate": "tsx scripts/apply-catalog-migration.ts",
     "db:migrate": "tsx scripts/apply-all-migrations.ts",
     "score": "tsx scripts/05-compute-scores.ts",

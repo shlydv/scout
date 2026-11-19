@@ -43,6 +43,7 @@ Migrations live in `supabase/migrations`. Apply one with `pnpm db:apply supabase
 ```bash
 pnpm typecheck                                    # app + scripts
 pnpm search:test                                  # planned-search unit tests (offline)
+node --import tsx --test scripts/product-slug-renames.test.ts scripts/product-slug-proxy.test.ts   # slug moves, old-URL redirects
 node --import tsx scripts/free-access-regression.ts
 pnpm search:eval                                  # 84-case search eval (uses DeepSeek, a few cents)
 pnpm build
@@ -75,7 +76,7 @@ lib/
   products/       catalog queries and caches
   insights/ brands/ shelves.ts   data behind those pages
   ocr/ lm/        label OCR and structuring
-supabase/migrations/   SQL migrations (0001–0049)
+supabase/migrations/   SQL migrations (0001–0051)
 scripts/          pipeline and maintenance scripts (see package.json)
 eval/             search eval cases
 ocr-pipeline/     Apple Vision OCR helper (Python, macOS)
