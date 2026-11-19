@@ -341,12 +341,7 @@ function ProductHeader({ product, shoppingContext }: { product: ProductListItem;
             </div>
           )}
         </div>
-        {product.brand ? (
-          <p className="mt-2 truncate text-[10px] uppercase tracking-[0.12em] text-(--color-fg-dim)">
-            {product.brand}
-          </p>
-        ) : null}
-        <h2 className="mt-0.5 line-clamp-2 text-[14px] font-medium leading-snug text-(--color-fg) group-hover:underline group-hover:underline-offset-2">
+        <h2 className="mt-2 line-clamp-2 text-[14px] font-medium leading-snug text-(--color-fg) group-hover:underline group-hover:underline-offset-2">
           {catalogCardDisplayName(product.name)}
         </h2>
       </Link>

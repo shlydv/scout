@@ -64,12 +64,7 @@ export function HomeRailCard({ product }: { product: ProductListItem }) {
       </div>
 
       <div className="mt-2.5 flex-1">
-        {product.brand ? (
-          <p className="truncate text-[10px] uppercase tracking-[0.14em] text-(--color-fg-dim)">
-            {product.brand}
-          </p>
-        ) : null}
-        <p className="line-clamp-2 mt-0.5 text-[14px] leading-snug text-(--color-fg) group-hover:text-(--color-accent)">
+        <p className="line-clamp-2 text-[14px] leading-snug text-(--color-fg) group-hover:text-(--color-accent)">
           {name}
         </p>
         {price != null ? (

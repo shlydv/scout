@@ -121,7 +121,6 @@ export function HomeBoards({ landing, insights, goalShelves }: {
                     {p.image && <Image src={p.image} alt="" fill sizes="40px" className="object-contain p-0.5" />}
                   </div>
                   <div className="min-w-0 flex-1">
-                    {p.brand && <p className="truncate text-[9.5px] uppercase tracking-wide text-(--color-fg-dim)">{p.brand}</p>}
                     <p className="line-clamp-2 text-[12.5px] font-medium leading-snug text-(--color-fg) group-hover:text-(--color-accent)">{p.name}</p>
                   </div>
                   <span className="shrink-0 text-base font-bold tabular-nums text-(--color-good)">{p.score}</span>

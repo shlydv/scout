@@ -83,7 +83,7 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
           <section className="mt-14">
             <Heading eyebrow="Their best" tone="var(--color-good)" title={`What to buy from ${brand.name}.`} />
             <ol className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {brand.best.map((card, i) => <li key={card.id} className="grid min-w-0 grid-cols-1"><SearchResultCard card={card} query="" position={i + 1} hideBrand /></li>)}
+              {brand.best.map((card, i) => <li key={card.id} className="grid min-w-0 grid-cols-1"><SearchResultCard card={card} query="" position={i + 1} /></li>)}
             </ol>
           </section>
         )}
@@ -92,7 +92,7 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
           <section className="mt-14">
             <Heading eyebrow="Their worst" tone="var(--color-bad)" title="Leave these on the shelf." />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {brand.worst.map(card => <SearchResultCard key={card.id} card={card} query="" hideBrand />)}
+              {brand.worst.map(card => <SearchResultCard key={card.id} card={card} query="" />)}
             </div>
           </section>
         )}
@@ -107,7 +107,7 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
                   <span className="text-[11px] text-(--color-fg-dim)">{a.items.length}</span>
                 </p>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {a.items.slice(0, AISLE_PREVIEW).map(card => <SearchResultCard key={card.id} card={card} query="" hideBrand />)}
+                  {a.items.slice(0, AISLE_PREVIEW).map(card => <SearchResultCard key={card.id} card={card} query="" />)}
                 </div>
                 {a.items.length > AISLE_PREVIEW && (
                   <details className="group mt-3">
@@ -116,7 +116,7 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
                       <span className="hidden group-open:inline">Show fewer</span>
                     </summary>
                     <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                      {a.items.slice(AISLE_PREVIEW).map(card => <SearchResultCard key={card.id} card={card} query="" hideBrand />)}
+                      {a.items.slice(AISLE_PREVIEW).map(card => <SearchResultCard key={card.id} card={card} query="" />)}
                     </div>
                   </details>
                 )}
