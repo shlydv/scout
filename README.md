@@ -36,6 +36,8 @@ cp .env.example .env.local   # fill in the required block
 pnpm dev                     # http://localhost:3000
 ```
 
+On a network that inspects TLS (a corporate VPN or proxy), export `NODE_USE_SYSTEM_CA=1` before running Node so it trusts the system keychain. Certificate checks stay on everywhere: the database client pins Supabase's root CA (`lib/supabase/root-ca.ts`), and `scripts/tls-verification.test.ts` fails if app code turns verification off.
+
 Migrations live in `supabase/migrations`. Apply one with `pnpm db:apply supabase/migrations/<file>.sql`.
 
 ## Checks

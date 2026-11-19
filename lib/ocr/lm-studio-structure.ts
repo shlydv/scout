@@ -6,10 +6,11 @@ import { withLmStudioLock } from "@/lib/lm/studio-lock";
 const DEFAULT_BASE = "http://127.0.0.1:1234/v1";
 const DEFAULT_MODEL = "qwen2.5coder7b:2";
 
-// Cloud LM APIs need permissive TLS on some Macs (corporate cert chains, stale OpenSSL).
+// Cloud LM APIs: timeouts only; certificates are always verified. On a network that inspects
+// TLS, start Node with NODE_USE_SYSTEM_CA=1 so it trusts the system keychain (README).
 // Local LM Studio (127.0.0.1) is HTTP, untouched.
 const cloudDispatcher = new Agent({
-  connect: { rejectUnauthorized: false, timeout: 20_000 },
+  connect: { timeout: 20_000 },
   bodyTimeout: 180_000,
   headersTimeout: 60_000,
 });

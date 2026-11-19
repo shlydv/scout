@@ -5,8 +5,9 @@ import { createDeadline, throwIfAborted } from "./planned/runtime";
 const DEFAULT_BASE_URL = "https://api.deepseek.com/v1";
 const DEFAULT_MODEL = "deepseek-v4-flash";
 
+// Timeouts only; certificates are always verified.
 const dispatcher = new Agent({
-  connect: { rejectUnauthorized: false, timeout: 20_000 },
+  connect: { timeout: 20_000 },
   bodyTimeout: 120_000,
   headersTimeout: 60_000,
 });
