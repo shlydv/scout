@@ -5,8 +5,9 @@ import type { CatalogRow } from "@/lib/products/catalog-row";
 const DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1";
 const DEFAULT_DEEPSEEK_MODEL = "deepseek-v4-flash";
 
+// Timeouts only; certificates are always verified.
 const cloudDispatcher = new Agent({
-  connect: { rejectUnauthorized: false, timeout: 20_000 },
+  connect: { timeout: 20_000 },
   bodyTimeout: 240_000,
   headersTimeout: 60_000,
 });
