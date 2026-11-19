@@ -144,11 +144,6 @@ export function SwapPanel({
                   ) : null}
                 </div>
                 <div className="min-w-0 flex-1">
-                  {product.brand ? (
-                    <p className="text-[10px] uppercase tracking-wider text-(--color-fg-dim)">
-                      {product.brand}
-                    </p>
-                  ) : null}
                   <p
                     className={cn(
                       "font-medium leading-snug text-(--color-fg)",

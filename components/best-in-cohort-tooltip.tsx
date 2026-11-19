@@ -137,11 +137,6 @@ export function BestInCohortChip({
                         ) : null}
                       </span>
                       <span className="min-w-0 flex-1">
-                        {p.brand ? (
-                          <span className="block truncate text-[9px] uppercase tracking-wider text-(--color-fg-dim)">
-                            {p.brand}
-                          </span>
-                        ) : null}
                         <span className="block truncate text-[12px] text-(--color-fg)">{p.name}</span>
                       </span>
                       <span

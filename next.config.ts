@@ -57,6 +57,10 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     optimizePackageImports: ["lucide-react", "framer-motion"],
+    // Scroll to the top on navigation. The default handler looks for the new page's first
+    // element, finds the route's script that React hoisted into <head>, and gives up: on a phone
+    // a product page opened from far down the home page kept that depth.
+    appNewScrollHandler: true,
   },
 };
 

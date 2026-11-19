@@ -18,7 +18,6 @@ export function ConflictCard({ c }: { c: LabelConflict }) {
           {c.image && <Image src={c.image} alt="" fill sizes="40px" className="object-contain p-0.5" />}
         </div>
         <div className="min-w-0 flex-1">
-          {c.brand && <p className="truncate text-[9.5px] uppercase tracking-wide text-(--color-fg-dim)">{c.brand}</p>}
           <p className="line-clamp-2 text-[12.5px] font-medium leading-snug text-(--color-fg) group-hover:text-(--color-accent)">{c.name}</p>
         </div>
       </div>
