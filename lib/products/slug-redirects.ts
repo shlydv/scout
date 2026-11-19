@@ -1,7 +1,9 @@
 import { requireSupabaseClient } from "@/lib/supabase/client";
 
-/** The lookup runs before product pages, so it gets a hard budget. */
-const LOOKUP_MS = 1500;
+/** Callers that look up only after a slug was not found can wait this long: the
+ *  alternative is a "not found" page. proxy.ts, which runs before every product
+ *  page, passes a much shorter budget. */
+const LOOKUP_MS = 5000;
 
 /** PRODUCT_SLUG_REDIRECT_PREFIXES: comma-separated prefixes that old slugs start with. */
 export function redirectPrefixes(raw = process.env.PRODUCT_SLUG_REDIRECT_PREFIXES): string[] {
@@ -21,13 +23,13 @@ export function mayBeOldSlug(slug: string, prefixes: string[]): boolean {
  * is logged and treated as "no redirects", so old URLs fall back to a 404 rather than
  * holding up or breaking product pages.
  */
-export async function currentProductSlugs(slugs: string[]): Promise<Map<string, string>> {
+export async function currentProductSlugs(slugs: string[], timeoutMs = LOOKUP_MS): Promise<Map<string, string>> {
   const renamed = new Map<string, string>();
   if (!slugs.length) return renamed;
   try {
     const { data, error } = await requireSupabaseClient()
       .rpc("current_product_slugs", { p_slugs: slugs })
-      .abortSignal(AbortSignal.timeout(LOOKUP_MS));
+      .abortSignal(AbortSignal.timeout(timeoutMs));
     if (error) throw new Error(error.message);
     for (const row of (data ?? []) as { old_slug: string; slug: string }[]) renamed.set(row.old_slug, row.slug);
   } catch (e) {
@@ -36,6 +38,6 @@ export async function currentProductSlugs(slugs: string[]): Promise<Map<string, 
   return renamed;
 }
 
-export async function currentProductSlug(slug: string): Promise<string | null> {
-  return (await currentProductSlugs([slug])).get(slug) ?? null;
+export async function currentProductSlug(slug: string, timeoutMs = LOOKUP_MS): Promise<string | null> {
+  return (await currentProductSlugs([slug], timeoutMs)).get(slug) ?? null;
 }
