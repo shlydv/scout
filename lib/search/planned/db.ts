@@ -3,6 +3,7 @@
  * scripts may point at a read-only role via SCOUT_RO_DB_URL.
  */
 import postgres from "postgres";
+import { SUPABASE_ROOT_CA } from "@/lib/supabase/root-ca";
 
 export type Sql = postgres.Sql;
 
@@ -22,8 +23,10 @@ export function searchSql(): Sql {
     // 2 of 3 hung with pipelining, 0 of 3 without, and builds ran 2-3x faster.
     // (A real postgres.js option that its types leave out.)
     max_pipeline: 0,
-    ssl: { rejectUnauthorized: false },
-    connection: { statement_timeout: 8000 },
+    // Verify the server against Supabase's root CA; never accept an unchecked certificate.
+    ssl: { ca: SUPABASE_ROOT_CA },
+    // No per-connection statement_timeout: both Supabase poolers drop startup parameters, so
+    // the role default (2 min) applies. Search cancels its own queries at its deadline.
     onnotice: () => {},
   } satisfies postgres.Options<Record<string, postgres.PostgresType>> & { max_pipeline: number };
   pool = postgres(url, options);
