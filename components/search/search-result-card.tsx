@@ -8,7 +8,6 @@ import { AddToBasketButton } from "@/components/add-to-basket-button";
 import { CompareButton } from "@/components/compare-button";
 import { LineTag } from "@/components/line-tag";
 import { catalogTierStyle, verdictTitle } from "@/lib/scoring/verdict-display";
-import { rankShort } from "@/lib/utils";
 import type { SearchCard } from "@/lib/search/planned/present";
 
 function priceLabel(card: Pick<SearchCard, "price_inr">) {
@@ -17,18 +16,13 @@ function priceLabel(card: Pick<SearchCard, "price_inr">) {
 
 /**
  * Product tile: photo on top, then a strip in the verdict's colour with the score,
- * then the name, pack size or rank, and one or two tagged lines saying why it's here
- * and what to watch. `position` turns it into a leaderboard entry (shelves).
+ * then the name, one or two tagged lines saying why it's here and what to watch, and
+ * the price with the pack size. `position` turns it into a leaderboard entry (shelves).
  */
 export function SearchResultCard({ card, query, muted = false, position }: { card: SearchCard; query: string; muted?: boolean; position?: number }) {
   const [sizesOpen, setSizesOpen] = useState(false);
   const href = productHref(card.slug, card.shoppingContext, query);
   const tier = card.score != null ? catalogTierStyle(card.score, card.verdict).fill : "var(--color-fg-dim)";
-  // Only a genuinely good rank is worth saying ("#56 in …" reads as noise).
-  const rankRaw = card.rank ? rankShort(card.rank.rank, card.rank.size) : null;
-  const rank = rankRaw && !rankRaw.startsWith("#") ? rankRaw : null;
-  const cheapest = card.sizes.length ? Math.min(...card.sizes.map(s => s.price_inr ?? Infinity)) : null;
-  const meta = card.net_weight || card.sizes.length > 1 || rank;
 
   return (
     <article className={`group relative flex min-w-0 flex-col overflow-hidden rounded-xl border bg-(--color-panel) transition hover:border-(--color-fg-dim) ${muted ? "border-dashed border-(--color-line-strong)" : "border-(--color-line)"}`}>
@@ -55,24 +49,9 @@ export function SearchResultCard({ card, query, muted = false, position }: { car
           {card.name}
         </Link>
 
-        {meta && (
-          <p className="line-clamp-2 text-[11px] leading-snug tabular-nums text-(--color-fg-dim) sm:text-[11.5px]">
-            {card.net_weight}
-            {card.sizes.length > 1 ? (
-              <>
-                {card.net_weight && " · "}
-                <button type="button" onClick={() => setSizesOpen(o => !o)} className="text-(--color-accent) hover:underline" aria-expanded={sizesOpen}>
-                  {card.sizes.length} sizes{cheapest != null && Number.isFinite(cheapest) ? ` from ₹${cheapest}` : ""}
-                </button>
-              </>
-            ) : rank ? (
-              <>{card.net_weight && " · "}{rank}{card.rank?.label ? ` in ${card.rank.label.toLowerCase()}` : ""}</>
-            ) : null}
-          </p>
-        )}
-
         {(card.reasons.length > 0 || card.warning) && (
-          <div className="space-y-1 text-[11px] leading-snug sm:text-[11.5px]">
+          // Breathing room under the name, about one line tall.
+          <div className="mt-3.5 space-y-1 text-[11px] leading-snug sm:text-[11.5px]">
             {card.reasons.length > 0 && (
               <p className="flex items-baseline gap-1.5">
                 <LineTag tone="good">{card.fit === "good" ? "Fits" : "Label"}</LineTag>
@@ -89,7 +68,16 @@ export function SearchResultCard({ card, query, muted = false, position }: { car
         )}
 
         <div className="mt-auto flex items-center justify-between gap-2 pt-1">
-          <p className="min-w-0 truncate text-[14px] font-semibold tabular-nums text-(--color-fg)">{priceLabel(card)}</p>
+          {/* Pack size sits with the price; on narrow tiles it wraps under it. */}
+          <p className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 tabular-nums">
+            <span className="whitespace-nowrap text-[14px] font-semibold text-(--color-fg)">{priceLabel(card)}</span>
+            {card.net_weight && <span className="whitespace-nowrap text-[11px] text-(--color-fg-dim) sm:text-[11.5px]">{card.net_weight}</span>}
+            {card.sizes.length > 1 && (
+              <button type="button" onClick={() => setSizesOpen(o => !o)} className="whitespace-nowrap text-[11px] text-(--color-accent) hover:underline sm:text-[11.5px]" aria-expanded={sizesOpen}>
+                {card.sizes.length} sizes
+              </button>
+            )}
+          </p>
           <div className="flex shrink-0 items-center gap-1">
             <CompareButton shoppingContext={card.shoppingContext} slug={card.slug} name={card.name} image={card.image} />
             <AddToBasketButton shoppingContext={card.shoppingContext} slug={card.slug} name={card.name} productId={card.id} size="icon" />
