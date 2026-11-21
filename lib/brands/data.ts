@@ -177,13 +177,14 @@ const loadBrand = unstable_cache(
     return {
       ...summary,
       stapleOrGoodPct: scored.length ? Math.round((100 * good) / scored.length) : 0,
-      best: scored.slice(0, 6),
-      worst: scored.length > 9 ? scored.slice(-3).reverse() : [],
+      // Rows of four on desktop and two on phones; the worst never overlaps the best.
+      best: scored.slice(0, 8),
+      worst: scored.length > 12 ? scored.slice(-4).reverse() : [],
       aisles,
       conflictCards,
     };
   },
-  ["brand-detail-v3-verdict", CLAIM_REVIEWS_VERSION],
+  ["brand-detail-v4-tiles", CLAIM_REVIEWS_VERSION],
   { revalidate: 86400 },
 );
 

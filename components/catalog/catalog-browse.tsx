@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronDown, Search } from "lucide-react";
 import { SearchResultCard } from "@/components/search/search-result-card";
+import { PRODUCT_TILE_GRID } from "@/components/search/product-tile-grid";
 import { fetchCatalogMeta, fetchCatalogSearch, type CatalogMetaResponse } from "@/lib/products/catalog-api";
 import { gridItemToCard } from "@/lib/products/card";
 import { CATALOG_BAR_SORT_OPTIONS } from "@/lib/products/catalog-sort";
@@ -141,14 +142,14 @@ export function CatalogBrowse({ initialMeta }: { initialMeta?: CatalogMetaRespon
       </div>
 
       {items.length > 0 ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={PRODUCT_TILE_GRID}>
           {items.map(it => <SearchResultCard key={it.id} card={gridItemToCard(it)} query="" />)}
         </div>
       ) : !loading ? (
         <p className="rounded-xl border border-dashed border-(--color-line-strong) p-5 text-sm text-(--color-fg-muted)">Nothing here with these filters.</p>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 9 }).map((_, i) => <div key={i} className="h-28 animate-pulse rounded-xl bg-(--color-bg-soft)" />)}
+        <div className={PRODUCT_TILE_GRID}>
+          {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-80 animate-pulse rounded-xl bg-(--color-bg-soft) sm:h-[22rem]" />)}
         </div>
       )}
 
