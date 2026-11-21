@@ -5,6 +5,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { ArrowRight, ChevronDown, Info, X } from "lucide-react";
 import { SearchCats } from "@/components/search-cats";
 import { SearchResultCard } from "@/components/search/search-result-card";
+import { PRODUCT_TILE_GRID } from "@/components/search/product-tile-grid";
 import { SavedSearchActions } from "@/components/saved-search-actions";
 import { useDockMorph } from "@/components/search/use-dock-morph";
 import { useAuth } from "@/lib/auth/context";
@@ -122,7 +123,7 @@ function Results({ data, prefs, onMore, loadingMore }: { data: SearchResponse; p
       )}
 
       {items.length > 0 && (
-        <div key={data.query} className="grid-rise grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div key={data.query} className={`grid-rise ${PRODUCT_TILE_GRID}`}>
           {items.map(card => <SearchResultCard key={card.id} card={card} query={data.query} />)}
         </div>
       )}
@@ -143,7 +144,7 @@ function Results({ data, prefs, onMore, loadingMore }: { data: SearchResponse; p
             <ChevronDown className={`h-5 w-5 shrink-0 transition ${showUnconfirmed ? "rotate-180" : ""}`} aria-hidden />
           </button>
           {showUnconfirmed && (
-            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className={`mt-4 ${PRODUCT_TILE_GRID}`}>
               {data.unconfirmed.map(card => <SearchResultCard key={card.id} card={card} query={data.query} muted />)}
             </div>
           )}

@@ -369,6 +369,17 @@ html.dark .thumb {
   background: #f1eadf;
 }
 
+/* Product tile photo: the .thumb well, edge to edge across the top of the card. */
+.tile-photo {
+  background: #ffffff;
+}
+html.dark .tile-photo {
+  background: #f1eadf;
+}
+html.dark .tile-photo img {
+  mix-blend-mode: multiply;
+}
+
 /* Home search: the hero's box is the site's search box. Scrolling or searching docks it under
    the nav. These are the hero's resting styles; components/search/use-dock-morph.ts animates
    each part with scroll. The page snaps between hero and docked, so it never rests half-docked. */

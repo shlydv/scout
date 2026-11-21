@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ConflictCard } from "@/components/insights/conflict-card";
 import { PaperBackdrop } from "@/components/paper-backdrop";
 import { SearchResultCard } from "@/components/search/search-result-card";
+import { PRODUCT_TILE_GRID } from "@/components/search/product-tile-grid";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
 import { getBrand } from "@/lib/brands/data";
@@ -24,7 +25,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
-const AISLE_PREVIEW = 6;
+const AISLE_PREVIEW = 8;
 
 function Heading({ eyebrow, tone, title }: { eyebrow: string; tone: string; title: string }) {
   return (
@@ -82,7 +83,7 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
         {brand.best.length > 0 && (
           <section className="mt-14">
             <Heading eyebrow="Their best" tone="var(--color-good)" title={`What to buy from ${brand.name}.`} />
-            <ol className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <ol className={PRODUCT_TILE_GRID}>
               {brand.best.map((card, i) => <li key={card.id} className="grid min-w-0 grid-cols-1"><SearchResultCard card={card} query="" position={i + 1} /></li>)}
             </ol>
           </section>
@@ -91,7 +92,7 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
         {brand.worst.length > 0 && (
           <section className="mt-14">
             <Heading eyebrow="Their worst" tone="var(--color-bad)" title="Leave these on the shelf." />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className={PRODUCT_TILE_GRID}>
               {brand.worst.map(card => <SearchResultCard key={card.id} card={card} query="" />)}
             </div>
           </section>
@@ -106,7 +107,7 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
                   <span className="text-[13px] font-semibold text-(--color-fg)">{a.aisle}</span>
                   <span className="text-[11px] text-(--color-fg-dim)">{a.items.length}</span>
                 </p>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className={PRODUCT_TILE_GRID}>
                   {a.items.slice(0, AISLE_PREVIEW).map(card => <SearchResultCard key={card.id} card={card} query="" />)}
                 </div>
                 {a.items.length > AISLE_PREVIEW && (
@@ -115,7 +116,7 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
                       <span className="group-open:hidden">Show {a.items.length - AISLE_PREVIEW} more</span>
                       <span className="hidden group-open:inline">Show fewer</span>
                     </summary>
-                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className={`mt-3 ${PRODUCT_TILE_GRID}`}>
                       {a.items.slice(AISLE_PREVIEW).map(card => <SearchResultCard key={card.id} card={card} query="" />)}
                     </div>
                   </details>

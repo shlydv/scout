@@ -3,6 +3,7 @@ import Link from "@/components/navigation-link";
 import { notFound } from "next/navigation";
 import { PaperBackdrop } from "@/components/paper-backdrop";
 import { SearchResultCard } from "@/components/search/search-result-card";
+import { PRODUCT_TILE_GRID } from "@/components/search/product-tile-grid";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
 import { SHELVES, shelfBySlug, shelfOrderLabel } from "@/lib/shelves";
@@ -50,7 +51,7 @@ export default async function ShelfPage({ params }: { params: Promise<{ slug: st
               <p className="text-[12px] text-(--color-fg-dim)"><span className="font-semibold text-(--color-fg)">{data.items.length}</span> on the shelf today, {shelfOrderLabel(shelf)}</p>
               <Link href={searchHref} className="text-[12px] text-(--color-fg-dim) hover:text-(--color-fg)">Tweak this list →</Link>
             </div>
-            <ol className="grid-rise grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <ol className={`grid-rise ${PRODUCT_TILE_GRID}`}>
               {data.items.map((card, i) => (
                 <li key={card.id} className="grid grid-cols-1 min-w-0"><SearchResultCard card={card} query={shelf.query} position={i + 1} /></li>
               ))}
