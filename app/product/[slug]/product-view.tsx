@@ -69,6 +69,8 @@ export async function productMetadata(slug: string): Promise<Metadata> {
   return {
     title,
     description,
+    // ?q=, ?goal= and other variants of a product URL are the same product to a search engine.
+    alternates: { canonical: `/product/${product.slug}` },
     openGraph: { title, description, type: "website" },
     twitter: { card: "summary_large_image", title, description },
   };

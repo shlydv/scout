@@ -9,6 +9,7 @@
     "build": "next build",
     "start": "next start --hostname localhost",
     "lint": "next lint",
+    "cache:check": "tsx scripts/cache-check.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.scripts.json",
     "warm-session": "tsx scripts/00-warm-session.ts",
     "warm-session:zepto": "GROCERY_PLATFORM=zepto tsx scripts/00-warm-session.ts --platform=zepto",

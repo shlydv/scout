@@ -47,11 +47,19 @@ const nextConfig: NextConfig = {
     // A product URL carrying the shopper's goal, diet or shopping context renders per request
     // (app/product/[slug]/live); the plain URL is the cached page. The query string passes through.
     return {
-      beforeFiles: PRODUCT_LIVE_QUERY_KEYS.map((key) => ({
-        source: "/product/:slug",
-        has: [{ type: "query" as const, key }],
-        destination: "/product/:slug/live",
-      })),
+      beforeFiles: [
+        ...PRODUCT_LIVE_QUERY_KEYS.map((key) => ({
+          source: "/product/:slug",
+          has: [{ type: "query" as const, key }],
+          destination: "/product/:slug/live",
+        })),
+        // Claim filters are cached pages per kind (app/insights/claims/kind/[kind]).
+        {
+          source: "/insights/claims",
+          has: [{ type: "query" as const, key: "kind", value: "(?<kind>[a-z_]{1,32})" }],
+          destination: "/insights/claims/kind/:kind",
+        },
+      ],
       afterFiles: [],
       fallback: [],
     };

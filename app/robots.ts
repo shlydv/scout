@@ -20,7 +20,9 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/api/", "/admin/", "/profile", "/basket", "/auth/", "/product/*/live"],
+        // A product URL with a query string (?q=, ?goal=, ?context=…) renders per request and is the
+        // same product as the plain URL, which carries the canonical link.
+        disallow: ["/api/", "/admin/", "/profile", "/basket", "/auth/", "/product/*?"],
       },
       { userAgent: AI_CRAWLERS, disallow: "/" },
     ],

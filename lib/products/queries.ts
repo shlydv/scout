@@ -1,3 +1,5 @@
+import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { resolveProductVerdict } from "@/lib/scoring/verdict-resolve";
 import { canScoreReviewedNutrition } from "@/lib/nutrition/review";
 import type { DietMode } from "@/lib/diet/types";
@@ -1310,6 +1312,36 @@ export async function getAiSearchProductPool(): Promise<ProductListItem[]> {
   return data;
 }
 
+type SwapScope = { usecase: string } | { category: string | null; subcategory: string | null };
+
+/**
+ * Scored rows of one aisle: its L3 use case, else its category and subcategory. Every product in the
+ * aisle asks for the same rows (about 0.3 MB for 180), so they are cached for an hour: one database
+ * read per aisle instead of one per product page render.
+ */
+function swapPoolRows(scope: SwapScope, limit: number): Promise<Record<string, unknown>[]> {
+  return unstable_cache(
+    async () => {
+      let query = db()
+        .from("products")
+        .select(`${LIST_FIELDS}, core_scores (${LIST_SCORE_FIELDS})`)
+        .not("core_scores", "is", null)
+        .limit(limit);
+      if ("usecase" in scope) {
+        query = query.eq("l3_category", scope.usecase);
+      } else {
+        if (scope.category) query = query.eq("category", scope.category);
+        if (scope.subcategory) query = query.eq("subcategory", scope.subcategory);
+      }
+      const { data, error } = await query;
+      if (error) throw new Error(error.message);
+      return (data ?? []) as Record<string, unknown>[];
+    },
+    ["swap-pool-v1", JSON.stringify(scope), String(limit)],
+    { revalidate: 3600, tags: ["swap-pool"] },
+  )();
+}
+
 /** Same L3 use-case pool for PDP swaps and “more in this aisle”. */
 export async function getProductsForSwaps(
   current: Pick<
@@ -1319,26 +1351,14 @@ export async function getProductsForSwaps(
   limit = 200,
 ): Promise<ProductListItem[]> {
   const usecase = productUsecase(current);
-  const supabase = db();
-  let query = supabase
-    .from("products")
-    .select(`${LIST_FIELDS}, core_scores (${LIST_SCORE_FIELDS})`)
-    .not("core_scores", "is", null)
-    .neq("id", current.id)
-    .limit(limit);
-
-  if (usecase) {
-    query = query.eq("l3_category", usecase);
-  } else {
-    const aisle = current.category ?? current.super_category;
-    if (aisle) query = query.eq("category", aisle);
-    if (current.subcategory?.trim()) query = query.eq("subcategory", current.subcategory.trim());
-  }
-
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-  const rows = (data ?? [])
-    .map((row) => mapListRow(row as Record<string, unknown>))
+  const scope: SwapScope = usecase
+    ? { usecase }
+    : { category: current.category ?? current.super_category ?? null, subcategory: current.subcategory?.trim() || null };
+  // One extra row so that dropping the current product still leaves `limit`, as `id <> current` did.
+  const rows = (await swapPoolRows(scope, limit + 1))
+    .filter((row) => row.id !== current.id)
+    .slice(0, limit)
+    .map((row) => mapListRow(row))
     .filter(isCatalogVisible);
   if (usecase) {
     return rows.filter((p) => productMatchesUsecase(p, usecase));
@@ -1377,7 +1397,12 @@ async function listRowsBySlug(slugs: string[]): Promise<ProductListItem[]> {
   return (data ?? []).map((row) => mapListRow(row as Record<string, unknown>));
 }
 
-export async function getProductBySlug(slug: string): Promise<ProductDetail | null> {
+/**
+ * One product with its scores. Wrapped in React's per-request cache, so the page and its metadata share
+ * one database read. raw_payload (the scraped source JSON, the table's largest column) is not fetched:
+ * nothing on the site reads it.
+ */
+export const getProductBySlug = cache(async function getProductBySlug(slug: string): Promise<ProductDetail | null> {
   const supabase = db();
 
   const { data, error } = await supabase
@@ -1386,7 +1411,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
       `
       id, zepto_sku, slug, name, brand, super_category, category, subcategory,
       net_weight, price_inr, mrp_inr, image_urls, product_url, barcode,
-      ingredients_raw, nutrition, attributes, raw_payload, scraped_at, updated_at,
+      ingredients_raw, nutrition, attributes, scraped_at, updated_at,
       platform, ocr_status, ocr_image_url,
       core_scores (product_id, score, grade, band, subscores, concerns, breakdown, rule_version, computed_at, ${DETAIL_SCORE_FIELDS})
     `,
@@ -1431,7 +1456,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
     ingredients_raw: (row.ingredients_raw as string | null) ?? null,
     nutrition: (row.nutrition as ProductNutrition | null) ?? null,
     attributes: publicAttributes(row.attributes),
-    raw_payload: (row.raw_payload as Record<string, unknown> | null) ?? null,
+    raw_payload: null, // not selected; see above
     scraped_at: row.scraped_at as string,
     updated_at: row.updated_at as string,
     platform: (row.platform as string | null) ?? null,
@@ -1440,7 +1465,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
     ocr_image_url: (row.ocr_image_url as string | null) ?? null,
     core_scores: core,
   };
-}
+});
 
 /** Real product for homepage hero — prefer a scored snack with nutrition. */
 export async function getFeaturedSample(): Promise<ProductListItem | null> {
