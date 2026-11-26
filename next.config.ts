@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { PRODUCT_LIVE_QUERY_KEYS } from "./lib/products/live-query";
 
 const nextConfig: NextConfig = {
   // /shelves waits for all twelve shelves; on a cold cache that is twelve planned searches,
@@ -41,6 +42,19 @@ const nextConfig: NextConfig = {
       // The shelves index is the home page's shelves section; each shelf keeps its own page.
       { source: "/shelves", destination: "/#shelves", permanent: true },
     ];
+  },
+  async rewrites() {
+    // A product URL carrying the shopper's goal, diet or shopping context renders per request
+    // (app/product/[slug]/live); the plain URL is the cached page. The query string passes through.
+    return {
+      beforeFiles: PRODUCT_LIVE_QUERY_KEYS.map((key) => ({
+        source: "/product/:slug",
+        has: [{ type: "query" as const, key }],
+        destination: "/product/:slug/live",
+      })),
+      afterFiles: [],
+      fallback: [],
+    };
   },
   images: {
     unoptimized: true,
