@@ -122,7 +122,8 @@ function recommendationsHarness() {
       assert.deepEqual(Array.from(opts.productIds), ["rice", "wheat", "cross-contact", "unknown"]);
       return { items: [item("rice"), item("wheat", { present: ["gluten_source"] }), item("cross-contact", { may_contain: ["gluten_source"] }), item("unknown", { unknown: ["gluten_source"] })].map(i => confirm(i, p, p.numeric)) };
     } },
-    "@/lib/search/planned/plan": { planQuery: async () => { throw new Error("offline"); } },
+    "@/lib/search/planned/plan": { plannerFingerprint: () => "fp", planQuery: async () => { throw new Error("the product page must not call the planner"); } },
+    "@/lib/search/planned/plan-cache": { planCacheKey: () => "key", getCachedPlan: async () => null },
     "@/lib/search/planned/vocabulary": { loadVocabulary: async () => ({}) },
     "@/lib/search/planned/verify": { verifyInChunks: async (_q: string, _p: SearchPlan, items: PlannedItem[]) => { if (failVerifier) throw new Error("offline"); return { verdicts: new Map(items.map(i => [i.product_id, { v: "good" }])) }; } },
     "./context": { createShoppingContext, readShoppingContext },
@@ -139,7 +140,7 @@ test("PDP and swap candidate pools recheck current facts and strict cross-contac
   h.fail();
   assert.equal((await h.api.filterShoppingCandidates(pool, context)).length, 0, "verifier failure cannot leak alternatives");
 });
-test("invalid, expired and failed legacy query context suppress alternatives without a DB fallback", async () => {
+test("invalid, expired and uncached legacy query context suppress alternatives without a DB fallback", async () => {
   const h = recommendationsHarness();
   for (const context of [await h.api.resolveShoppingContext("forged"), await h.api.resolveShoppingContext(createShoppingContext("celiac", plan(), 0)), await h.api.resolveShoppingContext(null, "celiac cookies")]) {
     assert.equal((await h.api.filterShoppingCandidates(pool, context)).length, 0);

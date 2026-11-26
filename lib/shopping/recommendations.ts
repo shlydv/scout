@@ -1,7 +1,8 @@
 import type { ProductListItem } from "@/lib/products/queries";
 import { searchSql } from "@/lib/search/planned/db";
 import { executePlan } from "@/lib/search/planned/execute";
-import { planQuery } from "@/lib/search/planned/plan";
+import { plannerFingerprint } from "@/lib/search/planned/plan";
+import { getCachedPlan, planCacheKey } from "@/lib/search/planned/plan-cache";
 import { loadVocabulary } from "@/lib/search/planned/vocabulary";
 import { verifyInChunks } from "@/lib/search/planned/verify";
 import { createShoppingContext, readShoppingContext, type ShoppingContext } from "./context";
@@ -9,7 +10,7 @@ import { lockRequirements, preserveRequirements, sensitiveRequest } from "./poli
 
 export type ResolvedShoppingContext = { active: boolean; token?: string; value?: ShoppingContext; blocked?: boolean };
 
-/** Old q-only product URLs are re-planned on the server; invalid tokens fail closed. */
+/** Old q-only product URLs reuse the search's cached plan for that query; invalid tokens and uncached queries fail closed. */
 export async function resolveShoppingContext(token?: string | null, query?: string | null): Promise<ResolvedShoppingContext> {
   if (token?.startsWith("[")) {
     try {
@@ -50,7 +51,14 @@ export async function resolveShoppingContext(token?: string | null, query?: stri
   }
   if (!query?.trim()) return { active: false };
   try {
-    const { plan, dropped } = await planQuery(query.slice(0, 1000), await loadVocabulary(searchSql()));
+    // Never call the planner from a product page: it is an LLM call per view, and anyone can make up
+    // queries (crawlers still request old ?q= links). The plan search stored for this query is reused;
+    // without one the page fails closed, as it does for an invalid token.
+    const sql = searchSql();
+    const q = query.slice(0, 1000);
+    const cached = await getCachedPlan(sql, planCacheKey(q, null, plannerFingerprint(await loadVocabulary(sql))));
+    if (!cached) return { active: true, blocked: true };
+    const { plan, dropped } = cached;
     if (dropped.some(x => /^(concept|claim|numeric):/.test(x))) return { active: true, blocked: true };
     const safePlan = lockRequirements(preserveRequirements(plan, query), query);
     const signed = createShoppingContext(query, safePlan);
